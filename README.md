@@ -7,12 +7,12 @@ A criança controla um boneco de blocos numa **cidade central**. Os **portais** 
 | Mundo | Capítulo | Jogos |
 |---|---|---|
 | Obby das Contas | Adição e subtração | Obby sobre o mar, Estoura-Balão (tiro), Kart das Contas |
-| Corrida dos Números | A ordem dos números | Corrida dos cubos, Chão de Lava, Kart dos Números |
-| Vila das Posições | Vocabulário fundamental | Circular, pular e pintar (inclui direita/esquerda e na frente/atrás); O Mestre Mandou |
+| Corrida dos Números | A ordem dos números | Corrida dos cubos, Chão de Lava |
+| Vila das Posições | Vocabulário fundamental | Circular, pular e pintar (inclui direita/esquerda e na frente/atrás); O Mestre Mandou (ordens de 1 a 3 passos, pega-pega, esconde-esconde) |
 | Fazenda do 10 | Números até 10 | Pintar, levar ao cesto, padrões, gráfico de colunas, "certeza, talvez, impossível"; Ajude os Amigos (dividir) |
 | Parque das Formas | Figuras geométricas | Caça às Formas, Tiro às Formas |
 | Mercadinho | Nosso dinheiro | Pagar, troco, caixa; Atenda os Clientes |
-| Torre do 100 | Números até 39 e até 100 | Dezenas e unidades, quadro do 100, Chão de Lava, Kart do 100 |
+| Torre do 100 | Números até 39 e até 100 | Dezenas e unidades, quadro do 100, Chão de Lava |
 | Oficina das Medidas | Grandezas e medidas | Lápis, prédios, copos, balança; Construa a Escada |
 
 ## Recursos
@@ -24,7 +24,10 @@ A criança controla um boneco de blocos numa **cidade central**. Os **portais** 
 - Cada resposta é registrada por **habilidade** (por exemplo, "calcular o troco"). O que a criança erra **volta nas rodadas seguintes**, até ela acertar duas vezes de primeira.
 - **Estrelas e moedas de bônus acompanham os acertos de primeira**: 3 estrelas com tudo certo (rodadas de 6 ou mais perguntas aceitam um erro), 2 com 60% e 1 com 30%.
 - Depois de dois erros, o jogo **mostra a resposta pronta** (inclusive no cesto e na divisão entre amigos). Certo e errado têm sempre um **✓ ou ✗**, não só a cor.
-- No Obby, até 20, a placa mostra a conta também em **bolinhas** para contar.
+- No Obby, até 20, a placa mostra a conta também em **bolinhas** para contar. As plataformas têm espaço entre si, placas em pé com cada resposta, uma fileira revelada por vez e um portal no fim que leva de volta ao começo.
+- No Estoura-Balão há uma **mira** no meio da tela: o tiro vai no balão que estiver embaixo dela.
+- **O Mestre Mandou** dá ordens de 1, 2 ou 3 passos (um passo por nível), que precisam ser feitas na ordem: ir a um lugar, pular N vezes, pisar no círculo de uma cor, tocar o sino, dar a volta em algo, pegar e levar um objeto, pegar um amigo (pega-pega), achar um amigo escondido, esconder-se do mestre, fugir do pegador e ficar como estátua. Às vezes a ordem vem sem "O mestre mandou", e aí o certo é não fazer.
+- No **Kart das Contas**, para a frente acelera, para trás freia para pensar, e acertar portões seguidos liga o turbo.
 - O **painel de instruções** de cada jogo pode ser encolhido (toque nele ou no ▴) para ver o cenário inteiro; encolhido, ele abre sozinho por alguns segundos a cada pergunta nova.
 - No Chão de Lava, o botão **"Já sei!"** dispensa a espera do cronômetro, e encostar na lava antes da hora não tira coração.
 - **Narração** das perguntas em português, com mais tempo para ler antes do cronômetro começar.
