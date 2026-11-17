@@ -567,12 +567,13 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     const r = await page.evaluate(() => {
       const D = __ilhaDebug, S = D.S(), st = D.STM.ordem, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }; D.timeScale = .01; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click();
       const t0 = S.st.ordem ? S.st.ordem.total : 0, c0 = S.coins; D.startMode(st, st.modes[2]); const C = D.CH, far = Math.hypot(D.P.x - st.c.x, D.P.z - st.c.z) > 100, stays = (run(30), D.P.x);
+      document.querySelector('#b-menu').click(); document.querySelector('#mn-x').click(); D.S().name = 'Outro'; const before = C.kart.parent; D.buildPlayer(); const kartKept = !!C.kart.parent && C.kart.parent !== before;
       C.phase = 'go'; const pass = lane => { const g = C.gates[C.idx]; C.v = 8; C.lat = (lane - 1) * 4; D.P.x = g.x - .3; run(6); };
       const q0 = C.qs[0]; pass((q0.ans + 1) % 3); const afterWrong = [C.idx, C.first, S.coins - c0]; pass(C.qs[1].ans); const afterRight = [C.idx, C.first, S.coins - c0];
       for (let k = 2; k < 5; k++) pass(C.qs[k].ans); C.v = 8; D.P.x = C.endX - .3; run(6);
-      return { far, waitsForStart: Math.abs(stays - (C.x0 + 8)) < .01, afterWrong, afterRight, records: S.st.ordem.total - t0, ended: !D.CH, home: Math.hypot(D.P.x - st.c.x, D.P.z - st.c.z) < 20 };
+      return { kartKept, far, waitsForStart: Math.abs(stays - (C.x0 + 8)) < .01, afterWrong, afterRight, records: S.st.ordem.total - t0, ended: !D.CH, home: Math.hypot(D.P.x - st.c.x, D.P.z - st.c.z) < 20 };
     });
-    eq(r, { far: true, waitsForStart: true, afterWrong: [1, 0, 0], afterRight: [2, 1, 2], records: 5, ended: true, home: true }, 'kart race');
+    eq(r, { kartKept: true, far: true, waitsForStart: true, afterWrong: [1, 0, 0], afterRight: [2, 1, 2], records: 5, ended: true, home: true }, 'kart race');
     await page.waitForSelector('.result h2', { timeout: 6000 });
     eq(await page.evaluate(() => document.querySelector('.result p').textContent), 'Kart dos Números: acertou 4 de 5 de primeira.', 'result line');
     await page.evaluate(() => { __ilhaDebug.timeScale = 1; __ilhaDebug.closeSheet(); });
