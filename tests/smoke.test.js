@@ -35,7 +35,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
 (async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/`;
-  const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
   const errors = [], foreign = [];
 
   /* Opens the game in a fresh browser profile, answers the first-run tutorial and turns the narration off (faster rounds). */
@@ -784,13 +784,40 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       out.cast = [men.every(n => /Daniel|Antonio|Fabio/.test(cast[n])), women.every(n => /Maria|Francisca|Thalita/.test(cast[n])), new Set(men.slice(0, 3).map(n => cast[n])).size, new Set(women.slice(0, 3).map(n => cast[n])).size, names.some(n => /Google/.test(cast[n]))];
       /* voices with names the game does not know are still shared out, so the characters do not all sound the same */
       set(['Voz A', 'Voz B', 'Voz C']); out.unknown = new Set(names.map(n => say(n)[1])).size;
+      /* with as many unknown voices as characters, every character gets one of their own (men and women draw from the same voices) */
+      set(names.map((_, i) => 'Voz ' + i)); out.each = new Set(names.map(n => say(n)[1])).size; set(['Microsoft Daniel', 'Voz A', 'Voz B']); out.mixed = [say('Seu Zé')[1], new Set(names.slice(0, 3).map(n => say(n)[1])).size]; set(['Voz A', 'Voz B', 'Voz C']);
       return out; });
-    eq(r, { one: [13, 13, 1, '1/0.9', false], none: '1/0.9', master: '0.6/0.8', host: true, range: true, cast: [true, true, 3, 3, false], unknown: 3 }, 'voices');
+    eq(r, { one: [13, 13, 1, '1/0.9', false], none: '1/0.9', master: '0.6/0.8', host: true, range: true, cast: [true, true, 3, 3, false], unknown: 3, each: 13, mixed: ['Microsoft Daniel', 3] }, 'voices');
     /* the Voices screen: says how many voices the device has and lets each character be heard */
     await p.evaluate(() => { const D = __ilhaDebug; D.closeSheet(); document.querySelector('#b-menu').click(); document.querySelector('#mn-voz').click(); });
     const scr = await p.evaluate(() => { const info = document.querySelector('#v-info').textContent, items = document.querySelectorAll('.item'); window.__said = null; const ss = window.speechSynthesis, old = ss.speak; ss.speak = u => { window.__said = Math.round(u.pitch * 100) / 100; };
       document.querySelector('.item[data-k="Seu Zé"]').click(); ss.speak = old; return [items.length, /tem 3 vozes/.test(info), window.__said]; });
     eq(scr, [14, true, .5], 'voices screen: narrator and 13 characters, the count of voices, and a sample in the character\'s voice');
+    await p.context().close();
+  });
+
+  await test('my own siuuu: a recording or an audio file replaces the game shout, stays on this device, and can be removed', async () => {
+    const p = await open(1024, 768); await p.context().grantPermissions(['microphone']);
+    /* a short real WAV: 0.25 s of a 440 Hz tone, 8 kHz, 8 bits */
+    const wav = n => { const b = Buffer.alloc(44 + n); b.write('RIFF', 0); b.writeUInt32LE(36 + n, 4); b.write('WAVEfmt ', 8); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(8000, 24); b.writeUInt32LE(8000, 28); b.writeUInt16LE(1, 32); b.writeUInt16LE(8, 34); b.write('data', 36); b.writeUInt32LE(n, 40); for (let i = 0; i < n; i++) b[44 + i] = 128 + Math.round(90 * Math.sin(i * 2 * Math.PI * 440 / 8000)); return b; };
+    const state = () => p.evaluate(() => [document.querySelector('#u-state').textContent, !!__ilhaDebug.siu, (localStorage.getItem('ilha-numeros-siu') || '').slice(0, 10), document.querySelector('#u-play').disabled]);
+    const pick = async file => { const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('#u-file')]); await fc.setFiles(file); };
+    eq(await p.evaluate(() => { document.querySelector('#b-cele').click(); return !!document.querySelector('#c-siu'); }), false, 'no button while the Siuuu is still locked');
+    await p.evaluate(() => { const D = __ilhaDebug; D.closeSheet(); D.finishChallenge(D.STM.formas, 5, 5, 5, 1, null, false, true); document.querySelector('#b-cele').click(); document.querySelector('#c-siu').click(); });
+    eq(await state(), ['Usando o som do jogo.', false, '', true], 'at first');
+    await pick({ name: 'siu.wav', mimeType: 'audio/wav', buffer: wav(2000) }); await p.waitForFunction(() => /seu Siuuu/.test(document.querySelector('#u-state').textContent), null, { timeout: 8000 });
+    eq((await state()).slice(1), [true, 'data:audio', false], 'an audio file is kept on the device');
+    eq(await p.evaluate(() => { let threw = ''; try { __ilhaDebug.celeSnd.siu(); __ilhaDebug.playSiu(); } catch (e) { threw = String(e); } return [threw, document.querySelector('#u-back') ? 1 : 0]; }), ['', 1], 'the celebration sound plays it without error');
+    await p.click('#u-back'); eq(await p.evaluate(() => document.querySelector('#c-siu').textContent), '🎤 Meu Siuuu ✓', 'the list shows there is a sound of your own'); await p.click('#c-siu');
+    await pick({ name: 'foto.mp3', mimeType: 'audio/mpeg', buffer: Buffer.from('isto não é um áudio de verdade, é só texto') }); await p.waitForFunction(() => /não consegue tocar/.test(document.querySelector('#u-state').textContent), null, { timeout: 9000 });
+    eq((await state()).slice(1), [true, 'data:audio', false], 'a file that is not audio is refused, and the old sound stays');
+    await pick({ name: 'longo.wav', mimeType: 'audio/wav', buffer: wav(1600000) }); await p.waitForFunction(() => /grande demais/.test(document.querySelector('#u-state').textContent), null, { timeout: 8000 });
+    eq((await state()).slice(1), [true, 'data:audio', false], 'a file that is too big is refused');
+    await p.click('#u-del'); eq(await state(), ['Pronto: voltou o som do jogo.', false, '', true], 'removed: back to the game sound');
+    /* record from the (fake) microphone: count-down, three seconds, saved */
+    await p.click('#u-rec'); await p.waitForFunction(() => /Gravado/.test(document.querySelector('#u-state').textContent), null, { timeout: 15000 });
+    eq((await state()).slice(1), [true, 'data:audio', false], 'the recording is kept on the device');
+    eq(await p.evaluate(() => JSON.stringify(__ilhaDebug.S()).includes('data:audio')), false, 'and it is not part of the save (nor of the backup)');
     await p.context().close();
   });
 

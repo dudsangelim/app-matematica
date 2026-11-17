@@ -121,6 +121,7 @@ body.fp #toast{pointer-events:none;font-size:17px;padding:8px 14px}
 .btn.gold{background:var(--gold)}
 .btn.icon{padding:12px 14px}
 .btn.big{font-size:26px;min-width:90px}
+.btn:disabled{opacity:.45;box-shadow:0 2px 0 var(--ink)}
 .btns{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 .h2{font-weight:700;font-size:26px;margin:0 0 8px}
 .small{font-size:15px;color:var(--muted)}
@@ -381,7 +382,8 @@ function shout(when,d,base){if(!S.sound||!actx)return;try{const t=actx.currentTi
   const f1=actx.createBiquadFilter(),f2=actx.createBiquadFilter(),g2=actx.createGain();f1.type=f2.type='bandpass';f1.frequency.value=320;f1.Q.value=4;f2.Q.value=7;f2.frequency.setValueAtTime(2300,t);f2.frequency.exponentialRampToValueAtTime(820,t+.28);g2.gain.value=.6;f1.connect(out);f2.connect(g2).connect(out);
   [1,1.5,.75,1.26].forEach((m,i)=>{const o=actx.createOscillator(),g=actx.createGain(),f=base*m;o.type='sawtooth';o.frequency.setValueAtTime(f*.9,t);o.frequency.exponentialRampToValueAtTime(f*1.18,t+.25);o.frequency.exponentialRampToValueAtTime(f*.95,t+d);o.detune.value=(i-1.5)*9;g.gain.value=.16;o.connect(g);g.connect(f1);g.connect(f2);o.start(t);o.stop(t+d+.05)})}catch(e){}}
 const celeSnd={
-  siu(){crowd(1.5,.05);hiss(.14,.06,1.5,4500);shout(1.58,1.25,196);crowd(1.6,.09,1.6)},
+  /* the shout at the landing: the player's own sound when there is one, the game's otherwise */
+  siu(){crowd(1.5,.05);if(siuData&&S.sound){setTimeout(playSiu,1550);crowd(1.6,.06,1.6)}else{hiss(.14,.06,1.5,4500);shout(1.58,1.25,196);crowd(1.6,.09,1.6)}},
   ceu(){crowd(2.8,.07);[523,659,784,1047].forEach((f,i)=>tone(f,2.2,'sine',.035,.2+i*.12))},
   cruzado(){tone(70,.5,'sine',.25,.55,40);hiss(.25,.06,.55,900);crowd(2.6,.08,.5)},
   zen(){tone(1320,1.6,'sine',.05,.3);tone(110,2.8,'sine',.09,.5);tone(165,2.8,'sine',.05,.5);tone(220,2.8,'triangle',.03,.5)},
@@ -423,8 +425,11 @@ function pickVoice(){try{const vs=speechSynthesis.getVoices();ptVoices=vs.filter
 /* deal the voices of the device out to the characters */
 function castVoices(){voiceMap={};if(ptVoices.length<2)return;
   /* the Google voices of desktop Chrome ignore the pitch: they are kept for the narrator when the device has any other */
-  const rest=ptVoices.filter(v=>!/^google/i.test(v.name)),pool=rest.length?rest:ptVoices,men=pool.filter(v=>MASC.test(v.name)&&!FEM.test(v.name)),women=pool.filter(v=>FEM.test(v.name)),other=pool.filter(v=>!men.includes(v)&&!women.includes(v)),n={m:0,f:0};
-  Object.keys(VOICES).forEach(who=>{const g=VOICES[who].g,own=(g==='m'?men:women).concat(other),list=own.length?own:pool;voiceMap[who]=list[n[g]++%list.length]})}
+  const rest=ptVoices.filter(v=>!/^google/i.test(v.name)),pool=rest.length?rest:ptVoices,men=pool.filter(v=>MASC.test(v.name)&&!FEM.test(v.name)),women=pool.filter(v=>FEM.test(v.name)),other=pool.filter(v=>!men.includes(v)&&!women.includes(v)),uses=new Map();
+  /* each character takes the least used of the voices that suit them (their own kind first, then the ones of unknown kind),
+     so no voice is used twice while another one is still free - also when both groups draw from the same unknown voices */
+  const take=list=>{let best=list[0];for(const v of list)if((uses.get(v)||0)<(uses.get(best)||0))best=v;uses.set(best,(uses.get(best)||0)+1);return best};
+  Object.keys(VOICES).forEach(who=>{const own=(VOICES[who].g==='m'?men:women).concat(other);voiceMap[who]=take(own.length?own:pool)})}
 function voiceFor(who){const v=VOICES[who]||NARR;return {pitch:v.p,rate:v.r,voice:voiceMap[who]||ptVoice}}
 /* who is talking when nothing says otherwise: the master in his game, the host of the station in the others, the narrator outside them */
 const speaker=()=>CH?(CH.type==='simon'?'Mestre':CH.st.npc.name):null;
@@ -1320,15 +1325,53 @@ function celeAnim(a,t,k){const L=PL,c=a.ce.k,s=Math.sin,ease=x=>x<=0?0:x>=1?1:x*
   else if(c==='mascara'){const h=ease(k/.15);arms(-2.3*h,.5*h);legs(0,0,-.2*h);L.g.rotation.x=.06*h;L.head.rotation.y=s(t*2)*.25*h}}
 /* key C: the chosen celebration, any time the player is free on the ground (the 🎉 button opens the list to choose from) */
 function celebrate(){if(paused||!PL||(ANIM&&ANIM.lock)||!onGround)return;if(CH){toast('Termine o desafio primeiro. Depois é só comemorar! 🎉',2200);return}playAnim('cele')}
+/* ---- a "siuuu" of your own: a recording from the microphone, or an audio file chosen on the device. It replaces the game's shout in the
+   Siuuu celebration and is kept on this device only (in the browser's storage, outside the save, so it is not in the backup either). ---- */
+const SIU_KEY='ilha-numeros-siu',SIU_MAX=2000000;
+let siuData=null,siuEl=null,siuStop=0;try{siuData=localStorage.getItem(SIU_KEY)||null}catch(e){}
+function setSiu(data){siuEl=null;siuData=data||null;try{if(data)localStorage.setItem(SIU_KEY,data);else localStorage.removeItem(SIU_KEY);return true}catch(e){siuData=null;try{localStorage.removeItem(SIU_KEY)}catch(_){}return false}}
+/* plays it (at most six seconds of it); false when there is none or the sound is off */
+function playSiu(){if(!siuData||!S.sound)return false;try{if(!siuEl)siuEl=new Audio(siuData);siuEl.currentTime=0;const p=siuEl.play();if(p&&p.catch)p.catch(()=>{});clearTimeout(siuStop);siuStop=setTimeout(()=>{try{siuEl&&siuEl.pause()}catch(e){}},6000);return true}catch(e){return false}}
+const readAsData=blob=>new Promise((ok,bad)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result));fr.onerror=()=>bad(new Error('read'));fr.readAsDataURL(blob)});
+/* can the browser play it? (a picture renamed to .mp3, or a format this browser does not know, must not be saved) */
+const playable=data=>new Promise(ok=>{const a=new Audio();let done=false;const end=v=>{if(!done){done=true;ok(v)}};a.onloadedmetadata=()=>end(true);a.onerror=()=>end(false);setTimeout(()=>end(false),5000);a.src=data});
+function recordFrom(stream,ms){return new Promise((ok,bad)=>{const chunks=[],rec=new MediaRecorder(stream),off=()=>stream.getTracks().forEach(t=>t.stop());
+  rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};rec.onerror=()=>{off();bad(new Error('rec'))};
+  rec.onstop=()=>{off();readAsData(new Blob(chunks,{type:rec.mimeType||'audio/webm'})).then(ok,bad)};rec.start();setTimeout(()=>{if(rec.state==='recording')rec.stop()},ms)})}
+function openSiu(msg){const has=!!siuData,wait=ms=>new Promise(r=>setTimeout(r,ms));
+  openSheet(`<div class="quiz"><div class="h2">🎤 Meu Siuuu</div>
+    <p class="small">Grave o seu grito ou escolha um áudio do aparelho. Ele toca na comemoração <b>Siuuu!</b> e fica guardado <b>só neste aparelho</b>.</p>
+    <div class="pass ${has?'on':'off'}" id="u-state" style="margin:0;align-self:stretch">${msg||(has?'✅ Usando <b>o seu som</b>.':'Usando o som do jogo.')}</div>
+    <div class="btns"><button class="btn gold" id="u-rec">🎤 Gravar (3 segundos)</button><button class="btn" id="u-file">📁 Escolher áudio</button></div>
+    <div class="btns"><button class="btn" id="u-play"${has?'':' disabled'}>▶ Ouvir</button><button class="btn" id="u-del"${has?'':' disabled'}>🗑️ Voltar ao som do jogo</button><button class="btn" id="u-back">Voltar</button></div></div>`);
+  const st=$('#u-state'),here=()=>document.body.contains(st)&&!$('#ov').hidden,lock=on=>$$('.quiz .btn').forEach(b=>{if(b.id!=='u-back')b.disabled=on});
+  const keep=async(data,okMsg)=>{if(!data||data.length>SIU_MAX)return openSiu('Esse áudio é grande demais. Escolha um curtinho, de poucos segundos.');
+    const good=await playable(data);if(!here())return;if(!good)return openSiu('Este navegador não consegue tocar esse arquivo. Tente outro áudio (MP3, por exemplo).');
+    if(!setSiu(data))return openSiu('Não coube na memória do aparelho. Tente um áudio mais curto.');openSiu(okMsg);playSiu()};
+  $('#u-back').onclick=()=>{sfx.tap();openCeles()};
+  $('#u-play').onclick=()=>{if(!playSiu())toast(S.sound?'Ainda não há um som seu.':'Os efeitos de som estão desligados (🔊).',2400)};
+  $('#u-del').onclick=()=>{sfx.tap();setSiu(null);openSiu('Pronto: voltou o som do jogo.')};
+  $('#u-file').onclick=()=>{const inp=document.createElement('input');inp.type='file';inp.accept='audio/*';
+    inp.onchange=async()=>{const f=inp.files&&inp.files[0];if(!f||!here())return;if(f.size>SIU_MAX*.72)return openSiu('Esse áudio é grande demais. Escolha um curtinho, de poucos segundos.');
+      lock(true);st.innerHTML='Lendo o áudio...';try{await keep(await readAsData(f),'✅ Pronto! Este áudio é o seu Siuuu.')}catch(e){openSiu('Não consegui ler esse arquivo. Tente outro.')}};inp.click()};
+  $('#u-rec').onclick=async()=>{lock(true);let stream=null;
+    try{if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder)throw {name:'NoRecorder'};
+      stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      for(const n of [3,2,1]){if(!here())throw {name:'Left'};st.innerHTML=`Prepare-se... <b>${n}</b>`;sfx.tick();await wait(700)}
+      if(!here())throw {name:'Left'};st.innerHTML='🔴 <b>Gravando: grite SIUUUU!</b>';const s2=stream;stream=null;const data=await recordFrom(s2,3000);
+      if(here())await keep(data,'✅ Gravado! Este é o seu Siuuu.')}
+    catch(e){if(stream)stream.getTracks().forEach(t=>t.stop());if(e&&e.name==='Left')return;
+      openSiu(e&&(e.name==='NotAllowedError'||e.name==='SecurityError')?'O navegador não deixou usar o microfone. Permita o microfone para este site e tente de novo.':e&&(e.name==='NoRecorder'||e.name==='NotFoundError')?'Não achei um microfone que o navegador possa usar. Use "Escolher áudio".':'Não consegui gravar. Confira o microfone e tente de novo.')}}}
 /* The list of celebrations. It opens from the 🎉 button, from the Menu and as a tab of the shop. Choosing one closes the list and plays it;
    in the middle of a challenge it is only chosen (it plays when the round ends). */
 function openCeles(fromShop){if(camMode!=='cele')camMode='front';
   openSheet(`<div class="shop-h"><span class="h2">${fromShop?'🛍️ Loja':'🎉 Comemorações'}</span><span class="chip" style="background:var(--ink)">${fromShop?'🎉 ':''}${S.celes} de ${CELES.length}</span><button class="xbtn" id="s-x" aria-label="Fechar">✕</button></div>
     <div class="pass on" id="c-how">Toque em uma para <b>escolher</b>. Cada <b>medalha nova</b> (ou taça) libera mais uma, e a escolhida aparece no fim de cada rodada.</div>
     ${fromShop?`<div class="tabs">${TABS.map(([k,l])=>`<button class="tab${k==='cele'?' on':''}" data-t="${k}">${l}</button>`).join('')}</div>`:''}
+    ${S.celes>0?`<div class="btns" style="justify-content:flex-start;padding:0 14px 10px"><button class="btn" id="c-siu">🎤 Meu Siuuu${siuData?' ✓':''}</button></div>`:''}
     <div class="items">${[{k:'',n:'Dança da vitória',who:'A de sempre',e:'🕺'},...CELES].map((c,i)=>{const open=i<=S.celes,eq=S.cele===c.k;
       return `<button class="item${eq?' eq':''}${open?'':' poor'}" data-k="${c.k}"><span class="pv">${open?c.e:'🔒'}</span><span>${c.n}</span><small>${c.who}</small><span class="st">${eq?'Escolhida ✓':open?'Escolher':'Bloqueada'}</span></button>`}).join('')}</div>`,fromShop?'bottom':'');
-  $('#s-x').onclick=()=>{sfx.tap();closeSheet()};
+  $('#s-x').onclick=()=>{sfx.tap();closeSheet()};if($('#c-siu'))$('#c-siu').onclick=()=>{sfx.tap();openSiu()};
   $$('.tab').forEach(b=>b.onclick=()=>{sfx.tap();shopTab=b.dataset.t;shopY=0;renderShop()});
   $$('.item').forEach(b=>b.onclick=()=>{const k=b.dataset.k,i=CELES.findIndex(c=>c.k===k),c=CELES[i];
     if(i>=S.celes){sfx.bad();shake(b);const left=i-S.celes+1;toast(`🔒 ${left>1?'Faltam':'Falta'} <b>${left}</b> ${left>1?'medalhas novas':'medalha nova'} para liberar esta.`,3200);return}
@@ -2217,7 +2260,7 @@ function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math
   if(autoQual&&QUAL>0&&!document.hidden){if(raw>1){qN=0;qT=0}else{qT+=raw;qN++;if(qT>=2.5){if(T>3&&qN/qT<27)setQuality(QUAL-1);qN=0;qT=0}}}
   updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();breakCheck(dt);renderer.render(scene,camera)}
 function boot(){if(S.lite)setQuality(0);resize();buildPlayer();hud();STATIONS.forEach(updateSign);updateHall();camera.position.set(P.x,P.y+5,P.z+10);requestAnimationFrame(tick);if(!S.tut)openTut()}
-window.__ilhaDebug={CAT,buyQ,speak,pickVoice,openVoices,camera,SCOPE,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
+window.__ilhaDebug={CAT,buyQ,speak,pickVoice,openVoices,openSiu,playSiu,get siu(){return siuData},camera,SCOPE,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
   aim:()=>CH&&CH.type==='shoot'?aimBalloon():null,set pitch(v){pitch=v},step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateCam(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
 const fontsReady=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('400 20px Andika')]):Promise.resolve();
 Promise.race([fontsReady,new Promise(r=>setTimeout(r,1800))]).then(()=>{OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));boot()}).catch(boot);
