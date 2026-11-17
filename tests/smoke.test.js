@@ -24,6 +24,7 @@ function serve() {
 
 const results = [];
 async function test(name, fn) {
+  if (process.env.ONLY && !name.includes(process.env.ONLY)) return;
   const t0 = Date.now();
   try { await fn(); results.push({ name, ok: true }); console.log(`  ok    ${name} (${Date.now() - t0} ms)`); }
   catch (e) { results.push({ name, ok: false }); console.log(`  FAIL  ${name}\n        ${String(e && e.message || e).split('\n').join('\n        ')}`); }
@@ -139,11 +140,11 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     const r = await page.evaluate(() => {
       const D = __ilhaDebug, st = D.STM.n10; let guard = 0; D.S().st.n10.level = 1;
       do { D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[0]); } while (D.CH.q.verb !== 'carry' && ++guard < 200);
-      const pad = D.CH.pads.pronto, away = D.L2W(st, -6, 5), walk = p => { D.P.set(p.x, 0, p.z); for (let i = 0; i < 5; i++) D.step(1 / 60); };
-      walk(pad); walk(away); const afterFirst = D.CH.tries; walk(pad);
-      return { verb: D.CH.q.verb, afterFirst, locked: D.CH.locked, ok: D.CH.q.check(D.CH.basket.items.map(o => o.v)), owed: (D.S().sk[D.CH.skill] || {}).w };
+      const pad = D.CH.pads.pronto, away = D.L2W(st, -6, -3), walk = p => { D.P.set(p.x, 0, p.z); for (let i = 0; i < 5; i++) D.step(1 / 60); };
+      walk(away); walk(pad); const ignored = D.CH.tries === 0; walk(D.CH.items[0]); walk({ x: D.CH.basket.x - 1.9, z: D.CH.basket.z }); walk(away); walk(pad); walk(away); const afterFirst = D.CH.tries; walk(pad);
+      return { verb: D.CH.q.verb, ignored, afterFirst, locked: D.CH.locked, ok: D.CH.q.check(D.CH.basket.items.map(o => o.v)), owed: (D.S().sk[D.CH.skill] || {}).w };
     });
-    eq(r, { verb: 'carry', afterFirst: 1, locked: true, ok: true, owed: 2 }, 'state after two wrong checks');
+    eq(r, { verb: 'carry', ignored: true, afterFirst: 1, locked: true, ok: true, owed: 2 }, 'PRONTO with an empty basket is ignored; then state after two wrong checks');
   });
 
   await test('obby: two wrong platforms and then the right one count as one question', async () => {
@@ -228,6 +229,57 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.context().close();
   });
 
+  await test('friend riddle in the city can always be closed, also after two wrong answers', async () => {
+    const p = await open(1024, 768);
+    for (let round = 0; round < 6; round++) {
+      await p.evaluate(() => { const D = __ilhaDebug, f = D.FRIENDS[0]; f.cool = 0; D.closeSheet(); D.P.set(f.x + 1.2, 0, f.z); for (let i = 0; i < 3; i++) D.step(1 / 60); });
+      await p.waitForSelector('#b-act:not([hidden])'); await p.click('#b-act', { force: true }); await p.waitForSelector('.quiz .btn.big');
+      for (let k = 0; k < 2; k++) { const b = await p.$('.quiz .btn.big:not([disabled])'); if (!b) break; await b.click(); }
+      await p.waitForSelector('#q-x', { timeout: 3000 }); await p.click('#q-x');
+      assert(await p.evaluate(() => document.querySelector('#ov').hidden), 'the sheet did not close');
+    }
+    await p.context().close();
+  });
+
+  await test('floor is lava: a wrong tile at the end of the time costs exactly one heart and the round goes on', async () => {
+    await enter(page, 'n100');
+    const r = await page.evaluate(async () => {
+      const D = __ilhaDebug, st = D.STM.n100; D.timeScale = .01; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[1]);
+      const C = D.CH, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, bad = C.tiles.find(t => !t.ok), good = C.tiles.find(t => t.ok), q0 = C.q;
+      C.phase = 'play'; D.P.set(bad.p.cx, 1, bad.p.cz); run(30); C.time = 0; run(2); const afterTime = [C.hearts, C.locked, C.phase];
+      D.P.set(good.p.cx, 1, good.p.cz); run(30); const lava = D.L2W(st, 4.85, 1.85); D.P.set(lava.x, 0, lava.z); run(6); const afterLava = C.hearts;
+      await new Promise(r => setTimeout(r, 400)); run(2);
+      return { afterTime, afterLava, idx: C.idx, moved: C.q !== q0 };
+    });
+    eq(r, { afterTime: [2, true, 'resolve'], afterLava: 2, idx: 1, moved: true }, 'hearts, lock and phase when the time ends; hearts after touching lava; next question');
+    await page.evaluate(() => { __ilhaDebug.timeScale = 1; document.querySelector('#m-quit').click(); });
+  });
+
+  await test('shapes hunt: starting again while still touching a shape does not count as an answer', async () => {
+    await enter(page, 'formas');
+    const r = await page.evaluate(() => {
+      const D = __ilhaDebug, st = D.STM.formas, out = []; D.S().st.formas.level = 1;
+      for (const sh of D.SHAPES.filter(s => !s.flat)) { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.P.set(sh.x + sh.r + .5, 0, sh.z); for (let i = 0; i < 5; i++) D.step(1 / 60); D.startMode(st, st.modes[0]); for (let i = 0; i < 20; i++) D.step(1 / 60); out.push(D.CH.tries + D.CH.idx); }
+      return out;
+    });
+    eq(r, r.map(() => 0), 'tries + answered questions right after each restart');
+    await page.evaluate(() => document.querySelector('#m-quit').click());
+  });
+
+  await test('painting one tile: crossing a neighbour does not answer, standing on the right one does', async () => {
+    await enter(page, 'vocab');
+    const r = await page.evaluate(() => {
+      const D = __ilhaDebug, st = D.STM.vocab, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }; let g = 0; D.S().st.vocab.level = 2;
+      do { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[0]); } while (!(D.CH.q.verb === 'paint' && !D.CH.q.multi) && ++g < 300);
+      const C = D.CH, wrong = C.targets.find(t => t.i !== C.q.ans), right = C.targets[C.q.ans], off = D.L2W(st, -6, -6);
+      D.P.set(C.buckets[0].x, 0, C.buckets[0].z); run(6); D.P.set(wrong.x, .4, wrong.z); run(18); D.P.set(off.x, 0, off.z); run(6);
+      const crossing = [C.tries, C.locked]; D.P.set(right.x, .4, right.z); run(60);
+      return { verb: C.q.verb, crossing, locked: C.locked, tries: C.tries, first: C.first };
+    });
+    eq(r, { verb: 'paint', crossing: [0, false], locked: true, tries: 0, first: 1 }, 'after crossing a wrong tile, then after standing on the right one');
+    await page.evaluate(() => document.querySelector('#m-quit').click());
+  });
+
   await test('camera keys Q and R stop turning the camera when released', async () => {
     await page.evaluate(() => __ilhaDebug.closeSheet());
     await page.keyboard.down('q'); await page.waitForTimeout(150); await page.keyboard.up('q'); await page.waitForTimeout(150);
@@ -308,11 +360,11 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await enter(page, 'dinheiro');
     const r = await page.evaluate(() => {
       const D = __ilhaDebug, st = D.STM.dinheiro; D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[1]);
-      const pad = D.CH.pads.pronto, away = D.L2W(st, -6, 0), walk = p => { D.P.set(p.x, 0, p.z); for (let i = 0; i < 5; i++) D.step(1 / 60); };
-      walk(pad); walk(away); walk(pad);
-      return { tries: D.CH.tries, locked: D.CH.locked, ok: D.CH.q.check(D.CH.friends.map(f => f.items.map(o => o.v))) };
+      const pad = D.CH.pads.pronto, away = D.L2W(st, -4.8, 0), walk = p => { D.P.set(p.x, 0, p.z); for (let i = 0; i < 5; i++) D.step(1 / 60); };
+      walk(away); walk(pad); const ignored = D.CH.tries === 0; walk(D.CH.items[0]); walk(D.CH.friends[0]); walk(away); walk(pad); walk(away); walk(pad);
+      return { ignored, tries: D.CH.tries, locked: D.CH.locked, ok: D.CH.q.check(D.CH.friends.map(f => f.items.map(o => o.v))) };
     });
-    eq(r, { tries: 2, locked: true, ok: true }, 'state after two wrong checks');
+    eq(r, { ignored: true, tries: 2, locked: true, ok: true }, 'PRONTO with nothing delivered is ignored; then state after two wrong checks');
     await page.evaluate(() => document.querySelector('#m-quit').click());
   });
 
@@ -384,6 +436,96 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         await page.evaluate(() => { const D = __ilhaDebug; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); });
       }
     }
+  });
+
+  /* Plays one whole round without a single mistake, the way a careful child would, and returns what the result sheet says.
+     The waits between questions are sped up (timeScale); everything else is the real game. */
+  async function perfectRound(pg, id, mi, level) {
+    await enter(pg, id);
+    await pg.evaluate(([id, mi, level]) => { const D = __ilhaDebug, st = D.STM[id], S = D.S(); D.timeScale = .01; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click();
+      S.st[id] = S.st[id] || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; S.st[id].level = level; window.__missed = new Set(); D.startMode(st, st.modes[mi]); }, [id, mi, level]);
+    for (let guard = 0; guard < 600; guard++) {
+      const done = await pg.evaluate(() => {
+        const D = __ilhaDebug, C = D.CH;
+        if (!C) return !document.querySelector('#ov').hidden && !!document.querySelector('.result h2');
+        const st = C.st, L = (A, B) => D.L2W(st, A, B), run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); };
+        const go = (x, z, y) => { D.P.set(x, y || 0, z); run(12); };
+        if (C.tries > 0) (window.__missed = window.__missed || new Set()).add(`${C.skill || (C.qs && C.qs[C.idx] && C.qs[C.idx].skill)} (${C.q && C.q.verb || C.type}): ${String(C.q && C.q.text || (C.qs && C.qs[C.idx] && C.qs[C.idx].text) || '').replace(/<[^>]+>/g, '').slice(0, 90)} >> ${document.querySelector('#toast').textContent.slice(0, 70)}`);
+        if (C.type === 'build' && C.chest) { go(C.chest.x, C.chest.z, C.chest.y + .2); return false; }
+        if (C.locked) return false;
+        if (C.type === 'obby') { const pl = D.PLATS.find(x => x.row === C.row && x.correct); go(pl.cx, pl.cz, .05); }
+        else if (C.type === 'order') { const q = C.cubes.find(q => !q.taken && q.n === C.seq[C.idx]); go(q.x, q.z); }
+        else if (C.type === 'shapes') { const q = C.qs[C.idx], sh = D.SHAPES.find(x => x.n === q.n); go(st.spawn.x, st.spawn.z); go(sh.x + (sh.flat ? 0 : sh.r + .5), sh.z); }
+        else if (C.type === 'shoot') { const b = C.balloons.find(b => b.alive && b.it.ok); if (b) { D.yaw = Math.atan2(D.P.x - b.x, D.P.z - b.z); run(24); D.fire(); for (let i = 0; i < 90 && b.alive; i++) D.step(1 / 60); } }
+        else if (C.type === 'floor') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const t = C.tiles.find(t => t.ok); go(t.p.cx, t.p.cz, 1); run(20); document.querySelector('#b-sure').click(); run(3); }
+        else if (C.type === 'simon') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const k = C.q.k;
+          if (k === 'cima') { const pl = D.PLATS.find(p => p.bloco); go(pl.cx, pl.cz, 1.3); run(20); }
+          else { const w = { dentro: [11, 7], embaixo: [2, -6], perto: [10, -5.5], longe: [-4, 8], entre: [2, 8], fora: [11, 3] }[k], p = L(w[0], w[1]); go(p.x, p.z); }
+          document.querySelector('#b-sure').click(); run(3); }
+        else if (C.type === 'share') { C.q.sol.forEach((ix, i) => { ix.forEach(j => { const o = C.items[j]; go(o.x, o.z); }); const f = C.friends[i]; go(f.x, f.z); }); const a = L(-6, 0); go(a.x, a.z); go(C.pads.pronto.x, C.pads.pronto.z); }
+        else if (C.type === 'build') { let need = C.q.sol - C.steps.length; for (const o of C.items) { if (need <= 0) break; if (o.state === 'ground') { go(o.x, o.z); need--; } } const a = L(-6, 6); go(a.x, a.z); go(C.pads.put.x, C.pads.put.z); go(a.x, a.z); go(C.pads.pronto.x, C.pads.pronto.z); }
+        else if (C.type === 'act') { const q = C.q, off = L(-6, -6);
+          if (q.verb === 'jump') { const t = C.targets[q.ans]; D.P.set(t.x, 1.4, t.z); for (let i = 0; i < 60 && !C.locked; i++) D.step(1 / 60); }
+          else if (q.verb === 'circle') { const t = C.targets[q.ans]; for (let k = 0; k <= 48 && !C.locked; k++) { const a = k / 40 * 2 * Math.PI; D.P.set(t.x + Math.cos(a) * t.R, 0, t.z + Math.sin(a) * t.R); D.step(1 / 60); } }
+          else if (q.verb === 'paint') { go(C.buckets[0].x, C.buckets[0].z); for (const i of (q.multi ? q.sol : [q.ans])) { const t = C.targets.find(t => t.i === i); go(off.x, off.z); go(t.x, t.z, .4); if (!q.multi) run(50); } if (q.multi) { go(off.x, off.z); go(C.pads.pronto.x, C.pads.pronto.z); } }
+          else { q.solIdx.forEach((i, k) => { const o = C.items[i]; go(o.x, o.z); if (k % 8 === 7) go(C.basket.x - 1.9, C.basket.z); }); go(C.basket.x - 1.9, C.basket.z); go(off.x, off.z + 12); go(C.pads.pronto.x, C.pads.pronto.z); } }
+        return false;
+      });
+      if (done) break;
+      await pg.waitForTimeout(25);
+    }
+    return pg.evaluate(id => { const S = __ilhaDebug.S(), h = document.querySelector('.result h2'); if (!h) return { error: 'the round never reached the result sheet', type: __ilhaDebug.CH && __ilhaDebug.CH.type, skill: __ilhaDebug.CH && __ilhaDebug.CH.skill, tries: __ilhaDebug.CH && __ilhaDebug.CH.tries };
+      const out = { missed: [...(window.__missed || [])], stars: document.querySelectorAll('.bigstars span:not(.off)').length, line: document.querySelector('.result p').textContent, level: S.st[id].level, trophy: S.trophies[id] || 0 }; __ilhaDebug.closeSheet(); return out; }, id);
+  }
+
+  await test('a round played without mistakes earns 3 stars in every game mode, at every level', async () => {
+    const p = await open(1024, 768); const bad = [];
+    await p.evaluate(() => { __ilhaDebug.autoQual = false; __ilhaDebug.setQuality(0); });
+    for (const id of STATION_IDS) for (const mi of [0, 1]) {
+      const isAct = await p.evaluate(([id, mi]) => __ilhaDebug.STM[id].modes[mi].k === 'act', [id, mi]);
+      for (const level of [1, 2, 3]) for (let rep = 0; rep < (isAct ? 3 : 1); rep++) {
+        const r = await perfectRound(p, id, mi, level);
+        if (r.error || r.stars !== 3 || !/acertou (\d+) de \1 /.test(r.line)) bad.push(`${id} mode ${mi} level ${level}: ${JSON.stringify(r)}`);
+      }
+    }
+    assert(!bad.length, bad.join('\n'));
+    const t = await p.evaluate(() => __ilhaDebug.S().trophies);
+    eq(STATION_IDS.map(id => t[id]), STATION_IDS.map(() => 3), 'gold cup in every station after perfect level-3 rounds');
+    assert(await p.evaluate(() => __ilhaDebug.S().champ), 'the champions cup was not awarded with all 8 gold cups');
+    await p.context().close();
+  });
+
+  await test('medals: a first perfect round gives silver, and the gold cup comes at level 3', async () => {
+    const p = await open(1024, 768);
+    await p.evaluate(() => { __ilhaDebug.autoQual = false; __ilhaDebug.setQuality(0); });
+    const seen = [];
+    for (const level of [1, 2, 3]) { const r = await perfectRound(p, 'n10', 0, level); seen.push([r.stars, r.level, r.trophy]); }
+    eq(seen, [[3, 2, 2], [3, 3, 2], [3, 3, 3]], 'stars, level reached and medal after each perfect round in Fazenda do 10');
+    await p.context().close();
+  });
+
+  await test('mission panel folds away, keeps the clock visible, and peeks on a new question', async () => {
+    const p = await open(1024, 768); await enter(p, 'ordem'); await start(p, 'ordem', 1, 1); await p.waitForTimeout(150);
+    const box = () => p.evaluate(() => { const m = document.querySelector('#mission').getBoundingClientRect(); return { w: Math.round(m.width), h: Math.round(m.height), min: document.querySelector('#mission').classList.contains('min') }; });
+    const open0 = await box(); await p.click('#m-min'); const folded = await box();
+    assert(folded.min && folded.w < open0.w * .7 && folded.h <= 52, `folded panel is ${folded.w}x${folded.h}, open was ${open0.w}x${open0.h}`);
+    const vis = await p.evaluate(() => { const v = s => { const e = document.querySelector(s); return !!e && e.getBoundingClientRect().width > 0; }; return [v('#m-text .vt'), v('#m-text small.live'), v('#m-quit'), v('#m-spk'), __ilhaDebug.S().misMin]; });
+    eq(vis, [true, true, true, true, true], 'tag, clock and hearts, quit, listen, saved preference');
+    await p.evaluate(() => { const D = __ilhaDebug; D.CH.phase = 'play'; D.CH.time = 9; }); await p.waitForTimeout(1200);
+    assert((await box()).min, 'the clock ticking must not reopen a folded panel');
+    await start(p, 'ordem', 0, 1); await p.waitForTimeout(150);
+    assert(!(await box()).min, 'a new question should open the folded panel for a moment');
+    await p.click('#m-text'); assert((await box()).min, 'a tap on the text did not fold the panel');
+    await p.click('#m-min'); eq([(await box()).min, await p.evaluate(() => __ilhaDebug.S().misMin)], [false, false], 'after opening again');
+    await p.context().close();
+  });
+
+  await test('folded mission panel stays inside a narrow phone screen in a timed game', async () => {
+    const p = await open(360, 740); await enter(p, 'vocab'); await start(p, 'vocab', 1, 1); await p.waitForTimeout(150);
+    await p.evaluate(() => { const D = __ilhaDebug; D.CH.phase = 'play'; D.CH.time = 12; }); await p.waitForTimeout(1200); await p.click('#m-min');
+    const r = await p.evaluate(() => { const box = s => document.querySelector(s).getBoundingClientRect(), m = box('#mission'), q = box('#m-quit'), hit = document.elementFromPoint(q.x + q.width / 2, q.y + q.height / 2); return { left: m.left >= 0, right: m.right <= innerWidth, quitInside: q.right <= innerWidth && q.left >= 0, quitReachable: hit && hit.id === 'm-quit', clock: box('#m-text small.live').width > 0 }; });
+    eq(r, { left: true, right: true, quitInside: true, quitReachable: true, clock: true }, 'folded panel at 360 px wide');
+    await p.context().close();
   });
 
   await test('no script errors during the whole run', async () => { eq(errors, [], 'errors'); });

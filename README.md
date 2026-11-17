@@ -23,6 +23,7 @@ A criança controla um boneco de blocos numa **cidade central**. Os **portais** 
 - **Estrelas e moedas de bônus acompanham os acertos de primeira**: 3 estrelas com tudo certo (rodadas de 6 ou mais perguntas aceitam um erro), 2 com 60% e 1 com 30%.
 - Depois de dois erros, o jogo **mostra a resposta pronta** (inclusive no cesto e na divisão entre amigos). Certo e errado têm sempre um **✓ ou ✗**, não só a cor.
 - No Obby, até 20, a placa mostra a conta também em **bolinhas** para contar.
+- O **painel de instruções** de cada jogo pode ser encolhido (toque nele ou no ▴) para ver o cenário inteiro; encolhido, ele abre sozinho por alguns segundos a cada pergunta nova.
 - No Chão de Lava, o botão **"Já sei!"** dispensa a espera do cronômetro, e encostar na lava antes da hora não tira coração.
 - **Narração** das perguntas em português, com mais tempo para ler antes do cronômetro começar.
 - **Música de rock leve** gerada no próprio jogo, uma para cada mundo.
