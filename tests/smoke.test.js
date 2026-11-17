@@ -464,7 +464,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         if (C.type === 'obby') { const pl = D.PLATS.find(x => x.row === C.row && x.correct); go(pl.cx, pl.cz, .05); }
         else if (C.type === 'order') { const q = C.cubes.find(q => !q.taken && q.n === C.seq[C.idx]); go(q.x, q.z); }
         else if (C.type === 'shapes') { const q = C.qs[C.idx], sh = D.SHAPES.find(x => x.n === q.n); go(st.spawn.x, st.spawn.z); go(sh.x + (sh.flat ? 0 : sh.r + .5), sh.z); }
-        else if (C.type === 'shoot') { const b = C.balloons.find(b => b.alive && b.it.ok); if (b) { const base = Math.atan2(D.P.x - b.x, D.P.z - b.z); let ok = false; for (const pt of [.3, .18, .44, .08, .58]) { for (const dy of [0, .05, -.05, .1, -.1]) { D.pitch = pt; D.yaw = base + dy; run(26); if (D.aim() === b) { ok = true; break; } } if (ok) break; } if (ok) { D.fire(); for (let i = 0; i < 90 && b.alive; i++) D.step(1 / 60); } } }
+        else if (C.type === 'shoot') { const b = C.balloons.find(b => b.alive && b.it.ok); if (b) { const p = b.sp.position, dx = p.x - D.P.x, dz = p.z - D.P.z, dy = p.y - (D.P.y + D.SCOPE.eye); let a = Math.atan2(dx, dz) - C.a0; a = Math.atan2(Math.sin(a), Math.cos(a)); C.ax = a; C.ay = Math.atan2(dy, Math.hypot(dx, dz)) + .05; run(2); if (D.aim() === b) { D.fire(); for (let i = 0; i < 90 && b.alive; i++) D.step(1 / 60); } } }
         else if (C.type === 'floor') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const t = C.tiles.find(t => t.ok); go(t.p.cx, t.p.cz, 1); run(20); document.querySelector('#b-sure').click(); run(3); }
         else if (C.type === 'kart') { if (C.phase === 'ready') C.phase = 'go'; const g = C.gates[C.idx]; C.v = 8; if (g) C.lat = (C.qs[C.idx].ans - 1) * 4; D.P.x = (g ? g.x : C.endX) - .3; run(6); }
         else if (C.type === 'simon') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const q = C.q, s = q.steps[C.si], idx = C.si, press = () => { const bt = document.querySelector('#b-sure'); if (!bt.hidden) bt.click(); };
@@ -603,20 +603,28 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.context().close();
   });
 
-  await test('balloon game: the shot goes to the balloon under the crosshair, and nowhere when the crosshair is on nothing', async () => {
+  await test('balloon game: played through a scope - the player stands still, the stick moves the aim, and the shot goes to the balloon under the cross', async () => {
     await enter(page, 'contas');
     const r = await page.evaluate(() => {
       const D = __ilhaDebug, st = D.STM.contas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[1]);
-      const C = D.CH, xh = document.querySelector('#xh'), shown = !xh.hidden, alive = () => C.balloons.filter(b => b.alive).length, n0 = alive();
-      D.yaw = D.yaw + Math.PI; run(40); const away = [D.aim() === null, xh.classList.contains('on')]; D.fire(); run(60); const afterMiss = alive();
-      const b = C.balloons.find(b => b.alive), base = Math.atan2(D.P.x - b.x, D.P.z - b.z); let locked = false;
-      for (const pt of [.3, .18, .44, .08, .58]) { for (const dy of [0, .05, -.05, .1, -.1]) { D.pitch = pt; D.yaw = base + dy; run(26); if (D.aim() === b) { locked = true; break; } } if (locked) break; }
-      const on = xh.classList.contains('on'), ring = C.ret.visible; D.fire(); for (let i = 0; i < 90 && b.alive; i++) D.step(1 / 60);
-      return { shown, away, missed: afterMiss === n0, locked, on, ring, hit: !b.alive, popped: n0 - alive() };
+      const C = D.CH, sc = document.querySelector('#scope'), alive = () => C.balloons.filter(b => b.alive).length, n0 = alive(), out = {}; run(2);
+      out.view = [!sc.hidden, document.body.classList.contains('fp'), Math.round(D.camera.fov), D.PL.g.visible, getComputedStyle(document.querySelector('#b-jump')).display, !document.querySelector('#b-fire').hidden];
+      out.eye = Math.hypot(D.camera.position.x - D.P.x, D.camera.position.z - D.P.z) < .01 && Math.abs(D.camera.position.y - D.P.y - D.SCOPE.eye) < .01;
+      /* the stick turns the aim and does not walk; up on the stick looks up; jumping does nothing */
+      const p0 = [D.P.x, D.P.z], a0 = [C.ax, C.ay]; D.input.jx = 1; D.input.jy = -1; D.jump(); run(30); D.input.jx = D.input.jy = 0;
+      out.stick = [D.P.x === p0[0] && D.P.z === p0[1] && D.P.y === 0, C.ax < a0[0] - .2, C.ay > a0[1] + .2];
+      /* nothing under the cross: nothing is hit */
+      C.ax = D.SCOPE.maxX; C.ay = D.SCOPE.minY; run(3); out.away = [D.aim() === null, sc.classList.contains('on')]; D.fire(); run(60); out.missed = alive() === n0;
+      /* turn the scope to a balloon: the cross locks on it and the shot pops it */
+      const b = C.balloons.find(b => b.alive), p = b.sp.position, dx = p.x - D.P.x, dz = p.z - D.P.z, dy = p.y - (D.P.y + D.SCOPE.eye);
+      let a = Math.atan2(dx, dz) - C.a0; a = Math.atan2(Math.sin(a), Math.cos(a)); C.ax = a; C.ay = Math.atan2(dy, Math.hypot(dx, dz)) + .05; run(2);
+      out.locked = [D.aim() === b, sc.classList.contains('on'), C.ret.visible]; D.fire(); for (let i = 0; i < 90 && b.alive; i++) D.step(1 / 60); out.hit = [!b.alive, n0 - alive()];
+      out.spread = C.balloons.every(q => { let t = Math.atan2(q.x - D.P.x, q.z - D.P.z) - C.a0; t = Math.atan2(Math.sin(t), Math.cos(t)); return Math.abs(t) < D.SCOPE.maxX - .2 && Math.hypot(q.x - D.P.x, q.z - D.P.z) > 9; });
+      return out;
     });
-    eq(r, { shown: true, away: [true, false], missed: true, locked: true, on: true, ring: true, hit: true, popped: 1 }, 'crosshair');
+    eq(r, { view: [true, true, 40, false, 'none', true], eye: true, stick: [true, true, true], away: [true, false], missed: true, locked: [true, true, true], hit: [true, 1], spread: true }, 'scope');
     await page.evaluate(() => document.querySelector('#m-quit').click());
-    assert(await page.evaluate(() => document.querySelector('#xh').hidden), 'the crosshair stayed on screen after leaving the game');
+    eq(await page.evaluate(() => { const D = __ilhaDebug; D.step(1 / 60); return [document.querySelector('#scope').hidden, document.body.classList.contains('fp'), D.camera.fov, D.PL.g.visible, document.querySelector('#b-fire').hidden]; }), [true, false, 60, true, true], 'everything is back to normal after leaving the game');
   });
 
   await test('obby: the course is roomier, hops need no jump, and the portal at the end leads back to the start', async () => {
