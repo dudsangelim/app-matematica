@@ -1,0 +1,11 @@
+{
+  "name": "app-matematica",
+  "private": true,
+  "description": "Ilha dos Números: jogo 3D de matemática do 1º ano",
+  "scripts": {
+    "test": "node tests/smoke.test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}
