@@ -766,14 +766,31 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.context().close();
   });
 
-  await test('voices: every character speaks with a pitch and a pace of their own, and the host of each game reads its questions', async () => {
+  await test('voices: every character has a pitch and a pace of their own, the host of each game reads its questions, and the voices of the device are dealt out by character', async () => {
     const p = await open(1024, 768);
-    const r = await p.evaluate(() => { const D = __ilhaDebug, said = []; Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: u => said.push(Math.round(u.pitch * 100) / 100 + '/' + Math.round(u.rate * 100) / 100), cancel() {}, getVoices: () => [] } });
-      const say = who => { said.length = 0; D.speak('oi', null, true, who); return said[0]; }, names = Object.keys(D.VOICES), each = names.map(n => say(n)), out = { names: names.length, distinct: new Set(each).size, narrator: say(null) };
-      out.clash = each.includes(out.narrator); out.none = say(undefined);
-      const vila = D.STM.vocab; D.startMode(vila, vila.modes[1]); out.master = say(undefined); document.querySelector('#m-quit').click(); D.startMode(vila, vila.modes[0]); out.host = say(undefined) === say(vila.npc.name); document.querySelector('#m-quit').click();
-      const v = D.VOICES; out.zeLow = v['Seu Zé'].p < .7 && v.Mestre.p < .8 && v.Lia.p > 1.4 && Object.values(v).every(x => x.p >= .6 && x.p <= 1.5 && x.r >= .8 && x.r <= 1.05); return out; });
-    eq(r, { names: 13, distinct: 13, narrator: '1/0.9', clash: false, none: '1/0.9', master: '0.7/0.8', host: true, zeLow: true }, 'voices');
+    const r = await p.evaluate(() => { const D = __ilhaDebug, said = []; let voices = [];
+      /* a plain stand-in for the utterance, so that made-up voices can be set on it */
+      window.SpeechSynthesisUtterance = function (text) { this.text = text; this.pitch = 1; this.rate = 1; this.voice = null; };
+      Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: u => said.push([Math.round(u.pitch * 100) / 100 + '/' + Math.round(u.rate * 100) / 100, u.voice ? u.voice.name : '']), cancel() {}, getVoices: () => voices } });
+      const mk = name => ({ name, lang: 'pt-BR' }), set = names => { voices = names.map(mk); D.pickVoice(); };
+      const say = who => { said.length = 0; D.speak('oi', null, true, who); return said[0]; }, names = Object.keys(D.VOICES), out = {};
+      /* one voice on the device: everybody uses it, each with a pitch and a pace of their own */
+      set(['Google português do Brasil']); const one = names.map(n => say(n)); out.one = [names.length, new Set(one.map(x => x[0])).size, new Set(one.map(x => x[1])).size, say(null)[0], one.some(x => x[0] === say(null)[0])];
+      out.none = say(undefined)[0]; const vila = D.STM.vocab; D.startMode(vila, vila.modes[1]); out.master = say(undefined)[0]; document.querySelector('#m-quit').click(); D.startMode(vila, vila.modes[0]); out.host = say(undefined)[0] === say(vila.npc.name)[0]; document.querySelector('#m-quit').click();
+      const v = D.VOICES; out.range = v['Seu Zé'].p <= .5 && v.Mestre.p <= .6 && v.Ana.p >= 1.8 && names.filter(n => D.STM && Object.values(D.STM).some(s => s.npc.name === n)).every(n => v[n].p <= 1.6);
+      /* several voices: men get a man's voice, women a woman's, nobody shares one while there are enough, and the pitch-deaf Google voice is left to the narrator */
+      set(['Microsoft Maria - Portuguese (Brazil)', 'Google português do Brasil', 'Microsoft Daniel', 'Microsoft Francisca Online (Natural)', 'Microsoft Antonio Online (Natural)', 'Microsoft Thalita Online (Natural)', 'Microsoft Fabio Online (Natural)']);
+      const cast = Object.fromEntries(names.map(n => [n, say(n)[1]])), men = names.filter(n => v[n].g === 'm'), women = names.filter(n => v[n].g === 'f');
+      out.cast = [men.every(n => /Daniel|Antonio|Fabio/.test(cast[n])), women.every(n => /Maria|Francisca|Thalita/.test(cast[n])), new Set(men.slice(0, 3).map(n => cast[n])).size, new Set(women.slice(0, 3).map(n => cast[n])).size, names.some(n => /Google/.test(cast[n]))];
+      /* voices with names the game does not know are still shared out, so the characters do not all sound the same */
+      set(['Voz A', 'Voz B', 'Voz C']); out.unknown = new Set(names.map(n => say(n)[1])).size;
+      return out; });
+    eq(r, { one: [13, 13, 1, '1/0.9', false], none: '1/0.9', master: '0.6/0.8', host: true, range: true, cast: [true, true, 3, 3, false], unknown: 3 }, 'voices');
+    /* the Voices screen: says how many voices the device has and lets each character be heard */
+    await p.evaluate(() => { const D = __ilhaDebug; D.closeSheet(); document.querySelector('#b-menu').click(); document.querySelector('#mn-voz').click(); });
+    const scr = await p.evaluate(() => { const info = document.querySelector('#v-info').textContent, items = document.querySelectorAll('.item'); window.__said = null; const ss = window.speechSynthesis, old = ss.speak; ss.speak = u => { window.__said = Math.round(u.pitch * 100) / 100; };
+      document.querySelector('.item[data-k="Seu Zé"]').click(); ss.speak = old; return [items.length, /tem 3 vozes/.test(info), window.__said]; });
+    eq(scr, [14, true, .5], 'voices screen: narrator and 13 characters, the count of voices, and a sample in the character\'s voice');
     await p.context().close();
   });
 

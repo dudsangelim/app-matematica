@@ -409,17 +409,23 @@ const sfx={
   dizzy(){[1200,900,1300,1000].forEach((f,i)=>tone(f,.1,'sine',.04,i*.1))}
 };
 /* --- narration (text-to-speech) --- */
-/* Every character has a voice of their own: a pitch and a pace and, where the device has more than one Portuguese voice, a different voice as well
-   (g says which kind of voice to look for first). The narrator is used when nobody in particular is talking.
-   The range is kept moderate on purpose: the hosts read the questions, and a voice that is too high or too fast is hard to follow. */
-const VOICES={Rafa:{p:1.1,r:.95,g:'m'},Juca:{p:1.25,r:1,g:'m'},Bia:{p:1.35,r:.94,g:'f'},Theo:{p:.95,r:.9,g:'m'},Lia:{p:1.45,r:.98,g:'f'},'Seu Zé':{p:.6,r:.82,g:'m'},Duda:{p:1.2,r:.92,g:'f'},Nina:{p:1.3,r:.88,g:'f'},
-  Mestre:{p:.7,r:.8,g:'m'},Lojista:{p:.85,r:.95,g:'m'},Ana:{p:1.5,r:1,g:'f'},Pedro:{p:1.05,r:1.02,g:'m'},'Léo':{p:1.15,r:.9,g:'m'}},NARR={p:1,r:.9,g:'f'};
-const FEM=/luciana|maria|francisca|fernanda|vit[oó]ria|camila|joana|let[ií]cia|thalita|female|feminin|mulher/i,MASC=/felipe|daniel|ant[oô]nio|ricardo|eddy|reed|rocko|male|masculin|homem/i;
-let ptVoice=null,ptVoices=[],speechOK=false;
-function pickVoice(){try{const vs=speechSynthesis.getVoices();ptVoices=vs.filter(v=>/pt[-_]BR/i.test(v.lang));if(!ptVoices.length)ptVoices=vs.filter(v=>/^pt/i.test(v.lang));ptVoice=ptVoices[0]||null}catch(e){}}
-function voiceFor(who){const v=VOICES[who]||NARR;let voice=ptVoice;
-  if(ptVoices.length>1){const kind=ptVoices.filter(x=>v.g==='m'?MASC.test(x.name)&&!FEM.test(x.name):FEM.test(x.name)),pool=kind.length?kind:ptVoices;let h=0;for(const ch of String(who||''))h=(h*31+ch.charCodeAt(0))>>>0;voice=pool[h%pool.length]}
-  return {pitch:v.p,rate:v.r,voice}}
+/* Every character has a voice of their own. The game can only use the voices the device has, so it does two things:
+   - each character gets a pitch (p) and a pace (r) of their own, which is all that changes when the device has a single Portuguese voice;
+   - when there are several, they are dealt out so that men get a man's voice, women a woman's, and no two characters share one while there are enough.
+   The characters are listed from the deepest voice to the highest. The hosts read the questions, so their pitch stops short of the extremes. */
+const VOICES={'Seu Zé':{p:.5,r:.82,g:'m'},Mestre:{p:.6,r:.8,g:'m'},Lojista:{p:.8,r:.95,g:'m'},Theo:{p:.9,r:.9,g:'m'},Pedro:{p:1,r:1.02,g:'m'},Rafa:{p:1.15,r:.95,g:'m'},'Léo':{p:1.25,r:.9,g:'m'},Juca:{p:1.35,r:1,g:'m'},
+  Duda:{p:1.3,r:.92,g:'f'},Nina:{p:1.4,r:.88,g:'f'},Bia:{p:1.5,r:.94,g:'f'},Lia:{p:1.6,r:.98,g:'f'},Ana:{p:1.8,r:1,g:'f'}},NARR={p:1,r:.9,g:'f'};
+/* names of the Portuguese voices of the common systems (Windows and Edge, Apple, Android), to tell a man's voice from a woman's */
+const FEM=/luciana|maria|francisca|fernanda|vit[oó]ria|camila|joana|let[ií]cia|thalita|brenda|elza|giovanna|leila|manuela|yara|catarina|in[eê]s|raquel|helo[ií]sa|\bflo\b|sandy|shelley|grandma|female|feminin|mulher/i;
+const MASC=/felipe|daniel|ant[oô]nio|ricardo|donato|f[aá]bio|humberto|j[uú]lio|nicolau|val[eé]rio|duarte|cristiano|eddy|\breed\b|rocko|grandpa|\bmale|masculin|homem/i;
+let ptVoice=null,ptVoices=[],voiceMap={},speechOK=false;
+function pickVoice(){try{const vs=speechSynthesis.getVoices();ptVoices=vs.filter(v=>/pt[-_]BR/i.test(v.lang));if(!ptVoices.length)ptVoices=vs.filter(v=>/^pt/i.test(v.lang));ptVoice=ptVoices[0]||null;castVoices()}catch(e){}}
+/* deal the voices of the device out to the characters */
+function castVoices(){voiceMap={};if(ptVoices.length<2)return;
+  /* the Google voices of desktop Chrome ignore the pitch: they are kept for the narrator when the device has any other */
+  const rest=ptVoices.filter(v=>!/^google/i.test(v.name)),pool=rest.length?rest:ptVoices,men=pool.filter(v=>MASC.test(v.name)&&!FEM.test(v.name)),women=pool.filter(v=>FEM.test(v.name)),other=pool.filter(v=>!men.includes(v)&&!women.includes(v)),n={m:0,f:0};
+  Object.keys(VOICES).forEach(who=>{const g=VOICES[who].g,own=(g==='m'?men:women).concat(other),list=own.length?own:pool;voiceMap[who]=list[n[g]++%list.length]})}
+function voiceFor(who){const v=VOICES[who]||NARR;return {pitch:v.p,rate:v.r,voice:voiceMap[who]||ptVoice}}
 /* who is talking when nothing says otherwise: the master in his game, the host of the station in the others, the narrator outside them */
 const speaker=()=>CH?(CH.type==='simon'?'Mestre':CH.st.npc.name):null;
 if(window.speechSynthesis){pickVoice();try{speechSynthesis.onvoiceschanged=pickVoice}catch(e){}}
@@ -2112,12 +2118,24 @@ function buyQuiz(t){const tab=shopTab,Q=buyQ(t);
     $('#sheet').innerHTML=`<div class="quiz"><div class="h2">Não foi dessa vez</div><p>A conta era <b>${Q.eq}</b>.</p><p class="small">A compra não foi liberada. Jogue um joguinho para <b>tentar de novo</b>.</p><div class="btns"><button class="btn go" id="q-x">Entendi</button></div></div>`;
     $('#q-x').onclick=()=>{sfx.tap();renderShop()}})}
 
+/* ================= VOICES: hear every character, and see which voices this device has ================= */
+function openVoices(){pickVoice();const n=ptVoices.length,used=new Set(Object.keys(VOICES).map(w=>voiceFor(w).voice)).size;
+  const who=[['','Narrador','f'],...Object.keys(VOICES).map(w=>[w,w,VOICES[w].g])];
+  openSheet(`<div class="shop-h"><span class="h2">🗣️ Vozes</span><button class="xbtn" id="s-x" aria-label="Fechar">✕</button></div>
+    <div class="pass ${n>1?'on':'off'}" id="v-info">${!window.speechSynthesis||!n?'Este aparelho <b>não tem voz em português</b> para o navegador usar, então as falas ficam só escritas.'
+      :n===1?`Este aparelho tem <b>uma só</b> voz em português (${ptVoices[0].name}). Por isso todos falam com ela, e o jogo muda só o <b>tom</b> e o <b>ritmo</b> de cada personagem.`
+      :`Este aparelho tem <b>${n}</b> vozes em português, e os personagens usam <b>${used}</b> delas. Além da voz, cada um tem o seu tom e o seu ritmo.`}</div>
+    ${n<3?`<p class="small" style="padding:0 16px;margin:0 0 8px">Para ter vozes de homem e de mulher de verdade, o aparelho precisa de mais vozes em português. No <b>Windows</b>, o navegador <b>Edge</b> já traz várias. No <b>iPhone/iPad</b>: Ajustes → Acessibilidade → Conteúdo Falado → Vozes. No <b>Android</b>: Configurações → Acessibilidade → Conversão de texto em voz. Depois de instalar, abra o jogo de novo.</p>`:''}
+    <div class="items">${who.map(([k,nm,g])=>{const v=voiceFor(k||null).voice;return `<button class="item" data-k="${k}"><span class="pv">${g==='m'?'🧑':'👩'}</span><span>${nm}</span><small>${v?v.name.replace(/\s*[-(].*$/,''):'sem voz'}</small><span class="st">▶ Ouvir</span></button>`}).join('')}</div>`);
+  $('#s-x').onclick=()=>{sfx.tap();closeSheet()};
+  $$('.item').forEach(b=>b.onclick=()=>{const k=b.dataset.k,g=k?VOICES[k].g:'f';speak(k?`Oi! Eu sou ${g==='f'?'a':'o'} ${k}. Quanto é dois mais três?`:'Oi! Eu sou a voz que lê as perguntas. Quanto é dois mais três?',null,true,k||null)})}
+
 /* ================= MENU / PARENTS / TUTORIAL ================= */
 function openMenu(){
   openSheet(`<div class="menu"><div class="shop-h" style="padding:0"><span class="h2">Menu</span><button class="xbtn" id="mn-x" aria-label="Fechar">✕</button></div><b>Ir pelo portal até:</b>
     <div class="travel">${STATIONS.map(s=>`<button data-id="${s.id}" style="--c:${s.color}">${s.name}<small>${s.sub} · ★ ${stat(s.id).stars||0} ${MEDAL[S.trophies[s.id]||0]}</small></button>`).join('')}<button data-id="__city" style="--c:#5B6475">Cidade dos Números<small>Loja e Sala de Troféus</small></button></div>
-    <div class="btns" style="justify-content:flex-start"><button class="btn gold" id="mn-shop">🛍️ Loja</button><button class="btn" id="mn-cele">🎉 Comemorações</button><button class="btn" id="mn-pl">👥 Jogadores</button><button class="btn" id="mn-caps">🔠 ${S.caps?'Letras normais':'LETRAS MAIÚSCULAS'}</button><button class="btn" id="mn-gfx">✨ Visual: ${S.lite?'leve':'bonito'}</button><button class="btn" id="mn-help">❓ Como jogar</button><button class="btn" id="mn-par">👨 Área dos pais</button></div></div>`);
-  $('#mn-pl').onclick=()=>{sfx.tap();openPlayers()};$('#mn-cele').onclick=()=>{sfx.tap();openCeles()};
+    <div class="btns" style="justify-content:flex-start"><button class="btn gold" id="mn-shop">🛍️ Loja</button><button class="btn" id="mn-cele">🎉 Comemorações</button><button class="btn" id="mn-voz">🗣️ Vozes</button><button class="btn" id="mn-pl">👥 Jogadores</button><button class="btn" id="mn-caps">🔠 ${S.caps?'Letras normais':'LETRAS MAIÚSCULAS'}</button><button class="btn" id="mn-gfx">✨ Visual: ${S.lite?'leve':'bonito'}</button><button class="btn" id="mn-help">❓ Como jogar</button><button class="btn" id="mn-par">👨 Área dos pais</button></div></div>`);
+  $('#mn-pl').onclick=()=>{sfx.tap();openPlayers()};$('#mn-cele').onclick=()=>{sfx.tap();openCeles()};$('#mn-voz').onclick=()=>{sfx.tap();openVoices()};
   $('#mn-gfx').onclick=()=>{sfx.tap();S.lite=!S.lite;save();setQuality(S.lite?0:3);openMenu();toast(S.lite?'Visual leve: o jogo fica mais rápido em aparelhos antigos.':'Visual bonito ligado.',2600)};
   $('#mn-caps').onclick=()=>{sfx.tap();S.caps=!S.caps;save();document.body.classList.toggle('caps',S.caps);layoutTop();openMenu()};
   $('#mn-x').onclick=()=>closeSheet();
@@ -2199,7 +2217,7 @@ function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math
   if(autoQual&&QUAL>0&&!document.hidden){if(raw>1){qN=0;qT=0}else{qT+=raw;qN++;if(qT>=2.5){if(T>3&&qN/qT<27)setQuality(QUAL-1);qN=0;qT=0}}}
   updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();breakCheck(dt);renderer.render(scene,camera)}
 function boot(){if(S.lite)setQuality(0);resize();buildPlayer();hud();STATIONS.forEach(updateSign);updateHall();camera.position.set(P.x,P.y+5,P.z+10);requestAnimationFrame(tick);if(!S.tut)openTut()}
-window.__ilhaDebug={CAT,buyQ,speak,camera,SCOPE,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
+window.__ilhaDebug={CAT,buyQ,speak,pickVoice,openVoices,camera,SCOPE,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
   aim:()=>CH&&CH.type==='shoot'?aimBalloon():null,set pitch(v){pitch=v},step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateCam(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
 const fontsReady=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('400 20px Andika')]):Promise.resolve();
 Promise.race([fontsReady,new Promise(r=>setTimeout(r,1800))]).then(()=>{OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));boot()}).catch(boot);
