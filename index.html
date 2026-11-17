@@ -53,6 +53,7 @@ input{user-select:text;-webkit-user-select:text}
 #where{position:fixed;z-index:5;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));background:var(--glass);color:#fff;border-radius:10px;padding:4px 12px;font-size:14px;font-weight:600;white-space:nowrap}
 #mission{position:fixed;z-index:5;top:calc(var(--hudh,56px) + 8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 24px);box-sizing:border-box;background:#fff;border:4px solid var(--ink);border-radius:16px;padding:6px 6px 6px 12px;display:flex;align-items:center;gap:8px;font-weight:600;font-size:19px;line-height:1.25;box-shadow:0 5px 0 var(--ink)}
 #mission b{color:var(--red)}
+.pc{display:inline-block;background:var(--k);color:#fff;border:2px solid var(--ink);border-radius:8px;padding:0 7px;font-weight:700;text-shadow:1px 0 0 var(--ink),-1px 0 0 var(--ink),0 1px 0 var(--ink),0 -1px 0 var(--ink)}
 #mission .vt{display:inline-block;background:var(--ink);color:#fff;border-radius:8px;padding:1px 8px;margin-right:4px;font-size:15px;vertical-align:2px}
 #mission small{display:block;font-weight:500;font-size:14px;color:var(--muted)}
 #m-text{cursor:pointer}
@@ -118,7 +119,9 @@ input{user-select:text;-webkit-user-select:text}
 .pillmsg{background:var(--gold);border:3px solid var(--ink);border-radius:10px;padding:6px 14px;font-weight:700;font-size:19px}
 .award{display:flex;flex-direction:column;align-items:center;gap:6px;background:#1B2232;color:#FFE27A;border-radius:16px;padding:12px 18px;border:4px solid #FFC83D}
 .award b{font-size:22px}
-.award canvas{width:160px;height:160px}
+.award canvas{width:130px;height:130px}
+.award small{color:#fff;opacity:.9;font-size:14px;text-align:center}
+.award span{text-align:center}
 .shop-h{display:flex;align-items:center;gap:10px;padding:12px 14px 6px}
 .shop-h .h2{margin:0;flex:1}
 .tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 14px 10px}
@@ -128,6 +131,7 @@ input{user-select:text;-webkit-user-select:text}
 .item{border:3px solid var(--ink);border-radius:14px;background:#fff;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:15px;font-weight:600;text-align:center;box-shadow:0 3px 0 var(--ink)}
 .item.eq{background:var(--okbg)}
 .item .pv{font-size:40px;height:48px;display:grid;place-items:center;line-height:1}
+.jr{width:52px;height:52px;display:block}
 .sw{display:block;width:44px;height:44px;border:3px solid var(--ink);border-radius:8px;background:var(--k);box-shadow:inset -5px -5px 0 rgba(0,0,0,.18)}
 .st{font-size:15px;padding:2px 10px;border-radius:8px;border:2px solid var(--ink);background:#fff}
 .item.eq .st{background:var(--ok);color:#fff}
@@ -226,13 +230,13 @@ function savePF(){try{localStorage.setItem(PKEY,JSON.stringify(PF))}catch(e){}}
 function readSave(id){try{return JSON.parse(localStorage.getItem(keyOf(id)))}catch(e){return null}}
 const DEF={name:'',coins:0,stars:0,sound:true,music:true,voice:true,caps:false,breakMin:0,tut:false,look:{skin:'s2',hair:'castanho',shirt:'azul',pants:'jeans',hat:'nenhum',pet:'nenhum'},lite:false,misMin:false,owned:[],st:{},trophies:{},champ:false,sk:{},wk:{}};
 const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
-function normalize(raw){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),isObj(raw)?raw:{});s.look=Object.assign({},DEF.look,isObj(s.look)?s.look:{});
+function normalize(raw){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),isObj(raw)?raw:{}),oldTiers=isObj(raw)&&!(raw.v>=2);s.v=2;s.look=Object.assign({},DEF.look,isObj(s.look)?s.look:{});
   ['st','trophies','sk','wk'].forEach(k=>{if(!isObj(s[k]))s[k]={}});if(!Array.isArray(s.owned))s.owned=[];s.name=String(s.name||'').slice(0,14);s.coins=Math.max(0,Math.round(+s.coins)||0);s.stars=Math.max(0,Math.round(+s.stars)||0);s.breakMin=[0,15,20,30,45].includes(+s.breakMin)?+s.breakMin:0;
   const num=(o,ks)=>ks.forEach(k=>o[k]=Math.max(0,+o[k]||0));
   Object.keys(s.st).forEach(k=>{const t=s.st[k];if(!isObj(t))return delete s.st[k];num(t,['rounds','first','total','stars']);t.level=Math.min(3,Math.max(1,Math.round(+t.level)||1))});
   Object.keys(s.sk).forEach(k=>{const t=s.sk[k];if(!isObj(t))return delete s.sk[k];num(t,['n','f','r','w','d']);t.r=Math.min(1,t.r)});
   Object.keys(s.wk).forEach(k=>{const w=s.wk[k];if(!/^\d{4}-\d\d-\d\d$/.test(k)||!isObj(w))return delete s.wk[k];Object.keys(w).forEach(i=>{if(!Array.isArray(w[i]))delete w[i];else w[i]=[+w[i][0]||0,+w[i][1]||0]})});
-  Object.keys(s.trophies).forEach(k=>{s.trophies[k]=Math.min(3,Math.max(0,Math.round(+s.trophies[k])||0))});s.owned=s.owned.filter(x=>typeof x==='string');return s}
+  Object.keys(s.trophies).forEach(k=>{let t=Math.min(4,Math.max(0,Math.round(+s.trophies[k])||0));if(oldTiers&&t===3)t=4;s.trophies[k]=t});s.owned=s.owned.filter(x=>typeof x==='string');return s}
 let S=normalize(readSave(PF.cur));
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const stat=id=>S.st[id]||(S.st[id]={level:1,rounds:0,first:0,total:0,stars:0});
@@ -346,7 +350,9 @@ const plain=html=>{const d=document.createElement('div');d.innerHTML=html;return
 /* ================= HUD helpers ================= */
 let toastT;
 function toast(msg,ms,say){const t=$('#toast');t.innerHTML=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms||3200);if(say)speak(plain(msg))}
-const trophyCount=()=>Object.values(S.trophies).filter(v=>v===3).length+(S.champ?1:0);
+/* Medal tiers kept per station: 1 bronze, 2 silver, 3 gold medal, 4 gold cup (gold medal earned at level 3). */
+const MEDAL=['','🥉','🥈','🥇','🏆'];
+const trophyCount=()=>Object.values(S.trophies).filter(v=>v===4).length+(S.champ?1:0);
 function hud(){$('#h-name').textContent=S.name||'Jogador';$('#h-coins').textContent=S.coins;$('#h-stars').textContent=S.stars;$('#h-troph').textContent=trophyCount();$('#b-sound').classList.toggle('off',!S.sound);$('#b-music').classList.toggle('off',!S.music);$('#b-voice').classList.toggle('off',!S.voice);layoutTop()}
 /* the mission panel sits right under the top bar, however many rows the bar wraps into */
 function layoutTop(){const h=$('.hud-top');if(h)document.documentElement.style.setProperty('--hudh',h.offsetHeight+'px')}
@@ -369,6 +375,42 @@ const CAT={
   hair:[{k:'castanho',c:'#5A3A22',p:0,n:'Castanho'},{k:'preto',c:'#1E1A1A',p:0,n:'Preto'},{k:'loiro',c:'#E8C15A',p:0,n:'Loiro'},{k:'ruivo',c:'#C1502A',p:0,n:'Ruivo'},{k:'azul',c:'#3A7BF0',p:20,n:'Azul'},{k:'rosa',c:'#FF6FB0',p:20,n:'Rosa'},{k:'verde',c:'#2DB34A',p:20,n:'Verde'}],
   skin:[{k:'s1',c:'#FFD9B3',p:0,n:'Clara'},{k:'s2',c:'#E9B07F',p:0,n:'Média'},{k:'s3',c:'#C98E5F',p:0,n:'Morena'},{k:'s4',c:'#8D5A3B',p:0,n:'Escura'},{k:'s5',c:'#FFD43B',p:0,n:'Amarela'}]
 };
+/* Football shirts: colours and pattern only (no crests, no sponsor marks). pat: s plain, v vertical stripes, h hoops, d diagonal sash, b chest bands, x checks.
+   c = shirt colours, trim = collar, short = shorts worn with it, num = colour of the 10 on the back. A kit is worn in the shirt slot. */
+const KIT=(k,n,g,pat,c,o)=>Object.assign({k,n,g,p:30,pat,c,d:g==='sel'?'Seleção · camisa e calção':'Clube · camisa e calção'},o);
+CAT.kit=[
+  KIT('bra','Brasil','sel','s',['#FFDD00'],{trim:'#009C3B',short:'#1E40AF',num:'#009C3B'}),KIT('arg','Argentina','sel','v',['#75AADB','#FFFFFF'],{short:'#1B1B1B',num:'#1B1B1B'}),
+  KIT('fra','França','sel','s',['#1D2A5B'],{trim:'#E8413A',short:'#FFFFFF',num:'#FFFFFF'}),KIT('ale','Alemanha','sel','s',['#FFFFFF'],{trim:'#1B1B1B',short:'#1B1B1B',num:'#1B1B1B'}),
+  KIT('ita','Itália','sel','s',['#0A5BC4'],{trim:'#FFFFFF',short:'#FFFFFF',num:'#FFFFFF'}),KIT('esp','Espanha','sel','s',['#C60B1E'],{trim:'#FFC400',short:'#1D2A5B',num:'#FFC400'}),
+  KIT('por','Portugal','sel','s',['#C8102E'],{trim:'#046A38',short:'#046A38',num:'#FFD700'}),KIT('ing','Inglaterra','sel','s',['#FFFFFF'],{trim:'#1D2A5B',short:'#1D2A5B',num:'#C8102E'}),
+  KIT('hol','Holanda','sel','s',['#F36C21'],{trim:'#1B1B1B',short:'#FFFFFF',num:'#1B1B1B'}),KIT('uru','Uruguai','sel','s',['#55B5E5'],{trim:'#FFFFFF',short:'#1B1B1B',num:'#FFFFFF'}),
+  KIT('cro','Croácia','sel','x',['#E8413A','#FFFFFF'],{short:'#FFFFFF',num:'#1D2A5B'}),KIT('jap','Japão','sel','s',['#1A2E6E'],{trim:'#FFFFFF',short:'#FFFFFF',num:'#FFFFFF'}),
+  KIT('fla','Flamengo','clu','h',['#C8102E','#111111'],{short:'#FFFFFF',num:'#FFFFFF'}),KIT('pal','Palmeiras','clu','s',['#006437'],{trim:'#FFFFFF',short:'#FFFFFF',num:'#FFFFFF'}),
+  KIT('cor','Corinthians','clu','s',['#FFFFFF'],{trim:'#111111',short:'#111111',num:'#111111'}),KIT('sao','São Paulo','clu','b',['#FFFFFF','#E3001B','#111111'],{short:'#FFFFFF',num:'#111111'}),
+  KIT('san','Santos','clu','s',['#FFFFFF'],{trim:'#FFFFFF',short:'#FFFFFF',num:'#111111'}),KIT('vas','Vasco','clu','d',['#111111','#FFFFFF'],{short:'#111111',num:'#FFFFFF'}),
+  KIT('flu','Fluminense','clu','v',['#7A1E3A','#00613C','#FFFFFF'],{short:'#FFFFFF',num:'#FFFFFF'}),KIT('bot','Botafogo','clu','v',['#111111','#FFFFFF'],{short:'#111111',num:'#C8C8C8'}),
+  KIT('gre','Grêmio','clu','v',['#0D80BF','#111111','#FFFFFF'],{short:'#111111',num:'#FFFFFF'}),KIT('int','Internacional','clu','s',['#E5050F'],{trim:'#FFFFFF',short:'#FFFFFF',num:'#FFFFFF'}),
+  KIT('cru','Cruzeiro','clu','s',['#0A3A8C'],{trim:'#FFFFFF',short:'#FFFFFF',num:'#FFFFFF'}),KIT('cam','Atlético-MG','clu','v',['#FFFFFF','#111111'],{short:'#111111',num:'#FFFFFF'}),
+  KIT('bah','Bahia','clu','v',['#0057B8','#E3001B','#FFFFFF'],{short:'#0057B8',num:'#FFFFFF'}),KIT('bar','Barcelona','clu','v',['#A50044','#004D98'],{short:'#004D98',num:'#EDBB00'}),
+  KIT('rma','Real Madrid','clu','s',['#FFFFFF'],{trim:'#C9A227',short:'#FFFFFF',num:'#1D2A5B'})];
+const kitOf=k=>CAT.kit.find(x=>x.k===k)||null;
+const slotOf=tab=>tab==='kit'?'shirt':tab;
+/* paints a shirt pattern into the rectangle x,y,w,h; back = with the number instead of the collar */
+function drawKit(g,kt,x,y,w,h,back){const c=kt.c;g.save();g.beginPath();g.rect(x,y,w,h);g.clip();g.fillStyle=c[0];g.fillRect(x,y,w,h);
+  if(kt.pat==='v'){const n=6,sw=w/n;for(let i=0;i<n;i++){g.fillStyle=c[i%c.length];g.fillRect(x+i*sw,y,sw+.6,h)}}
+  else if(kt.pat==='h'){const n=6,sh=h/n;for(let i=0;i<n;i++){g.fillStyle=c[i%c.length];g.fillRect(x,y+i*sh,w,sh+.6)}}
+  else if(kt.pat==='d'){g.fillStyle=c[1];g.beginPath();g.moveTo(x,y);g.lineTo(x+w*.3,y);g.lineTo(x+w,y+h*.7);g.lineTo(x+w,y+h);g.lineTo(x+w*.7,y+h);g.lineTo(x,y+h*.3);g.closePath();g.fill()}
+  else if(kt.pat==='b'){g.fillStyle=c[1];g.fillRect(x,y+h*.3,w,h*.13);g.fillStyle=c[2];g.fillRect(x,y+h*.5,w,h*.13)}
+  else if(kt.pat==='x'){const n=4,q=w/n,r=h/n;for(let i=0;i<n;i++)for(let j=0;j<n;j++){g.fillStyle=c[(i+j)%2];g.fillRect(x+i*q,y+j*r,q+.6,r+.6)}}
+  if(back){g.font=`700 ${Math.round(h*.5)}px Fredoka, 'Arial Rounded MT Bold', sans-serif`;g.textAlign='center';g.textBaseline='middle';g.lineWidth=Math.max(2,h*.07);g.strokeStyle=kt.num==='#FFFFFF'||kt.num==='#C8C8C8'||kt.num==='#FFD700'||kt.num==='#FFC400'||kt.num==='#EDBB00'?'#111111':'#FFFFFF';g.strokeText('10',x+w/2,y+h*.54);g.fillStyle=kt.num||'#111111';g.fillText('10',x+w/2,y+h*.54)}
+  else if(kt.trim){g.fillStyle=kt.trim;g.beginPath();g.moveTo(x+w*.3,y);g.lineTo(x+w*.7,y);g.lineTo(x+w*.5,y+h*.16);g.closePath();g.fill()}
+  g.restore()}
+/* little shirt picture for the shop */
+const kitPic={};
+function kitURL(kt){if(kitPic[kt.k])return kitPic[kt.k];const c=document.createElement('canvas');c.width=c.height=96;const g=c.getContext('2d');
+  g.fillStyle=kt.sleeve||kt.c[0];g.beginPath();g.moveTo(22,10);g.lineTo(2,30);g.lineTo(14,44);g.lineTo(24,36);g.lineTo(72,36);g.lineTo(82,44);g.lineTo(94,30);g.lineTo(74,10);g.closePath();g.fill();
+  drawKit(g,kt,22,10,52,76,false);g.lineWidth=4;g.strokeStyle='#1B2232';g.lineJoin='round';g.beginPath();g.moveTo(22,10);g.lineTo(2,30);g.lineTo(14,44);g.lineTo(22,38);g.lineTo(22,86);g.lineTo(74,86);g.lineTo(74,38);g.lineTo(82,44);g.lineTo(94,30);g.lineTo(74,10);g.closePath();g.stroke();
+  return kitPic[kt.k]=c.toDataURL()}
 const find=(t,k)=>CAT[t].find(x=>x.k===k)||CAT[t][0];
 const owns=(t,k)=>find(t,k).p===0||S.owned.includes(t+':'+k);
 const hasPower=k=>S.owned.includes('power:'+k);
@@ -458,6 +500,9 @@ const ANIMAIS=[['🐱','gato'],['🐶','cachorro'],['🐰','coelho'],['🐻','ur
 const COUNT=[['🍎','maçãs','a'],['⭐','estrelas','a'],['🐟','peixes','o'],['🍄','cogumelos','o'],['🐞','joaninhas','a'],['🌸','flores','a'],['🐣','pintinhos','o'],['🍓','morangos','o'],['⚽','bolas','a']];
 const FRUTA=['🍎','🍊','🍓','🍐','🍌','🍇'];
 const FRN=[['🍎','maçã','a'],['🍌','banana','a'],['🍇','uva','a'],['🍊','laranja','a'],['🍓','morango','o'],['🍐','pera','a']];
+/* the three paints; a paint question names one (or two) of them, and the colour is checked together with the answer */
+const PAINTS=[{k:'vermelho',c:'#E8413A',n:'VERMELHO'},{k:'azul',c:'#2E8BF0',n:'AZUL'},{k:'amarelo',c:'#FFC83D',n:'AMARELO'}];
+const pchip=c=>`<span class="pc" style="--k:${c.c}">${c.n}</span>`;
 function say(verb,a,rest){if(verb==='jump')return `PULE EM CIMA d${a} ${rest}`;if(verb==='circle')return `CIRCULE ${a} ${rest}`;return `PINTE ${a} ${rest}`}
 function optNums(ans,cands,min,max,count){count=count||4;const s=new Set([ans]);
   shuffle(cands||[]).forEach(v=>{if(s.size<count&&v>=min&&v<=max)s.add(v)});
@@ -526,11 +571,14 @@ function genN10(L){
     return {verb:'jump',text:`Vou tirar uma bola do saco sem olhar. Vai sair uma bola <b>${c1[1]}</b>? PULE EM CIMA da resposta`,board:bBag(balls),opts:opts.map(i=>({pic:pWord(K[i])})),ans:opts.indexOf(k),
       hint:`Olhe as bolas do saco. Todas são da cor ${low}? Só algumas? Nenhuma?`,explain:k===0?`Só tem bola ${low}. Então sai com certeza!`:k===2?`Não tem nenhuma bola ${low}. Então é impossível!`:`Tem bola ${low} e de outra cor. Então talvez saia.`}}
   if(t==='pint'){const n=rnd(L===1?2:4,L===1?9:10);
+    if(L>=2&&Math.random()<.6){const [c1,c2]=sample(PAINTS,2),a=rnd(1,n-1),b=n-a;
+      return {verb:'paint',multi:true,layout:'tiles',cols:{[c1.k]:a,[c2.k]:b},text:`PINTE <b>${a}</b> de ${pchip(c1)} e <b>${b}</b> de ${pchip(c2)}`,opts:range(1,10).map(()=>({})),check:s=>s.length===n,sol:range(0,n-1),solCol:[...Array(a).fill(c1.k),...Array(b).fill(c2.k)],
+        count:s=>`Você pintou ${s.length}.`,hint:`São ${a} de ${c1.n} e ${b} de ${c2.n}. Conte cada cor.`,explain:`${a} + ${b} = ${n}`}}
     return {verb:'paint',multi:true,layout:'tiles',text:`PINTE <b>${n}</b> quadrados do chão`,opts:range(1,10).map(()=>({})),check:s=>s.length===n,sol:range(0,n-1),count:s=>`Você pintou ${s.length}.`,hint:`Conte enquanto pinta. Precisa dar ${n}.`}}
   if(t==='compl'){const k=rnd(2,8);
     return {verb:'paint',multi:true,layout:'tiles',text:`Já tem ${k} pintados. PINTE os que faltam para dar <b>10</b>`,opts:range(0,9).map(i=>i<k?{locked:true}:{}),check:s=>s.length===10-k,sol:range(k,9),count:s=>`Agora tem ${k+s.length}.`,hint:'Conte os quadrados cinza e continue contando até 10.',explain:`${k} + ${10-k} = 10`}}
-  if(t==='leve'){const n=rnd(L===1?2:4,L===1?8:10),total=Math.min(14,n+rnd(2,4));
-    return {verb:'carry',text:`LEVE <b>${n}</b> ${nm} para o cesto 🧺`,items:range(1,total).map(()=>({e,v:1})),check:v=>v.length===n,solIdx:range(0,n-1),count:v=>`Tem ${v.length} no cesto.`,hint:`Conte um por um. Precisa ter ${n} no cesto. Para tirar, pise no ➖.`}}
+  if(t==='leve'){const one=L===1,n=one?rnd(2,5):rnd(4,10),total=Math.min(14,n+rnd(2,4));
+    return {verb:'carry',one,text:`LEVE <b>${n}</b> ${nm} para o cesto 🧺${one?`, ${g==='a'?'uma':'um'} de cada vez`:''}`,items:range(1,total).map(()=>({e,v:1})),check:v=>v.length===n,solIdx:range(0,n-1),count:v=>`Tem ${v.length} no cesto.`,hint:`Conte um por um. Precisa ter ${n} no cesto. Para tirar, pise no ➖.`}}
   if(t==='enche'){const k=rnd(2,7),need=10-k;
     return {verb:'carry',pre:k,text:`O cesto já tem ${k} ${nm}. LEVE mais até ficar com <b>10</b>`,items:range(1,need+3).map(()=>({e,v:1})),check:v=>v.length===10,solIdx:range(0,need-1),count:v=>`Tem ${v.length} no cesto.`,hint:`Conte a partir do ${k}: ${k+1}, ${k+2}... até 10.`,explain:`${k} + ${need} = 10`}}
   if(t==='cont'){const n=L===3?rnd(0,10):rnd(1,10),q=numJump(n,[n+1,n-1,n+2],0,10);
@@ -708,9 +756,9 @@ function genBuild(L){
 /* ================= STATIONS / WORLDS ================= */
 const STATIONS=[
   {id:'contas',name:'Obby das Contas',sub:'Adição e subtração',color:'#E8413A',world:'Ilhas do Mar',sky:'#FFD9A8',ground:['#F2D99B','#E5C77F'],prop:'palm',npc:{name:'Rafa',skin:'#C98E5F',shirt:'#E8413A',pants:'#1F3F8A',hat:'bone'},
-    intro:'Eu sou o Rafa! Aqui no mar a gente faz contas de mais e de menos. Escolha o jogo:',modes:[{k:'obby',i:'⬆',n:'Obby das Contas',d:'Pule na plataforma com a resposta. Errou? Cai na água!'},{k:'shoot',gen:genShootArith,i:'🎯',n:'Estoura-Balão',d:'Mire e estoure os balões com a conta certa.'}]},
+    intro:'Eu sou o Rafa! Aqui no mar a gente faz contas de mais e de menos. Escolha o jogo:',modes:[{k:'obby',i:'⬆',n:'Obby das Contas',d:'Pule na plataforma com a resposta. Errou? Cai na água!'},{k:'shoot',gen:genShootArith,i:'🎯',n:'Estoura-Balão',d:'Mire e estoure os balões com a conta certa.'},{k:'kart',i:'🏎️',n:'Kart das Contas',d:'Dirija o kart e passe pelo portão com o resultado.'}]},
   {id:'ordem',name:'Corrida dos Números',sub:'A ordem dos números',color:'#FF8A1F',world:'Estádio',sky:'#9FDBFF',ground:['#4CB84A','#43A743'],prop:'stand',npc:{name:'Juca',skin:'#FFD9B3',shirt:'#FF8A1F',pants:'#20242E',hat:'nenhum'},
-    intro:'Oi, eu sou o Juca! Bem-vindo ao estádio dos números. Bora correr?',modes:[{k:'order',i:'🏃',n:'Corrida dos Cubos',d:'Pegue os cubos na ordem certa.'},{k:'floor',gen:genFloorOrder,i:'🌋',n:'Chão de Lava',d:'Fique no número certo antes do tempo acabar!'}]},
+    intro:'Oi, eu sou o Juca! Bem-vindo ao estádio dos números. Bora correr?',modes:[{k:'order',i:'🏃',n:'Corrida dos Cubos',d:'Pegue os cubos na ordem certa.'},{k:'floor',gen:genFloorOrder,i:'🌋',n:'Chão de Lava',d:'Fique no número certo antes do tempo acabar!'},{k:'kart',gen:genFloorOrder,i:'🏎️',n:'Kart dos Números',d:'Dirija o kart e passe pelo portão do número certo.'}]},
   {id:'vocab',name:'Vila das Posições',sub:'Vocabulário fundamental',color:'#2DB34A',world:'Vila',sky:'#BFE8FF',ground:['#7ED36B','#6CC25B'],prop:'house',npc:{name:'Bia',skin:'#8D5A3B',shirt:'#2DB34A',pants:'#5B6475',hat:'nenhum'},
     intro:'Oi, eu sou a Bia! Aqui a gente aprende EM CIMA, EMBAIXO, DENTRO, FORA, PERTO, LONGE e ENTRE.',modes:[{k:'act',gen:genVocab,i:'⭕',n:'Desafios da Vila',d:'Circule, pule e pinte as posições certas.'},{k:'simon',i:'🗣️',n:'O Mestre Mandou',d:'Corra para o lugar que o mestre falar!'}]},
   {id:'n10',name:'Fazenda do 10',sub:'Números até 10',color:'#E0A800',world:'Fazenda',sky:'#CDEFFF',ground:['#9CCB5B','#8DBB4E'],prop:'fence',npc:{name:'Theo',skin:'#E9B07F',shirt:'#FFC83D',pants:'#1F4FA0',hat:'nenhum'},
@@ -720,7 +768,7 @@ const STATIONS=[
   {id:'dinheiro',name:'Mercadinho',sub:'Nosso dinheiro',color:'#16A34A',world:'Rua do Mercado',sky:'#FFE7C2',ground:['#D9D2C5','#CBC3B4'],prop:'stall',npc:{name:'Seu Zé',skin:'#C98E5F',shirt:'#FFFFFF',pants:'#7A4B2A',hat:'bone'},
     intro:'Bem-vindo ao Mercadinho! Aqui a gente aprende a usar o real.',modes:[{k:'act',gen:genMoney,i:'💵',n:'Desafios do Mercado',d:'Pague certinho, leve ao caixa e ache o troco.'},{k:'share',gen:genShareMoney,i:'🧑‍🤝‍🧑',n:'Atenda os Clientes',d:'Entregue o dinheiro que cada cliente pediu.'}]},
   {id:'n100',name:'Torre do 100',sub:'Números até 39 e até 100',color:'#2E8BF0',world:'Cidade Alta',sky:'#A9C8FF',ground:['#9FB8E8','#8EA9DD'],prop:'tower',npc:{name:'Duda',skin:'#E9B07F',shirt:'#2E8BF0',pants:'#5B6475',hat:'capacete'},
-    intro:'Eu sou a Duda! Aqui moram os números grandes, até 100.',modes:[{k:'act',gen:genN100,i:'🔟',n:'Desafios da Torre',d:'Monte números com barras de 10 e pule no quadro.'},{k:'floor',gen:genFloorN100,i:'🌋',n:'Chão de Lava 100',d:'Fique em cima do número certo para não cair!'}]},
+    intro:'Eu sou a Duda! Aqui moram os números grandes, até 100.',modes:[{k:'act',gen:genN100,i:'🔟',n:'Desafios da Torre',d:'Monte números com barras de 10 e pule no quadro.'},{k:'floor',gen:genFloorN100,i:'🌋',n:'Chão de Lava 100',d:'Fique em cima do número certo para não cair!'},{k:'kart',gen:genFloorN100,i:'🏎️',n:'Kart do 100',d:'Dirija o kart e passe pelo portão do número certo.'}]},
   {id:'medidas',name:'Oficina das Medidas',sub:'Grandezas e medidas',color:'#A0522D',world:'Oficina',sky:'#F2E4CF',ground:['#C9A27A','#BB936B'],prop:'bench',npc:{name:'Nina',skin:'#8D5A3B',shirt:'#A0522D',pants:'#1F4FA0',hat:'nenhum'},
     intro:'Oi, eu sou a Nina! Na oficina a gente mede tudo: comprido, alto, pesado, cheio.',modes:[{k:'act',gen:genMeasure,i:'📏',n:'Desafios da Oficina',d:'Lápis gigantes, prédios, copos e balança.'},{k:'build',gen:genBuild,i:'🏗️',n:'Construa a Escada',d:'Monte a escada do tamanho certo e suba no baú!'}]}
 ];
@@ -827,6 +875,9 @@ function makeHat(k){const g=new THREE.Group();
     for(let i=0;i<6;i++){const a=i/6*Math.PI*2;g.add(mesh(new THREE.ConeGeometry(.1,.26,6),'#FFC83D',Math.cos(a)*.42,.38,Math.sin(a)*.42))}
     g.add(mesh(new THREE.SphereGeometry(.09,8,6),'#E8413A',0,.14,.47))}
   return g}
+const kitMatCache={};
+function kitMats(kt){if(kitMatCache[kt.k])return kitMatCache[kt.k];const side=mat(kt.c[0]),face=b=>shared(new THREE.MeshLambertMaterial({map:tex(cv(128,128,g=>drawKit(g,kt,0,0,128,128,b)))}));
+  return kitMatCache[kt.k]=[side,side,side,side,face(false),face(true)]}
 function makeChar(lk){
   const g=new THREE.Group(),sk=mat(lk.skin),sh=mat(lk.shirt),pa=mat(lk.pants);
   const legL=new THREE.Group(),legR=new THREE.Group();legL.position.set(-.28,1,0);legR.position.set(.28,1,0);
@@ -834,13 +885,13 @@ function makeChar(lk){
   const armL=new THREE.Group(),armR=new THREE.Group();armL.position.set(-.8,1.95,0);armR.position.set(.8,1.95,0);
   [armL,armR].forEach(a=>{a.add(mesh(BOX(.46,1,.46),sk,0,-.5,0));a.add(mesh(BOX(.5,.42,.5),sh,0,-.2,0))});
   const head=new THREE.Group();head.position.y=2;const faceMat=new THREE.MeshLambertMaterial({map:faceTex(lk.skin)});
-  head.add(mesh(BOX(.82,.82,.82),[sk,sk,sk,sk,faceMat,sk],0,.42,0));
+  const skull=mesh(BOX(.82,.82,.82),[sk,sk,sk,sk,faceMat,sk],0,.42,0);skull.userData.head=true;head.add(skull);
   /* hair: back and sides always; the top and the fringe only when no hat covers them */
   const hm=mat(lk.hair||'#5A3A22'),bare=!lk.hat||lk.hat==='nenhum'||lk.hat==='coroa';
   head.add(mesh(BOX(.92,.56,.14),hm,0,.58,-.42),mesh(BOX(.14,.4,.62),hm,-.42,.66,-.12),mesh(BOX(.14,.4,.62),hm,.42,.66,-.12));
   if(bare)head.add(mesh(BOX(.92,.16,.92),hm,0,.88,0),mesh(BOX(.92,.14,.1),hm,0,.76,.43));
   const hat=makeHat(lk.hat);hat.position.y=bare&&lk.hat==='coroa'?.93:.83;head.add(hat);
-  g.add(legL,legR,mesh(BOX(1.1,1,.56),sh,0,1.5,0),mesh(BOX(1.12,.14,.58),pa,0,1.05,0),armL,armR,head);
+  g.add(legL,legR,mesh(BOX(1.1,1,.56),lk.kit?kitMats(lk.kit):sh,0,1.5,0),mesh(BOX(1.12,.14,.58),pa,0,1.05,0),armL,armR,head);
   return {g,legL,legR,armL,armR,head,phase:0,faceMat,skin:lk.skin}}
 function randomLook(i){return {skin:pick(['#FFD9B3','#E9B07F','#C98E5F','#8D5A3B']),shirt:pick(['#E8413A','#2E8BF0','#2DB34A','#FF8A1F','#8B4CF0','#FF5FA2']),pants:pick(['#1F4FA0','#5B6475','#20242E','#7A4B2A']),hat:pick(['nenhum','nenhum','bone']),hair:pick(['#5A3A22','#1E1A1A','#E8C15A','#C1502A'])}}
 function makePet(k){if(!k||k==='nenhum')return null;
@@ -916,7 +967,7 @@ const HALL={c:{x:0,z:20},tops:{},champTop:null,peds:{}};
   scene.add(mesh(new THREE.CylinderGeometry(1.1,1.3,1.4,24),'#1B2232',c.x,.7,c.z));COLL.push({x:c.x,z:c.z,r:1.3});
   const cl=sprite(labelTex('TAÇA DOS CAMPEÕES','#FFC83D',INK,768,110,64),4.4,.63);cl.position.set(c.x,5,c.z);scene.add(cl)})();
 function updateHall(){STATIONS.forEach(st=>{const p=HALL.peds[st.id],old=HALL.tops[st.id];drop(old);const tier=S.trophies[st.id]||0;let m;
-    if(tier===3){m=makeCopa(GOLD);m.scale.setScalar(.95)}else if(tier===2)m=makeMedal('#DCE3EE');else if(tier===1)m=makeMedal('#CD7F32');else{m=makeCopa(GHOST);m.scale.setScalar(.8)}
+    if(tier===4){m=makeCopa(GOLD);m.scale.setScalar(.95)}else if(tier===3)m=makeMedal('#FFC83D');else if(tier===2)m=makeMedal('#DCE3EE');else if(tier===1)m=makeMedal('#CD7F32');else{m=makeCopa(GHOST);m.scale.setScalar(.8)}
     m.position.set(p.x,1.1,p.z);scene.add(m);HALL.tops[st.id]=m});
   drop(HALL.champTop);const m=makeOrelhuda(S.champ?SILVER:GHOST);m.scale.setScalar(1.5);m.position.set(HALL.c.x,1.4,HALL.c.z);scene.add(m);HALL.champTop=m}
 /* portals */
@@ -973,7 +1024,7 @@ function drawSign(c,st){const g=c.getContext('2d'),s=stat(st.id);g.clearRect(0,0
   g.textAlign='center';g.fillStyle='#fff';g.strokeStyle=INK;g.lineWidth=7;
   fitText(g,st.name,460,58);g.strokeText(st.name,256,92);g.fillText(st.name,256,92);
   fitText(g,st.sub,460,34,600);g.lineWidth=5;g.strokeText(st.sub,256,150);g.fillText(st.sub,256,150);
-  const tr=['','🥉','🥈','🏆'][S.trophies[st.id]||0],lv=`Nível ${s.level}   ★ ${s.stars||0} ${tr}`;fitText(g,lv,440,40);g.fillStyle=INK;rr(g,76,186,360,66,20);g.fill();g.fillStyle='#FFC83D';g.fillText(lv,256,233)}
+  const tr=MEDAL[S.trophies[st.id]||0],lv=`Nível ${s.level}   ★ ${s.stars||0} ${tr}`;fitText(g,lv,440,40);g.fillStyle=INK;rr(g,76,186,360,66,20);g.fill();g.fillStyle='#FFC83D';g.fillText(lv,256,233)}
 const SIGNS={};
 function updateSign(st){const s=SIGNS[st.id];drawSign(s.c,st);s.t.needsUpdate=true}
 STATIONS.forEach((st,i)=>{const W={x:1000+i*400,z:0};st.c=W;st.u={x:1,z:0};st.v={x:0,z:1};st.ang=0;
@@ -1035,13 +1086,15 @@ const SHAPES=[];
 /* ================= PLAYER ================= */
 const P=new THREE.Vector3(SPAWN.x,0,SPAWN.z);let vy=0,onGround=true,standing=null,rotY=Math.PI,yaw=0,pitch=.38,camRot=0;
 let PL=null,PET=null,checkpoint=null,tool=null,WORLD=null,portalCD=0;
-function look(){return {skin:find('skin',S.look.skin).c,hair:find('hair',S.look.hair).c,shirt:find('shirt',S.look.shirt).c,pants:find('pants',S.look.pants).c,hat:S.look.hat}}
+function look(){const kt=kitOf(S.look.shirt);return {skin:find('skin',S.look.skin).c,hair:find('hair',S.look.hair).c,shirt:kt?kt.c[0]:find('shirt',S.look.shirt).c,kit:kt,pants:kt&&kt.short?kt.short:find('pants',S.look.pants).c,hat:S.look.hat}}
 function buildPlayer(){if(PL){endAnim(true);dropTool();if(PL.ns)PL.ns.material.map.dispose();drop(PL.g)}PL=makeChar(look());PL.g.position.copy(P);PL.g.rotation.y=rotY;
   const ns=sprite(labelTex(S.name||'Jogador','#fff',null,256,64,40),2.2,.55);ns.position.y=3.35;PL.g.add(ns);PL.ns=ns;scene.add(PL.g);
   drop(PET);PET=makePet(S.look.pet);if(PET){PET.position.set(P.x+1,0,P.z+1);scene.add(PET)}
-  if(CH&&CH.paint)giveTool('brush',CH.paint);if(CH&&CH.type==='shoot')giveTool('blaster')}
+  if(CH&&CH.paint)giveTool('brush',CH.paint.c);else if(CH&&CH.q&&CH.q.verb==='smash')giveTool('hammer');else if(CH&&CH.q&&CH.q.verb==='throw'&&!CH.shot)giveTool('ball');if(CH&&CH.type==='shoot')giveTool('blaster')}
 function giveTool(kind,col){dropTool();tool=new THREE.Group();
   if(kind==='brush')tool.add(mesh(BOX(.14,.8,.14),'#8B5A2B',0,-1.3,.15),mesh(BOX(.36,.36,.36),col,0,-1.8,.15));
+  else if(kind==='hammer')tool.add(mesh(BOX(.14,1,.14),'#8B5A2B',0,-1.35,.15),mesh(BOX(.36,.36,.7),'#9AA6B2',0,-1.9,.15));
+  else if(kind==='ball')tool.add(mesh(new THREE.SphereGeometry(.36,14,10),'#FF8A1F',0,-1.15,.3));
   else{tool.add(mesh(BOX(.3,.35,.9),'#2E8BF0',0,-1.05,.35),mesh(new THREE.CylinderGeometry(.1,.1,.6,10),'#FF8A1F',0,-1.05,.95));tool.children[1].rotation.x=Math.PI/2}
   tool.userData.kind=kind;PL.armR.add(tool)}
 function dropTool(){drop(tool);tool=null}
@@ -1060,7 +1113,7 @@ function updateFx(dt){for(let i=PARTS.length-1;i>=0;i--){const p=PARTS[i];p.life
   p.vy-=p.grav*dt;p.sp.position.x+=p.vx*dt;p.sp.position.y+=p.vy*dt;p.sp.position.z+=p.vz*dt;const s=p.size+p.grow*(p.max-p.life);p.sp.scale.set(s,s,1);p.sp.material.opacity=Math.min(1,p.life/p.max*1.7)}}
 const charMat=shared(new THREE.MeshLambertMaterial({color:'#2B2B2B'}));
 function charPL(on){if(!PL)return;PL.g.traverse(o=>{if(!o.isMesh)return;
-  if(on){if(!o.userData.orig){o.userData.orig=o.material;o.material=Array.isArray(o.material)?o.material.map((m,i)=>i===4?new THREE.MeshLambertMaterial({map:faceTex('#3A3A3A','burn')}):charMat):charMat}}
+  if(on){if(!o.userData.orig){o.userData.orig=o.material;o.material=Array.isArray(o.material)?o.material.map((m,i)=>o.userData.head&&i===4?new THREE.MeshLambertMaterial({map:faceTex('#3A3A3A','burn')}):charMat):charMat}}
   else if(o.userData.orig){o.material=o.userData.orig;o.userData.orig=null}})}
 function setFace(m){if(PL&&PL.faceMat){PL.faceMat.map=faceTex(PL.skin,m);PL.faceMat.needsUpdate=true}}
 const ANIM_DUR={cheer:1.2,win:2.6,sad:1.8,burn:2,splash:1.4,dizzy:1.6};
@@ -1132,10 +1185,12 @@ function groundAt(x,z,y){let h=-Infinity,on=null;for(const g of GROUNDS)if((x-g.
   return {h,on}}
 const lerpA=(a,b,t)=>{const d=((b-a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;return a+d*t};
 function respawn(){sfx.splash();const c=checkpoint||(WORLD?WORLD.spawn:SPAWN);P.set(c.x,.2,c.z);vy=0;playAnim('splash');toast('Splash! 💦 Caiu na água! Tente de novo!',2400)}
+let swingT=0;
 function updatePlayer(dt){
   let jx=input.jx,jy=input.jy;
   if(keys['a']||keys['arrowleft'])jx=-1;if(keys['d']||keys['arrowright'])jx=1;if(keys['w']||keys['arrowup'])jy=-1;if(keys['s']||keys['arrowdown'])jy=1;
   if(paused||(ANIM&&ANIM.lock)){jx=jy=0;input.jump=false}
+  if(CH&&CH.type==='kart'){input.jump=false;kartDrive(dt,jx,jy);return}
   const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
   let mx=fx*(-jy)+rx*jx,mz=fz*(-jy)+rz*jx,m=Math.hypot(mx,mz);if(m>1){mx/=m;mz/=m;m=1}
   const sp=hasPower('tenis')?9.5:6.2;P.x+=mx*sp*dt;P.z+=mz*sp*dt;
@@ -1153,6 +1208,7 @@ function updatePlayer(dt){
   const moving=m>.08&&onGround;PL.phase+=dt*sp*1.7*(moving?m:0);const sw=moving?Math.sin(PL.phase)*.8*m:0;
   if(!onGround){PL.legL.rotation.x=.4;PL.legR.rotation.x=-.4;PL.armL.rotation.x=PL.armR.rotation.x=Math.PI*.85}
   else{PL.legL.rotation.x=sw;PL.legR.rotation.x=-sw;PL.armL.rotation.x=-sw;PL.armR.rotation.x=tool?(tool.userData.kind==='blaster'?-1.4:-.7):sw}
+  if(swingT>0){swingT-=dt;PL.armR.rotation.x=-2.9+2.7*(1-Math.max(0,swingT)/.32)}
   applyAnim(dt)}
 let T=0;
 function updatePet(dt){if(!PET)return;const bx=P.x-Math.sin(rotY)*1.6+Math.cos(rotY)*1.1,bz=P.z-Math.cos(rotY)*1.6-Math.sin(rotY)*1.1;
@@ -1193,14 +1249,14 @@ actB.onclick=act;
 function talk(st){const s=stat(st.id);
   openSheet(`<div class="dlg"><span class="dlg-name" style="--c:${st.color}">${st.npc.name}</span><p>${st.intro}</p>
     <div class="modes">${st.modes.map((m,i)=>`<button class="mode" data-i="${i}" style="--c:${st.color}"><span class="mi">${m.i}</span><span><b>${m.n}</b><small>${m.d}</small></span></button>`).join('')}</div>
-    <div class="small">${st.sub} · Nível ${s.level} de 3 · ★ ${s.stars||0} · ${['Sem troféu ainda','Medalha de bronze 🥉','Medalha de prata 🥈','TAÇA DE OURO 🏆'][S.trophies[st.id]||0]}</div>
+    <div class="small">${st.sub} · Nível ${s.level} de 3 · ★ ${s.stars||0} · ${['Sem medalha ainda','Melhor medalha: bronze 🥉','Melhor medalha: prata 🥈','Melhor medalha: ouro 🥇','TAÇA DE OURO 🏆'][S.trophies[st.id]||0]}</div>
     <div class="btns"><button class="btn" id="d-no">Agora não</button><button class="btn icon" id="d-spk" aria-label="Ouvir">🗣️</button></div></div>`);
   $$('.mode').forEach(b=>b.onclick=()=>{sfx.tap();closeSheet();quit3D(true);startMode(st,st.modes[+b.dataset.i])});
   const intro=st.intro+' '+st.modes.map(m=>m.n).join(', ou ')+'.';
   $('#d-no').onclick=()=>{sfx.tap();closeSheet()};$('#d-spk').onclick=()=>speak(intro,null,true);speak(intro)}
 function startMode(st,m){flushFin();const lvl=stat(st.id).level;
   if(m.k==='act')startAct(st,m.gen);else if(m.k==='obby')startObby(st);else if(m.k==='order')startOrder(st);else if(m.k==='shapes')startShapes(st);
-  else if(m.k==='shoot')startShoot(st,m.gen);else if(m.k==='floor')startFloor(st,m.gen);else if(m.k==='share')startShare(st,m.gen);else if(m.k==='build')startBuild(st,m.gen);else if(m.k==='simon')startSimon(st);
+  else if(m.k==='shoot')startShoot(st,m.gen);else if(m.k==='floor')startFloor(st,m.gen);else if(m.k==='share')startShare(st,m.gen);else if(m.k==='build')startBuild(st,m.gen);else if(m.k==='simon')startSimon(st);else if(m.k==='kart')startKart(st,m.gen);
   if(CH){CH.mode=m;CH.level=lvl}}
 function friendTalk(f){if(f.cool>0){openSheet(`<div class="quiz"><p><b>${f.name}:</b> Valeu pela ajuda! Volte daqui a pouquinho que eu tenho outra charada. 😄</p><button class="btn go" id="q-x">Tchau!</button></div>`);$('#q-x').onclick=()=>closeSheet();return}
   const L=Math.max(stat('contas').level,stat('n10').level),q=genArith(L),thing=pick([['figurinhas','a'],['balas','a'],['carrinhos','o'],['bolinhas de gude','a'],['adesivos','o']]);
@@ -1216,26 +1272,32 @@ function friendTalk(f){if(f.cool>0){openSheet(`<div class="quiz"><p><b>${f.name}
       f.cool=20;$('#sheet').innerHTML=`<div class="quiz"><p><b>${f.name}:</b> Era <b>${q.ans}</b>: ${q.a} ${q.op} ${q.b} = ${q.ans}. Depois eu trago outra charada!</p><button class="btn go" id="q-x">Tudo bem!</button></div>`;$('#q-x').onclick=()=>closeSheet()}})}
 
 /* ================= SCORING + TROPHIES ================= */
-function checkTrophies(st,lvl,stars){const s=stat(st.id),old=S.trophies[st.id]||0;let t=old;if(stars>=1){t=Math.max(t,1);if(s.level>=2)t=Math.max(t,2);if(lvl===3&&stars===3)t=3}
-  let gained=0;if(t>old){S.trophies[st.id]=t;gained=t;S.coins+=[0,5,10,25][t]}
-  let champ=false;if(!S.champ&&STATIONS.every(x=>S.trophies[x.id]===3)){S.champ=true;S.coins+=100;champ=true}
-  save();updateHall();hud();return {gained,champ}}
-/* Stars follow first-try answers: 3 = all right (long rounds of 6 or more allow one miss), 2 = 60%, 1 = 30%. Running out of hearts caps it at 1. */
-function starsFor(first,n,lost){if(!n)return 0;const p=first/n,s=first>=n-(n>=6?1:0)?3:p>=.6?2:p>=.3?1:0;return lost?Math.min(s,1):s}
+function checkTrophies(st,lvl,stars){const old=S.trophies[st.id]||0,medal=stars===3&&lvl===3?4:stars;
+  let gained=0;if(medal>old){S.trophies[st.id]=medal;gained=medal;S.coins+=[0,5,10,15,30][medal]}
+  let champ=false;if(!S.champ&&STATIONS.every(x=>S.trophies[x.id]===4)){S.champ=true;S.coins+=100;champ=true}
+  save();updateHall();hud();return {medal,gained,champ}}
+/* Stars follow first-try answers: 3 = every question right at the first try, 2 = half or more, 1 = at least one. Running out of hearts caps it at 1. */
+function starsFor(first,n,lost){if(!n)return 0;const s=first>=n?3:first/n>=.5?2:first>0?1:0;return lost?Math.min(s,1):s}
 function finishChallenge(st,first,n,coins,lvl,mode,lost,silent){
-  const s=stat(st.id),pct=n?first/n:0,stars=starsFor(first,n,lost),bonus=Math.round(5*pct);
+  const s=stat(st.id),pct=n?first/n:0,stars=starsFor(first,n,lost),bonus=Math.round(5*pct);lvl=lvl||1;
   S.stars+=stars;s.stars=(s.stars||0)+stars;s.rounds++;S.coins+=bonus;coins+=bonus;
   let msg='';if(pct>=.8&&!lost&&s.level<3){s.level++;msg=`🚀 Subiu para o nível ${s.level}!`}else if(pct<.4&&s.level>1){s.level--;msg=`Vamos treinar mais no nível ${s.level}.`}
-  const tr=checkTrophies(st,lvl||1,stars);save();hud();updateSign(st);
-  if(silent){toast(`Rodada guardada: <b>${first} de ${n}</b> de primeira, ${stars} ⭐`,3200);return}
+  const tr=checkTrophies(st,lvl,stars);save();hud();updateSign(st);
+  if(silent){toast(`Rodada guardada: <b>${first} de ${n}</b> de primeira ${MEDAL[tr.medal]}`,3200);return}
   const owed=Object.keys(S.sk).filter(k=>k.startsWith(st.id+'.')&&S.sk[k].w>0).sort((a,b)=>S.sk[b].d-S.sk[a].d).slice(0,2).map(skillName);
   sfx.win();confetti(tr.gained||tr.champ?80:stars?40:12);
-  const aw=tr.champ?{k:'champ',t:'🏆 TAÇA DOS CAMPEÕES!',d:'Você ganhou a taça de ouro em TODAS as estações! +100 🪙'}:tr.gained===3?{k:'copa',t:`🏆 TAÇA DE OURO: ${st.name}!`,d:'Você completou o nível 3 com 3 estrelas! +25 🪙'}:tr.gained===2?{k:'silver',t:'🥈 Medalha de Prata!',d:'Você chegou ao nível 2! +10 🪙'}:tr.gained===1?{k:'bronze',t:'🥉 Medalha de Bronze!',d:'Primeira rodada com estrela! +5 🪙'}:null;
+  /* the medal of this round, why it was earned, and what the next one takes */
+  const M=[null,{k:'bronze',t:'🥉 Medalha de Bronze',why:'Você terminou a rodada.',next:'Para a prata 🥈: acerte pelo menos a metade de primeira.'},
+    {k:'silver',t:'🥈 Medalha de Prata',why:'Você acertou a metade ou mais de primeira.',next:'Para o ouro 🥇: acerte todas de primeira.'},
+    {k:'medal',t:'🥇 Medalha de Ouro',why:'Tudo certo de primeira!',next:`Faça isso no nível 3 e ganhe a TAÇA 🏆. Você jogou no nível ${lvl}.`},
+    {k:'copa',t:`🏆 TAÇA DE OURO: ${st.name}`,why:'Tudo certo de primeira no nível 3, o mais difícil!',next:''}][tr.medal];
   openSheet(`<div class="result"><h2>${stars===3?'Incrível!':stars===2?'Muito bom!':stars===1?'Você conseguiu!':'Vamos treinar mais!'}</h2><div class="bigstars">${[1,2,3].map(k=>`<span class="${k<=stars?'':'off'}">⭐</span>`).join('')}</div>
     <p>${mode?mode.n:st.name}: acertou <b>${first} de ${n}</b> de primeira.</p><p>Ganhou <b>${coins} 🪙</b>${bonus?` (com o bônus de ${bonus})`:''} e <b>${stars} ⭐</b>.</p>${msg?`<div class="pillmsg">${msg}</div>`:''}${owed.length?`<p class="small">Vai aparecer de novo para treinar: ${owed.join(' · ')}</p>`:''}
-    ${aw?`<div class="award"><canvas id="aw-cv" width="320" height="320"></canvas><b>${aw.t}</b><span>${aw.d}</span><small>Veja na Sala de Troféus da cidade!</small></div>`:''}
+    ${tr.champ?`<div class="award"><canvas id="aw-ch" width="320" height="320"></canvas><b>🏆 TAÇA DOS CAMPEÕES!</b><span>Você ganhou a taça de ouro em TODAS as estações! +100 🪙</span></div>`:''}
+    ${M?`<div class="award"><canvas id="aw-cv" width="320" height="320"></canvas><b>${M.t}${tr.medal===4?'!':''}</b><span>${M.why}</span>${tr.gained?`<span>É a sua melhor medalha aqui! +${[0,5,10,15,30][tr.gained]} 🪙</span>`:''}${M.next?`<small>${M.next}</small>`:''}<small>A melhor medalha de cada estação fica na Sala de Troféus.</small></div>`
+      :'<p class="small">Sem medalha desta vez. Acerte pelo menos uma pergunta de primeira para ganhar o bronze 🥉.</p>'}
     <div class="btns"><button class="btn go" id="r-again">▶ De novo</button><button class="btn gold" id="r-go">🏃 Explorar</button></div></div>`);
-  if(aw){const c=$('#aw-cv');if(c)drawCupArt(c,aw.k==='champ'?'champions':aw.k);if(aw.k==='copa'||aw.k==='champ')speak(aw.t)}
+  if(M)drawCupArt($('#aw-cv'),M.k);if(tr.champ)drawCupArt($('#aw-ch'),'champions');if(tr.gained===4)speak(M.t);else if(tr.champ)speak('Taça dos Campeões!');
   $('#r-again').onclick=()=>{sfx.tap();closeSheet();startMode(st,mode||st.modes[0])};$('#r-go').onclick=()=>{sfx.tap();closeSheet()}}
 
 /* ================= CHALLENGE FRAMEWORK ================= */
@@ -1256,6 +1318,7 @@ $('#m-quit').onclick=()=>{sfx.tap();quit3D(false)};
 function quit3D(silent){if(!CH)return;
   if(CH.type==='order')CH.cubes.forEach(c=>drop(c.m));
   if(CH.type==='obby')resetObby();
+  if(CH.type==='kart')leaveKart();
   clearArena();checkpoint=null;$('#b-fire').hidden=true;hideSure();camLook=1.7;
   CH=null;mis.hidden=true;if(!silent)toast('Desafio encerrado. Fale com o personagem para jogar de novo!')}
 /* The result sheet opens a moment after the round ends. If the player starts something else first, the round is still scored (quietly). */
@@ -1281,8 +1344,8 @@ function beginArena(st){const G=new THREE.Group();G.position.set(st.c.x,0,st.c.z
 function clearArena(){if(!CH)return;if(CH.G){drop(CH.G);CH.G=null}
   if(CHX){CHX.sprites.forEach(drop);CHX.objs.forEach(drop);CHX.texs.forEach(t=>t.dispose());
     CHX.plats.forEach(p=>{const i=PLATS.indexOf(p);if(i>=0)PLATS.splice(i,1)});CHX.colls.forEach(c=>{const i=COLL.indexOf(c);if(i>=0)COLL.splice(i,1)});CHX={st:CHX.st,texs:[],colls:[],plats:[],sprites:[],objs:[]}}
-  (CH.shots||[]).forEach(s=>drop(s.m));CH.shots=[];showProg(null);dropTool();standing=null}
-function addMark(t,ok){if(!CH||!CH.G||t.mark===ok)return;drop(t.markS);const m=new THREE.Sprite(new THREE.SpriteMaterial({map:markTex(ok),depthTest:false}));m.scale.set(1.5,1.5,1);m.position.set(t.A,4.7,t.B);m.renderOrder=5;CH.G.add(m);t.mark=ok;t.markS=m}
+  (CH.shots||[]).forEach(s=>drop(s.m));CH.shots=[];if(CH.shot){drop(CH.shot.m);CH.shot=null}showProg(null);dropTool();standing=null}
+function addMark(t,ok){if(!CH||!CH.G||t.mark===ok)return;drop(t.markS);const m=new THREE.Sprite(new THREE.SpriteMaterial({map:markTex(ok),depthTest:false}));m.scale.set(1.5,1.5,1);m.position.set(t.A,t.markY||4.7,t.B);m.renderOrder=5;CH.G.add(m);t.mark=ok;t.markS=m}
 function addPic(G,draw,A,y,B,s){const sp=sprite(texOf(draw),s,s);sp.position.set(A,y,B);G.add(sp);return sp}
 function platAt(st,A,B,ha,hb,top,solid,tgt,mg){const w=L2W(st,A,B),p={cx:w.x,cz:w.z,ux:st.u.x,uz:st.u.z,vx:st.v.x,vz:st.v.z,ha,hb,top,solid,active:true,tgt,mg};PLATS.push(p);CHX.plats.push(p);return p}
 function padSprite(G,text,A,B,col){G.add(mesh(new THREE.CylinderGeometry(1.3,1.3,.1,28),col,A,.05,B));const s=sprite(texOf(g=>{g.fillStyle=col;rr(g,8,70,240,116,30);g.fill();g.lineWidth=8;g.strokeStyle=INK;g.stroke();bigText(g,text,128,130,220,52,'#fff')}),2.4,2.4);s.position.set(A,1.9,B);G.add(s)}
@@ -1299,7 +1362,7 @@ function failRound(msg,ms,next){CH.locked=true;record(CH.st.id,false,CH.skill);s
 function hintBad(msg,anim){sfx.bad();playAnim(anim||'sad');toast('💡 '+msg,4800,true)}
 
 /* ---- ACTIVITY ARENA: jump / circle / paint / carry ---- */
-const VTAG={jump:'⬆ PULAR',circle:'⭕ CIRCULAR',paint:'🖌️ PINTAR',carry:'🧺 LEVAR'};
+const VTAG={jump:'⬆ PULAR',circle:'⭕ CIRCULAR',paint:'🖌️ PINTAR',carry:'🧺 LEVAR',smash:'🔨 QUEBRAR',kick:'⚽ CHUTAR',throw:'🏀 ARREMESSAR'};
 const progMat=shared(new THREE.MeshBasicMaterial({color:'#E53935',side:THREE.DoubleSide}));let prog=null;
 function showProg(t,start,acc){if(prog){scene.remove(prog);prog.geometry.dispose();prog=null}if(!t||Math.abs(acc)<.05)return;
   const th0=-start,s=Math.min(th0,th0-acc);prog=new THREE.Mesh(new THREE.RingGeometry(t.R-.32,t.R+.32,64,1,s,Math.abs(acc)),progMat);prog.rotation.x=-Math.PI/2;prog.position.set(t.x,.1,t.z);scene.add(prog)}
@@ -1308,24 +1371,42 @@ function layoutPos(q){const n=q.opts.length,ps=[];
   if(q.layout==='grid'){const cols=Math.ceil(n/2);for(let i=0;i<n;i++){const r=i<cols?0:1,c=r?i-cols:i,cc=r?n-cols:cols;ps.push([r?5:.6,(c-(cc-1)/2)*4.4])}return ps}
   const sp=q.verb==='circle'?7.4:4.9;for(let i=0;i<n;i++)ps.push([1.5,(i-(n-1)/2)*sp]);return ps}
 function buildAct(){const st=CH.st,q=CH.q,G=beginArena(st);
-  Object.assign(CH,{targets:[],locked:false,tries:0,cur:null,acc:0,lastStand:null,buckets:[],pads:{},paint:null,away:0,pre:null,dwell:0});
-  if(q.board){const t=texOf(g=>{boardBg(g);q.board(g)},1024,576),b=new THREE.Mesh(new THREE.PlaneGeometry(8.6,4.84),new THREE.MeshBasicMaterial({map:t}));b.position.set(10,5.4,0);b.rotation.y=-Math.PI/2;G.add(b);
-    G.add(mesh(BOX(.2,5.1,9),INK,10.15,5.4,0),mesh(BOX(.3,3.2,.3),'#7A4B2A',10.2,1.6,-3.6),mesh(BOX(.3,3.2,.3),'#7A4B2A',10.2,1.6,3.6))}
+  Object.assign(CH,{targets:[],locked:false,tries:0,cur:null,acc:0,lastStand:null,buckets:[],pads:{},paint:null,away:0,ball:null,shot:null,aim:null});
+  if(q.board){const t=texOf(g=>{boardBg(g);q.board(g)},1024,576),b=new THREE.Mesh(new THREE.PlaneGeometry(8.6,4.84),new THREE.MeshBasicMaterial({map:t})),by=q.verb==='kick'||q.verb==='throw'?2.7:0;b.position.set(10,5.4+by,0);b.rotation.y=-Math.PI/2;G.add(b);
+    /* with goals or hoops in front of it, the board goes up so their pictures do not cover it */
+    G.add(mesh(BOX(.2,5.1,9),INK,10.15,5.4+by,0),mesh(BOX(.3,3.2+by,.3),'#7A4B2A',10.2,1.6+by/2,-3.6),mesh(BOX(.3,3.2+by,.3),'#7A4B2A',10.2,1.6+by/2,3.6))}
   if(q.decor)q.decor(G);
   if(q.verb==='carry')return buildCarry(G);
-  const ps=layoutPos(q);
+  const nO=q.opts.length,ps=q.verb==='kick'?q.opts.map((o,i)=>[7.2,(i-(nO-1)/2)*5.4]):q.verb==='throw'?q.opts.map((o,i)=>[7,(i-(nO-1)/2)*5]):layoutPos(q);
   q.opts.forEach((o,i)=>{const [A,B]=o.pos||ps[i],w=L2W(st,A,B),t={i,A,B,x:w.x,z:w.z,o};CH.targets.push(t);
     if(q.verb==='jump'){const [sw,sh,sd]=o.size||[2.4,.8,2.4];t.base=o.color||st.color;t.mat=new THREE.MeshLambertMaterial({color:t.base});G.add(mesh(BOX(sw,sh,sd),t.mat,A,sh/2,B));
       platAt(st,A,B,sw/2,sd/2,sh,true,t,.15);if(o.model)o.model(G,A,B);if(!o.noPic)addPic(G,o.pic,A,sh+1.7,B,o.picS||2.5)}
     else if(q.verb==='paint'){t.base=o.locked?'#9AA6B2':'#FFFFFF';t.mat=new THREE.MeshLambertMaterial({color:t.base});G.add(mesh(BOX(2.4,.14,2.4),t.mat,A,.07,B));G.add(mesh(BOX(2.6,.1,2.6),INK,A,.05,B,false));
       if(o.locked)t.locked=true;else platAt(st,A,B,1.2,1.2,.14,false,t,0);if(o.pic)addPic(G,o.pic,A,o.picY||2.2,B,o.picS||2.2)}
+    else if(q.verb==='smash')buildCrate(G,t,o);else if(q.verb==='kick')buildGoal(G,t,o);else if(q.verb==='throw')buildHoop(G,t,o);
     else{const cr=o.cr||.9,R=cr+1.25;t.cr=cr;t.R=R;
       if(o.model)o.model(G,A,B);else if(o.bare)G.add(mesh(new THREE.CylinderGeometry(.8,.8,.1,20),'#FFFFFF',A,.05,B));else G.add(mesh(new THREE.CylinderGeometry(.6,.7,1,16),st.color,A,.5,B));
       if(o.pic)addPic(G,o.pic,A,o.picY||(o.bare?1.4:2.5),B,o.picS||2.4);
       t.mat=new THREE.MeshBasicMaterial({color:INK,transparent:true,opacity:.6});const ring=new THREE.Mesh(new THREE.RingGeometry(R-.14,R+.14,64),t.mat);ring.rotation.x=-Math.PI/2;ring.position.set(A,.08,B);G.add(ring);addColl(A,B,cr)}});
-  if(q.verb==='paint'){['#E8413A','#2E8BF0','#FFC83D'].forEach((col,k)=>{const A=-2.6,B=6.4+k*1.8,w=L2W(st,A,B);G.add(mesh(new THREE.CylinderGeometry(.6,.48,.9,16),'#B8C0CC',A,.45,B),mesh(new THREE.CylinderGeometry(.54,.54,.06,16),col,A,.92,B));CH.buckets.push({x:w.x,z:w.z,col})});
-    const s=sprite(texOf(g=>bigText(g,'🪣 TINTA',128,128,240,60,INK)),2.6,2.6);s.position.set(-2.6,2.4,8.2);G.add(s);
-    if(q.multi){padSprite(G,'PRONTO ✓',-2.6,-7,'#22B35E');CH.pads.pronto=L2W(st,-2.6,-7)}}}
+  if(q.verb==='paint'){PAINTS.forEach((c,k)=>{const A=-2.6,B=6.2+k*2.2,w=L2W(st,A,B);G.add(mesh(new THREE.CylinderGeometry(.6,.48,.9,16),'#B8C0CC',A,.45,B),mesh(new THREE.CylinderGeometry(.54,.54,.06,16),c.c,A,.92,B));
+      const lab=sprite(texOf(g=>{g.fillStyle=c.c;rr(g,6,84,244,88,26);g.fill();g.lineWidth=8;g.strokeStyle=INK;g.stroke();fitText(g,c.n,220,46);g.textAlign='center';g.textBaseline='middle';g.lineWidth=7;g.strokeText(c.n,128,130);g.fillStyle='#fff';g.fillText(c.n,128,130)}),2,2);lab.position.set(A,2,B);G.add(lab);
+      CH.buckets.push({x:w.x,z:w.z,c:c.c,k:c.k,n:c.n})});
+    if(q.multi){padSprite(G,'PRONTO ✓',-2.6,-7,'#22B35E');CH.pads.pronto=L2W(st,-2.6,-7)}}
+  else if(q.verb==='smash')giveTool('hammer');
+  else if(q.verb==='throw'){giveTool('ball');CH.aim=sprite(texOf(g=>{g.fillStyle='#FFC83D';g.beginPath();g.moveTo(40,60);g.lineTo(216,60);g.lineTo(128,200);g.closePath();g.fill();g.lineWidth=14;g.lineJoin='round';g.strokeStyle=INK;g.stroke()}),1.5,1.5);CH.aim.visible=false;scene.add(CH.aim);CHX.sprites.push(CH.aim)}
+  else if(q.verb==='kick'){const w=L2W(st,1.4,0),m=new THREE.Mesh(new THREE.SphereGeometry(.42,18,12),new THREE.MeshLambertMaterial({map:texOf(g=>{g.fillStyle='#FFFFFF';g.fillRect(0,0,256,256);g.fillStyle=INK;for(let i=0;i<4;i++)for(let j=0;j<3;j++){g.beginPath();g.arc(32+i*64+(j%2?32:0),44+j*84,17,0,7);g.fill()}})}));
+    m.castShadow=true;m.position.set(w.x,.42,w.z);scene.add(m);CHX.objs.push(m);CH.ball={m,x:w.x,z:w.z,sx:w.x,sz:w.z,vx:0,vz:0,wait:false}}}
+/* a wooden crate to break with the hammer */
+function buildCrate(G,t,o){t.mat=new THREE.MeshLambertMaterial({color:'#C98A4B'});t.parts=[mesh(BOX(1.9,1.9,1.9),t.mat,t.A,.95,t.B),mesh(BOX(1.98,.18,1.98),'#8A552D',t.A,.45,t.B),mesh(BOX(1.98,.18,1.98),'#8A552D',t.A,1.45,t.B)];
+  t.parts.forEach(m=>G.add(m));addPic(G,o.pic,t.A,3.5,t.B,o.picS||2.4);addColl(t.A,t.B,1.3);t.markY=5.1}
+/* a football goal; the net takes the answer colour */
+function buildGoal(G,t,o){const A=t.A,B=t.B;t.mat=new THREE.MeshLambertMaterial({color:'#FFFFFF',transparent:true,opacity:.55});
+  G.add(mesh(BOX(.2,2.5,.2),'#FFFFFF',A,1.25,B-1.85),mesh(BOX(.2,2.5,.2),'#FFFFFF',A,1.25,B+1.85),mesh(BOX(.2,.2,3.9),'#FFFFFF',A,2.5,B),mesh(BOX(.1,2.4,3.7),t.mat,A+1.45,1.2,B,false),mesh(BOX(1.45,.1,3.7),t.mat,A+.72,2.5,B,false));
+  addPic(G,o.pic,A+.2,3.75,B,o.picS||2.1);addColl(A,B-1.85,.25);addColl(A,B+1.85,.25);t.markY=5.3}
+/* a basketball hoop; the backboard takes the answer colour */
+function buildHoop(G,t,o){const A=t.A,B=t.B;t.mat=new THREE.MeshLambertMaterial({color:'#FFFFFF'});t.hx=A+.05;
+  G.add(mesh(BOX(.28,3.4,.28),'#5B6475',A+1,1.7,B),mesh(BOX(.16,2.4,2.8),t.mat,A+.8,4,B));const ring=mesh(new THREE.TorusGeometry(.62,.08,8,20),'#FF8A1F',A+.05,3.05,B);ring.rotation.x=Math.PI/2;G.add(ring);
+  addPic(G,o.pic,A+.55,4.05,B,o.picS||2.1);addColl(A+1,B,.4);t.markY=5.9}
 function buildCarry(G){const st=CH.st,q=CH.q,box=q.box==='caixa',BA=-.5,BB=-6.2,w=L2W(st,BA,BB);CH.basket={x:w.x,z:w.z,items:[]};
   if(box){G.add(mesh(BOX(2.6,1.1,2.6),'#C98A4B',BA,.55,BB));G.add(mesh(BOX(2.2,.05,2.2),'#7A4B2A',BA,1.12,BB))}
   else{G.add(mesh(new THREE.CylinderGeometry(1.5,1.1,1.1,20,1,true),new THREE.MeshLambertMaterial({color:'#C98A4B',side:THREE.DoubleSide}),BA,.55,BB),mesh(new THREE.CylinderGeometry(1.1,1.1,.08,20),'#8A552D',BA,.04,BB))}
@@ -1336,9 +1417,18 @@ function buildCarry(G){const st=CH.st,q=CH.q,box=q.box==='caixa',BA=-.5,BB=-6.2,
   placeBasket()}
 function placeBasket(){const b=CH.basket;b.items.forEach((o,k)=>{const a=k*2.4,r=k===0?0:.75,lay=Math.floor(k/7);o.sp.position.set(b.x+Math.cos(a)*r,1.4+lay*.55+(k%7?0:.1),b.z+Math.sin(a)*r);o.sp.scale.set(1.3,1.3,1)})}
 function startAct(st,gen){CH={type:'act',st,gen,n:5,idx:0,first:0,coins:0};loadActQ()}
-function loadActQ(){const st=CH.st;clearArena();CH.q=CH.gen(stat(st.id).level);CH.skill=lastSkill;buildAct();const w=L2W(st,-3,-2.8),f=L2W(st,5,0);teleport(w.x,w.z,f.x,f.z);pitch=CH.q.board?.3:.52;camLook=CH.q.board?4:1.7;
-  const q=CH.q,tip=q.verb==='circle'?'Corra em volta dele até fechar o círculo vermelho.':q.verb==='jump'?'Pule (⬆) e caia em cima da resposta.':q.verb==='paint'?`Pegue tinta no balde 🪣 e ${q.multi?'pise nos quadrados. Depois pise no PRONTO ✓':'fique parado em cima do certo'}.`:`Encoste para pegar. Chegue perto ${q.box==='caixa'?'da caixa':'do cesto'} para soltar. Depois pise no PRONTO ✓.`;
-  setMission(`<span class="vt">${VTAG[q.verb]}</span>${CH.idx+1}/${CH.n} · ${q.text}<small>${tip}</small>`);sayQ(q.text,CH.idx===0?tip:'')}
+/* Pick-one questions are answered with a different action each time: jump on it, break its crate, kick the ball into its goal or throw the ball into its hoop. */
+let forceVerb=null;
+function mixVerb(q){if(q.verb!=='jump'||!q.text.includes('PULE EM CIMA d')||!q.opts.every(o=>o.pic&&!o.size&&!o.pos&&!o.model))return;
+  const all=['jump','smash','kick','throw'],list=all.filter(v=>v!==CH.lastVerb),v=forceVerb&&all.includes(forceVerb)?forceVerb:pick(list);CH.lastVerb=v;if(v==='jump')return;
+  q.verb=v;q.text=q.text.replace('PULE EM CIMA d',{smash:'QUEBRE a caixa d',kick:'CHUTE a bola no gol d',throw:'ARREMESSE a bola na cesta d'}[v])}
+function loadActQ(){const st=CH.st;clearArena();hideSure();const q=CH.q=CH.gen(stat(st.id).level);CH.skill=lastSkill;mixVerb(q);
+  if(q.verb==='paint'&&!q.cols&&!q.col){const c=pick(PAINTS);q.col=c.k;q.text=q.text.replace('PINTE','PINTE de '+pchip(c))}
+  buildAct();const w=L2W(st,-3,-2.8),f=L2W(st,5,0);teleport(w.x,w.z,f.x,f.z);pitch=q.board?.3:.52;camLook=q.board?(q.verb==='kick'||q.verb==='throw'?4.9:4):1.7;
+  const tip={circle:'Corra em volta dele até fechar o círculo vermelho.',jump:'Pule (⬆) e caia em cima da resposta.',smash:'Chegue perto da caixa certa e toque em QUEBRAR.',kick:'Fique atrás da bola, vire para o gol certo e toque em CHUTAR.',throw:'Vire o boneco para a cesta certa (a seta amarela mostra a mira) e toque em ARREMESSAR.',
+    paint:`Pegue a tinta certa no balde 🪣, suba no quadrado e toque em PINTAR.${q.multi?' Depois pise no PRONTO ✓.':''}`,
+    carry:q.one?`Pegue um, leve até ${q.box==='caixa'?'a caixa':'o cesto'} e volte para buscar o próximo. Depois pise no PRONTO ✓.`:`Encoste para pegar. Chegue perto ${q.box==='caixa'?'da caixa':'do cesto'} para soltar. Depois pise no PRONTO ✓.`}[q.verb];
+  setMission(`<span class="vt">${VTAG[q.verb]}</span>${CH.idx+1}/${CH.n} · ${q.text}<small>${tip}</small>`);sayQ(q.text,CH.idx===0||q.verb!==CH.tipVerb?tip:'');CH.tipVerb=q.verb}
 function nextAct(){if(!CH||CH.type!=='act')return;CH.idx++;if(CH.idx>=CH.n)return done3D();loadActQ()}
 function actOK(ts){const q=CH.q;ts.forEach(t=>{t.mat.color.set('#22B35E');addMark(t,true)});okRound(null,q.explain,null,nextAct)}
 function actReveal(){const q=CH.q,box=q.box==='caixa';if(q.verb==='carry')revealCarry();else{const sol=q.multi?q.sol:[q.ans];CH.targets.forEach(t=>{if(t.locked)return;if(sol.includes(t.i)){t.mat.color.set('#22B35E');addMark(t,true)}else if(q.multi){t.mat.color.set(t.base);if(t.painted)addMark(t,false)}})}
@@ -1350,14 +1440,16 @@ function actPick(t){const q=CH.q;if(CH.locked||t.dead)return;if(t.i===q.ans)retu
   CH.tries++;t.dead=true;t.mat.color.set('#FF8A80');addMark(t,false);if(CH.tries>=2)return actReveal();hintBad(q.hint||'Tente outro!')}
 function actCheck(){const q=CH.q;if(CH.locked)return;const sel=q.verb==='carry'?CH.basket.items.map(o=>o.v):CH.targets.filter(t=>t.painted).map(t=>t.i);
   if(q.verb==='carry'?!CH.basket.items.some(o=>!o.pre):!sel.length){toast(q.verb==='carry'?`Leve alguma coisa para ${q.box==='caixa'?'a caixa':'o cesto'} antes do PRONTO.`:'Pinte antes de pisar no PRONTO.',2200);return}
+  if(q.verb==='paint'&&q.check(sel)){const pt=CH.targets.filter(t=>t.painted),colOK=q.cols?Object.keys(q.cols).every(k=>pt.filter(t=>t.col===k).length===q.cols[k]):!q.col||pt.every(t=>t.col===q.col);if(colOK)return actOK(pt);
+    CH.tries++;if(CH.tries>=2)return actReveal();return hintBad(q.cols?`A quantidade está certa, mas confira as cores. ${q.hint}`:`Os lugares estão certos, mas a cor pedida é ${PAINTS.find(c=>c.k===q.col).n}.`)}
   if(q.check(sel))return actOK(q.verb==='carry'?[]:CH.targets.filter(t=>t.painted));
   CH.tries++;if(CH.tries>=2)return actReveal();hintBad(`${q.count?q.count(sel)+' ':''}${q.hint}`)}
 function updateAct(dt){const q=CH.q;if(!q)return;
-  if(q.verb==='carry'){updatePickups(CH.items,CH.held,dt,12);if(CH.locked)return;
+  if(q.verb==='carry'){updatePickups(CH.items,CH.held,dt,q.one?1:12);if(CH.locked)return;
     if(CH.held.length&&isNear(CH.basket,2.5)){CH.held.forEach(o=>{o.state='basket';CH.basket.items.push(o)});CH.held=[];placeBasket();sfx.coin()}
     edge('tirar',isNear(CH.pads.tirar,1.4),()=>{const b=CH.basket.items,i=b.map(o=>!o.pre).lastIndexOf(true);if(i<0){toast('Não tem nada para tirar.',1500);return}const o=b.splice(i,1)[0];dropToGround(o,[2,6,-3,3]);placeBasket();sfx.tap();toast('Tirou 1. Ele voltou para o chão.',1600)});
     edge('pronto',isNear(CH.pads.pronto,1.4),()=>{if(CH.held.length){toast('Primeiro solte o que está na cabeça perto do cesto!',1800);return}actCheck()});return}
-  if(CH.locked)return;
+  if(CH.locked){hideSure();if(CH.aim)CH.aim.visible=false;return}
   if(q.verb==='jump'){const s=onGround&&standing&&standing.tgt?standing:null;if(s!==CH.lastStand){CH.lastStand=s;if(s)actPick(s.tgt)}}
   else if(q.verb==='circle'){let inT=null,bd=1e9;for(const t of CH.targets){if(t.dead)continue;const d=Math.hypot(P.x-t.x,P.z-t.z);if(d>t.cr+.2&&d<t.R+1.1&&d-t.R<bd){inT=t;bd=d-t.R}}
     if(!inT){CH.away+=dt;if(CH.away>.8&&CH.cur){CH.cur=null;CH.acc=0;showProg(null)}return}
@@ -1366,13 +1458,42 @@ function updateAct(dt){const q=CH.q;if(!q)return;
     let d=ang-CH.lastAng;d=((d+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;CH.acc+=d;CH.lastAng=ang;
     if(Math.abs(CH.acc-CH.drawn)>.08){CH.drawn=CH.acc;showProg(inT,CH.start,CH.acc)}
     if(Math.abs(CH.acc)>=Math.PI*2*.92){const t=inT;CH.cur=null;CH.acc=0;showProg(null);actPick(t)}}
-  else{for(const b of CH.buckets){if(isNear(b,1.3)&&CH.paint!==b.col){CH.paint=b.col;giveTool('brush',b.col);sfx.coin();toast('Pegou a tinta! Agora pise no que você quer pintar.',1800)}}
-    const s=onGround&&standing&&standing.tgt?standing:null;
-    if(s!==CH.lastStand){CH.lastStand=s;CH.dwell=0;if(CH.pre){CH.pre.mat.color.set(CH.pre.base);CH.pre=null}
-      if(s){const t=s.tgt;if(t.dead){}else if(!CH.paint){sfx.bad();toast('Primeiro pegue tinta no balde 🪣!',1800)}
-      else if(q.multi){t.painted=!t.painted;t.mat.color.set(t.painted?CH.paint:t.base);sfx.tap()}else{t.mat.color.set(CH.paint);CH.pre=t;sfx.tap()}}}
-    else if(CH.pre){CH.dwell+=dt;if(CH.dwell>=.6){const t=CH.pre;CH.pre=null;actPick(t)}}
-    if(CH.pads.pronto)edge('pronto',isNear(CH.pads.pronto,1.4),actCheck)}}
+  else if(q.verb==='paint')updatePaint();else if(q.verb==='smash')updateSmash();else if(q.verb==='kick')updateKick(dt);else if(q.verb==='throw')updateThrow(dt)}
+/* PAINT: the paint is taken and the tile is painted with the action button, never by just walking over things */
+function updatePaint(){const q=CH.q,t=onGround&&standing&&standing.tgt&&!standing.tgt.dead?standing.tgt:null,b=CH.buckets.find(b=>isNear(b,1.8));
+  if(t)showSure(q.multi&&t.painted&&CH.paint&&t.col===CH.paint.k?'🧽 Apagar':CH.paint?`🖌️ Pintar de ${CH.paint.n}`:'🖌️ Pintar',()=>paintTile(t));
+  else if(b&&CH.paint!==b)showSure(`🪣 Pegar ${b.n}`,()=>{CH.paint=b;giveTool('brush',b.c);sfx.coin();toast(`Pegou a tinta ${b.n}! Agora suba no quadrado e toque em PINTAR.`,2200)});
+  else hideSure();
+  if(CH.pads.pronto)edge('pronto',isNear(CH.pads.pronto,1.4),actCheck)}
+function paintTile(t){const q=CH.q;if(CH.locked||t.dead)return;if(!CH.paint){sfx.bad();toast('Primeiro pegue tinta no balde 🪣!',1800);return}swingT=.32;
+  if(q.multi){if(t.painted&&t.col===CH.paint.k){t.painted=false;t.col=null;t.mat.color.set(t.base)}else{t.painted=true;t.col=CH.paint.k;t.mat.color.set(CH.paint.c)}return}
+  t.mat.color.set(CH.paint.c);
+  if(t.i===q.ans&&q.col&&CH.paint.k!==q.col){CH.tries++;if(CH.tries>=2)return actReveal();later(()=>{if(!t.dead&&!CH.locked)t.mat.color.set(t.base)},1200);return hintBad(`O lugar está certo, mas a cor pedida é ${PAINTS.find(c=>c.k===q.col).n}.`)}
+  actPick(t)}
+/* HAMMER: stand next to a crate and break it */
+function updateSmash(){let best=null,bd=3;for(const t of CH.targets){if(t.dead)continue;const d=Math.hypot(P.x-t.x,P.z-t.z);if(d<bd){bd=d;best=t}}
+  if(best)showSure('🔨 Quebrar',()=>{swingT=.32;sfx.shot();later(()=>{if(best.i===CH.q.ans){best.parts.forEach(m=>m.visible=false);sfx.pop();for(let i=0;i<12;i++)spawnFx('spark',best.x,1.2,best.z,(Math.random()-.5)*6,2+Math.random()*4,(Math.random()-.5)*6,.8,.5,0,8)}actPick(best)},170)});else hideSure()}
+/* FOOTBALL: walk into the ball to dribble, or kick it; it counts when it goes into a goal */
+function resetBall(){const b=CH.ball;if(!b)return;b.x=b.sx;b.z=b.sz;b.vx=b.vz=0;b.wait=false}
+function kickBall(){const b=CH.ball;let dx=b.x-P.x,dz=b.z-P.z,d=Math.hypot(dx,dz);if(d<.05){dx=Math.sin(rotY);dz=Math.cos(rotY);d=1}dx/=d;dz/=d;
+  let best=null,ba=.34;for(const t of CH.targets){if(t.dead)continue;const w=L2W(CH.st,t.A+.6,t.B),gx=w.x-b.x,gz=w.z-b.z,gd=Math.hypot(gx,gz),a=Math.acos(clamp((gx*dx+gz*dz)/gd,-1,1));if(a<ba){ba=a;best=[gx/gd,gz/gd]}}
+  if(best){dx=best[0];dz=best[1]}b.vx=dx*17;b.vz=dz*17;swingT=.2;sfx.shot()}
+function updateKick(dt){const b=CH.ball,dx=b.x-P.x,dz=b.z-P.z,d=Math.hypot(dx,dz)||1e-3;
+  if(d<.95&&P.y<1.2&&Math.hypot(b.vx,b.vz)<6){b.vx=dx/d*6.5;b.vz=dz/d*6.5}
+  if(d<2.5&&!b.wait)showSure('⚽ Chutar',kickBall);else hideSure();
+  b.x+=b.vx*dt;b.z+=b.vz*dt;const k=Math.exp(-1.1*dt);b.vx*=k;b.vz*=k;if(Math.hypot(b.vx,b.vz)<.4)b.vx=b.vz=0;
+  b.m.position.set(b.x,.42,b.z);b.m.rotation.z-=b.vx*dt/.42;b.m.rotation.x+=b.vz*dt/.42;if(b.wait)return;
+  const [a,bb]=localAB(CH.st,b.x,b.z),t=CH.targets.find(t=>a>t.A-.3&&a<t.A+1.5&&Math.abs(bb-t.B)<1.75);
+  if(t){b.vx=b.vz=0;const w=L2W(CH.st,t.A+.75,t.B);b.x=w.x;b.z=w.z;if(t.dead||t.i!==CH.q.ans){b.wait=true;later(resetBall,900)}if(!t.dead)actPick(t)}
+  else if(a>9.3||a<-9||Math.abs(bb)>12.5){resetBall();toast('A bola voltou para o começo.',1500)}}
+/* BASKET: the ball goes to the hoop the player is facing (shown by the yellow arrow) */
+function aimHoop(){let best=null,ba=.95;const fx=Math.sin(rotY),fz=Math.cos(rotY);for(const t of CH.targets){if(t.dead)continue;const vx=t.x-P.x,vz=t.z-P.z,d=Math.hypot(vx,vz);if(d<2||d>20)continue;const a=Math.acos(clamp((vx*fx+vz*fz)/d,-1,1));if(a<ba){ba=a;best=t}}return best}
+function updateThrow(dt){const sh=CH.shot;
+  if(sh){sh.t+=dt;const k=Math.min(1,sh.t/sh.dur);sh.m.position.set(sh.fx+(sh.tx-sh.fx)*k,sh.fy+(3.15-sh.fy)*k+Math.sin(k*Math.PI)*2.4,sh.fz+(sh.tz-sh.fz)*k);hideSure();CH.aim.visible=false;
+    if(k>=1){drop(sh.m);CH.shot=null;if(!sh.tgt.dead)actPick(sh.tgt);if(!CH.locked)giveTool('ball')}return}
+  const t=aimHoop();CH.aim.visible=!!t;if(t)CH.aim.position.set(t.x,7+Math.sin(T*5)*.15,t.z);
+  showSure('🏀 Arremessar',()=>{const t=aimHoop();if(!t){toast('Vire o boneco para uma cesta.',1600);return}dropTool();swingT=.32;const m=mesh(new THREE.SphereGeometry(.36,14,10),'#FF8A1F',P.x,P.y+2.6,P.z,false);scene.add(m);
+    const w=L2W(CH.st,t.hx,t.B);CH.shot={m,t:0,dur:.8,fx:P.x,fy:P.y+2.6,fz:P.z,tx:w.x,tz:w.z,tgt:t};sfx.jump()})}
 
 /* ---- 🎯 SHOOTER ---- */
 function startShoot(st,gen){CH={type:'shoot',st,gen,n:5,idx:0,first:0,coins:0};$('#b-fire').hidden=false;loadShootQ()}
@@ -1562,6 +1683,46 @@ function updateShapes(){const c=CH,t=shapeAt(!!SHAPE_INFO[c.qs[c.idx].n].flat);
   if(t.n===q.n){const first=c.tries===0,gain=first?2:1;if(c.tries<2)record(c.st.id,first,q.skill);if(first)c.first++;c.coins+=gain;addCoins(gain);sfx.ok();confetti(10);c.tries=0;
     playAnim('cheer');toast(`Isso! ${I.g==='a'?'Essa é a':'Esse é o'} <b>${t.n.toUpperCase()}</b> +${gain} 🪙`,2400);t.pulse=1;c.idx++;if(c.idx>=c.n)done3D();else setTimeout(()=>{if(CH===c)shapesMission()},1200)}
   else{c.tries++;if(c.tries===2)record(c.st.id,false,q.skill);sfx.bad();playAnim('sad');toast(`${I.g==='a'?'Essa é a':'Esse é o'} <b>${t.n.toUpperCase()}</b>. Procure outra forma!`,4200,true)}}
+/* ---- 🏎️ KART: a straight three-lane track over the sea; each gate has three answers and the kart must go through the right one ---- */
+const KART={gap:64,lanes:[-4,0,4],first:46};
+/* one question for a gate: {text, labels[3], ans, explain, skill}. Sums come from genArith; the other stations reuse their lava-floor questions. */
+function kartQ(gen,L){
+  if(!gen){const q=genArith(L);return {text:`Passe pelo portão com o resultado de <b>${q.a} ${q.op} ${q.b}</b>`,labels:q.opts.map(String),ans:q.opts.indexOf(q.ans),explain:`${q.a} ${q.op} ${q.b} = ${q.ans}`,skill:q.skill}}
+  const f=gen(L),skill=lastSkill,ok=pick(f.labels.filter((l,i)=>f.ok[i])),labels=shuffle([ok,...sample(f.labels.filter((l,i)=>!f.ok[i]),2)]);
+  let text=f.text.replace(/^Pise no /,'Passe pelo portão do ').replace(/^Pise em um /,'Passe pelo portão de um ');if(text===f.text)text='Passe pelo portão certo. '+f.text;
+  return {text,labels,ans:labels.indexOf(ok),explain:f.explain||'',skill}}
+function kartSign(label,state){return g=>{g.fillStyle=state==null?'#FFFFFF':state?'#7CE3A0':'#FF8A80';rr(g,10,40,236,176,34);g.fill();g.lineWidth=12;g.strokeStyle=INK;g.stroke();bigText(g,label,128,134,200,110);if(state!=null)g.drawImage(markTex(state).image,170,46,70,70)}}
+function startKart(st,gen){const L=stat(st.id).level,G=(CH={type:'kart',st,gen,n:5,idx:0,first:0,coins:0,phase:'ready',v:0,lat:0,boost:0,spin:0},beginArena(st));
+  const x0=-60,z0=220,len=KART.first+5*KART.gap+34,C=CH;C.x0=st.c.x+x0;C.z0=st.c.z+z0;C.endX=C.x0+len-12;
+  const roadT=texOf(g=>{g.fillStyle='#5B6475';g.fillRect(0,0,128,192);g.fillStyle='#FFFFFF';[64,128].forEach(y=>g.fillRect(16,y-4,64,8));g.fillStyle='#FFC83D';g.fillRect(0,0,128,10);g.fillRect(0,182,128,10)},128,192);roadT.wrapS=THREE.RepeatWrapping;roadT.repeat.set(len/8,1);
+  const side=mat('#3F4756');G.add(mesh(BOX(len,.4,12.6),[side,side,new THREE.MeshLambertMaterial({map:roadT}),side,side,side],x0+len/2,.1,z0));
+  const kerbT=texOf(g=>{g.fillStyle='#E8413A';g.fillRect(0,0,64,64);g.fillStyle='#FFFFFF';g.fillRect(32,0,32,64)},64,64);kerbT.wrapS=THREE.RepeatWrapping;kerbT.repeat.set(len/4,1);
+  const kerb=new THREE.MeshLambertMaterial({map:kerbT});[-6.7,6.7].forEach(z=>G.add(mesh(BOX(len,.7,.8),kerb,x0+len/2,.35,z0+z)));
+  for(let x=10,j=0;x<len;x+=16,j++)[-8.2,8.2].forEach((z,k)=>{G.add(mesh(new THREE.CylinderGeometry(.5,.6,.9,10),(j+k)%2?'#FF8A1F':'#FFFFFF',x0+x,-.9,z0+z,false),mesh(BOX(.12,2.4,.12),'#FFFFFF',x0+x,.6,z0+z,false),mesh(BOX(.06,.6,.9),(j+k)%2?'#E8413A':'#2E8BF0',x0+x,1.5,z0+z+.45,false))});
+  const arch=(x,col,label)=>{G.add(mesh(BOX(.5,5.6,.5),col,x,2.8,z0-6.6),mesh(BOX(.5,5.6,.5),col,x,2.8,z0+6.6),mesh(BOX(.7,1.1,13.7),col,x,5.9,z0));if(label){const sp=sprite(texOf(g=>{g.fillStyle=INK;rr(g,4,70,504,116,40);g.fill();bigText(g,label,256,130,470,80,'#FFC83D')},512,256),9,4.5);sp.position.set(x-.5,6,z0);G.add(sp)}};
+  arch(x0+14,'#22B35E','LARGADA');arch(x0+len-12,'#E8413A','CHEGADA');
+  C.qs=[];C.gates=range(0,4).map(k=>{const q=kartQ(gen,L),x=x0+KART.first+k*KART.gap;C.qs.push(q);G.add(mesh(BOX(.4,4.6,.4),'#FFFFFF',x,2.3,z0-6.5),mesh(BOX(.4,4.6,.4),'#FFFFFF',x,2.3,z0+6.5),mesh(BOX(.5,.5,13.4),'#FFFFFF',x,4.85,z0));
+    [-2,2].forEach(z=>G.add(mesh(BOX(.25,2.6,.25),'#FFC83D',x,1.3,z0+z)));
+    const signs=q.labels.map((l,i)=>{const c=cv(256,256,kartSign(l,null)),t=tex(c);CHX.texs.push(t);const sp=sprite(t,2.9,2.9);sp.position.set(x-.3,3.1,z0+KART.lanes[i]);G.add(sp);return {c,t}});return {x:st.c.x+x,signs}});
+  /* the kart itself rides with the player */
+  const k=new THREE.Group(),red=mat('#E8413A');k.add(mesh(BOX(1.5,.5,2.5),red,0,.75,.1),mesh(BOX(1.1,.35,.8),red,0,.7,1.6),mesh(BOX(1.7,.12,.5),'#1B2232',0,1.25,-1.15),mesh(BOX(.12,.5,.12),'#1B2232',-.6,1,-1.15),mesh(BOX(.12,.5,.12),'#1B2232',.6,1,-1.15),mesh(BOX(1.3,.5,.2),'#FFC83D',0,1,-1.05));
+  [[-.9,1.15],[.9,1.15],[-.9,-.85],[.9,-.85]].forEach(([x,z])=>{const w=mesh(new THREE.CylinderGeometry(.36,.36,.34,14),'#1B2232',x,.61,z);w.rotation.z=Math.PI/2;k.add(w)});
+  PL.g.add(k);C.kart=k;dropTool();P.set(C.x0+8,.3,C.z0);vy=0;yaw=-Math.PI/2;rotY=Math.PI/2;pitch=.3;camLook=2.6;camera.position.set(P.x-10,5,P.z);kartMission();
+  const q=C.qs[0];toast('Arraste para os lados para trocar de faixa. Puxe para trás para frear e pensar.',5200);sayQ(q.text,'Arraste para os lados para trocar de faixa. Puxe para trás para frear.',()=>{if(CH===C&&C.phase==='ready'){C.phase='go';kartMission();sfx.portal();toast('<b>VAI!</b> 🏁',1400)}})}
+function kartMission(){const C=CH,q=C.qs[C.idx];setMission(`<span class="vt">🏎️ KART</span>${C.idx+1}/${C.n} · ${q.text}<small>${C.phase==='ready'?'🗣️ Escute a pergunta... já vai dar a largada':'Arraste para os lados para escolher a faixa. Para trás freia.'}</small>`)}
+function leaveKart(){const C=CH;if(C.kart){drop(C.kart);C.kart=null}const w=L2W(C.st,-3,0);P.set(w.x,0,w.z);vy=0;yaw=-Math.PI/2;rotY=Math.PI/2;pitch=.38;camLook=1.7;camera.position.set(P.x-10,P.y+5,P.z)}
+function kartDrive(dt,jx,jy){const C=CH;yaw=-Math.PI/2;
+  if(C.phase==='go'&&!paused){const want=jy<-.3?12.5:jy>.3?4.5:8.5;C.v+=(want-C.v)*Math.min(1,dt*2.2);if(C.boost>0)C.boost-=dt;if(C.spin>0)C.spin-=dt;
+    P.x+=(C.v+(C.boost>0?3:0))*(C.spin>0?.45:1)*dt;C.lat=clamp(C.lat+jx*10*dt,-4.7,4.7);
+    const g=C.gates[C.idx];if(g&&P.x>=g.x)kartGate(clamp(Math.round(C.lat/4)+1,0,2));
+    if(P.x>=C.endX){C.phase='end';leaveKart();return done3D()}}
+  P.z=C.z0+C.lat;P.y=.3;rotY=Math.PI/2-jx*.28+(C.spin>0?C.spin*14:0);PL.g.position.set(P.x,P.y-.25,P.z);PL.g.rotation.y=rotY;
+  PL.legL.rotation.x=PL.legR.rotation.x=-1.5;PL.armL.rotation.x=PL.armR.rotation.x=-1.15;applyAnim(dt);PL.g.position.y=P.y-.25}
+function kartGate(lane){const C=CH,q=C.qs[C.idx],g=C.gates[C.idx],ok=lane===q.ans;record(C.st.id,ok,q.skill);
+  g.signs.forEach((s,i)=>{if(i===q.ans||i===lane){kartSign(q.labels[i],i===q.ans)(s.c.getContext('2d'));s.t.needsUpdate=true}});
+  if(ok){C.first++;C.coins+=2;addCoins(2);C.boost=1.6;sfx.ok();confetti(10);toast(`<b>${pick(CHEERS)}</b> +2 🪙`,1800)}
+  else{C.spin=.9;sfx.dizzy();toast(`Era o portão <b>${q.labels[q.ans]}</b>. ${q.explain}`,4200,true)}
+  C.idx++;if(C.idx<C.n){kartMission();if(ok)speak(plain(C.qs[C.idx].text));else later(()=>speak(plain(C.qs[C.idx].text)),2600)}else setMission('<span class="vt">🏎️ KART</span>Agora é só cruzar a CHEGADA! 🏁')}
 function update3D(dt){if(!CH||paused)return;const t=CH.type;
   if(t==='obby')updateObby();else if(t==='order')updateOrder(dt);else if(t==='shapes')updateShapes();else if(t==='act')updateAct(dt);
   else if(t==='shoot')updateShoot(dt);else if(t==='floor')updateFloor(dt);else if(t==='share')updateShare(dt);else if(t==='build')updateBuild(dt);else if(t==='simon')updateSimon(dt)}
@@ -1584,24 +1745,24 @@ function updateWorld(dt){T+=dt;frameN++;
   const sx=Math.round(P.x/2)*2,sz=Math.round(P.z/2)*2;sun.position.set(sx+SUN_DIR.x,SUN_DIR.y,sz+SUN_DIR.z);sun.target.position.set(sx,0,sz)}
 
 /* ================= SHOP (with change math) ================= */
-const TABS=[['hat','Chapéus'],['shirt','Camisas'],['pants','Calças'],['pet','Bichinhos'],['power','Poderes'],['hair','Cabelo'],['skin','Pele']];
+const TABS=[['hat','Chapéus'],['kit','⚽ Futebol'],['shirt','Camisas'],['pants','Calças'],['pet','Bichinhos'],['power','Poderes'],['hair','Cabelo'],['skin','Pele']];
 let shopTab='hat';
 function openShop(){camMode='front';renderShop()}
-function renderShop(){const items=CAT[shopTab],prev=t=>shopTab==='shirt'||shopTab==='pants'||shopTab==='skin'||shopTab==='hair'?`<span class="sw" style="--k:${t.c}"></span>`:t.e;
+function renderShop(){const items=CAT[shopTab],slot=slotOf(shopTab),prev=t=>shopTab==='kit'?`<img class="jr" src="${kitURL(t)}" alt="">`:shopTab==='shirt'||shopTab==='pants'||shopTab==='skin'||shopTab==='hair'?`<span class="sw" style="--k:${t.c}"></span>`:t.e;
   openSheet(`<div class="shop-h"><span class="h2">🛍️ Loja</span><span class="chip" style="background:var(--ink)">Você tem 🪙 ${S.coins}</span><button class="xbtn" id="s-x" aria-label="Fechar">✕</button></div>
     <div class="tabs">${TABS.map(([k,l])=>`<button class="tab${k===shopTab?' on':''}" data-t="${k}">${l}</button>`).join('')}</div>
-    <div class="items">${items.map(t=>{const own=owns(shopTab,t.k),eq=shopTab==='power'?own:S.look[shopTab]===t.k,poor=!own&&S.coins<t.p;
+    <div class="items">${items.map(t=>{const own=owns(shopTab,t.k),eq=shopTab==='power'?own:S.look[slot]===t.k,poor=!own&&S.coins<t.p;
       return `<button class="item${eq?' eq':''}${poor?' poor':''}" data-k="${t.k}"><span class="pv">${prev(t)}</span><span>${t.n}</span>${t.d?`<small>${t.d}</small>`:''}<span class="st${own?'':' price'}">${eq?(shopTab==='power'?'Ativo ✓':'Usando ✓'):own?'Usar':'🪙 '+t.p}</span></button>`}).join('')}</div>`,'bottom');
   $('#s-x').onclick=()=>{sfx.tap();closeSheet()};
   $$('.tab').forEach(b=>b.onclick=()=>{sfx.tap();shopTab=b.dataset.t;renderShop()});
   $$('.item').forEach(b=>b.onclick=()=>{const t=find(shopTab,b.dataset.k);
     if(!owns(shopTab,t.k)){if(S.coins<t.p){sfx.bad();toast(`Faltam ${t.p-S.coins} moedas: ${t.p} − ${S.coins} = ${t.p-S.coins}. Faça mais desafios!`,3000);return}buyQuiz(t);return}
-    sfx.tap();if(shopTab!=='power'){S.look[shopTab]=t.k;buildPlayer()}save();hud();const y=$('#sheet').scrollTop;renderShop();$('#sheet').scrollTop=y})}
+    sfx.tap();if(shopTab!=='power'){S.look[slot]=t.k;buildPlayer()}save();hud();const y=$('#sheet').scrollTop;renderShop();$('#sheet').scrollTop=y})}
 function buyQuiz(t){const have=S.coins,left=have-t.p,opts=optNums(left,[left+10,left-10,left+1,left-1,have+t.p],0,999,3);let tries=0;const tab=shopTab;
   openSheet(`<div class="quiz"><div class="h2">Antes de comprar...</div><p>Você tem <b>🪙 ${have}</b>.<br>${t.e||''} <b>${t.n}</b> custa <b>🪙 ${t.p}</b>.<br>Quantas moedas vão <b>sobrar</b>?</p>
     <div class="btns">${opts.map(v=>`<button class="btn big" data-v="${v}">${v}</button>`).join('')}</div><div class="fb" id="q-fb"></div><div class="btns"><button class="btn" id="q-back">Voltar</button><button class="btn icon" id="q-spk">🗣️</button></div></div>`,'bottom');
   const qs=`Você tem ${have} moedas. ${t.n} custa ${t.p}. Quantas moedas vão sobrar?`;$('#q-back').onclick=()=>renderShop();$('#q-spk').onclick=()=>speak(qs,null,true);speak(qs);
-  const buy=msg=>{S.coins-=t.p;S.owned.push(tab+':'+t.k);if(tab!=='power'){S.look[tab]=t.k;buildPlayer()}save();hud();sfx.coin();confetti(20);renderShop();playAnim('cheer');toast(msg,4000,true)};
+  const buy=msg=>{S.coins-=t.p;S.owned.push(tab+':'+t.k);if(tab!=='power'){S.look[slotOf(tab)]=t.k;buildPlayer()}save();hud();sfx.coin();confetti(20);renderShop();playAnim('cheer');toast(msg,4000,true)};
   $$('.quiz .btn.big').forEach(b=>b.onclick=()=>{if(+b.dataset.v===left)return buy(`Comprou: ${t.n}! ${have} − ${t.p} = <b>${left}</b> 🪙`);
     tries++;sfx.bad();shake(b);b.disabled=true;if(tries>=2)return buy(`Sobraram ${left}: ${have} − ${t.p} = ${left}. Comprou: ${t.n}!`);
     $('#q-fb').textContent=`Dica: faça ${have} − ${t.p}. ${t.p>=10?'Tire as dezenas primeiro.':'Conte para trás.'}`})}
@@ -1609,7 +1770,7 @@ function buyQuiz(t){const have=S.coins,left=have-t.p,opts=optNums(left,[left+10,
 /* ================= MENU / PARENTS / TUTORIAL ================= */
 function openMenu(){
   openSheet(`<div class="menu"><div class="shop-h" style="padding:0"><span class="h2">Menu</span><button class="xbtn" id="mn-x" aria-label="Fechar">✕</button></div><b>Ir pelo portal até:</b>
-    <div class="travel">${STATIONS.map(s=>`<button data-id="${s.id}" style="--c:${s.color}">${s.name}<small>${s.sub} · ★ ${stat(s.id).stars||0} ${['','🥉','🥈','🏆'][S.trophies[s.id]||0]}</small></button>`).join('')}<button data-id="__city" style="--c:#5B6475">Cidade dos Números<small>Loja e Sala de Troféus</small></button></div>
+    <div class="travel">${STATIONS.map(s=>`<button data-id="${s.id}" style="--c:${s.color}">${s.name}<small>${s.sub} · ★ ${stat(s.id).stars||0} ${MEDAL[S.trophies[s.id]||0]}</small></button>`).join('')}<button data-id="__city" style="--c:#5B6475">Cidade dos Números<small>Loja e Sala de Troféus</small></button></div>
     <div class="btns" style="justify-content:flex-start"><button class="btn gold" id="mn-shop">🛍️ Loja</button><button class="btn" id="mn-pl">👥 Jogadores</button><button class="btn" id="mn-caps">🔠 ${S.caps?'Letras normais':'LETRAS MAIÚSCULAS'}</button><button class="btn" id="mn-gfx">✨ Visual: ${S.lite?'leve':'bonito'}</button><button class="btn" id="mn-help">❓ Como jogar</button><button class="btn" id="mn-par">👨 Área dos pais</button></div></div>`);
   $('#mn-pl').onclick=()=>{sfx.tap();openPlayers()};
   $('#mn-gfx').onclick=()=>{sfx.tap();S.lite=!S.lite;save();setQuality(S.lite?0:3);openMenu();toast(S.lite?'Visual leve: o jogo fica mais rápido em aparelhos antigos.':'Visual bonito ligado.',2600)};
@@ -1627,9 +1788,10 @@ function openTut(){openSheet(`<div class="pad"><div class="h2">Bem-vindo à Cida
     <span class="i">🕹️</span><span>Arraste no lado <b>esquerdo</b> da tela para andar. Botão <b>⬆</b> pula.</span>
     <span class="i">⟲⟳</span><span>Segure <b>⟲ ⟳</b> ou arraste no lado <b>direito</b> para girar a câmera.</span>
     <span class="i">🌀</span><span>Entre nos <b>portais</b> para ir aos mundos. Lá, fale com o personagem do <b>!</b> e escolha o jogo.</span>
-    <span class="i">🎮</span><span>Tem obby, tiro ao balão, chão de lava, construção, ajudar amigos, "o mestre mandou" e muito mais!</span>
+    <span class="i">🎮</span><span>Tem obby, tiro ao balão, chão de lava, <b>kart</b>, construção, ajudar amigos, "o mestre mandou" e muito mais!</span>
+    <span class="i">🔨⚽</span><span>Em muitas perguntas aparece um <b>botão amarelo de ação</b>: pintar, quebrar a caixa com o martelo, chutar a bola no gol, arremessar na cesta.</span>
     <span class="i">🪙</span><span>Ganhe moedas acertando. Na <b>Loja</b>, faça a conta do troco para comprar.</span>
-    <span class="i">🏆</span><span>Ganhe medalhas e taças! Elas ficam na <b>Sala de Troféus</b>.</span>
+    <span class="i">🏆</span><span>Cada rodada vale uma medalha: <b>🥇 ouro</b> com tudo certo de primeira, <b>🥈 prata</b> com a metade ou mais, <b>🥉 bronze</b> por terminar. Ouro no <b>nível 3</b> vale a <b>TAÇA 🏆</b>.</span>
     <span class="i">🎸🗣️</span><span>No topo da tela: <b>🎸</b> liga ou desliga a música, e <b>🗣️</b> liga ou desliga a voz que lê as perguntas.</span>
     <span class="i">▴</span><span>Nos jogos, toque na <b>instrução</b> (ou no <b>▴</b>) para encolher o painel e ver o cenário inteiro. Toque de novo para abrir.</span>
     <span class="i">☰</span><span>No <b>Menu</b> dá para trocar de jogador e deixar tudo em <b>LETRAS MAIÚSCULAS</b>.</span></div>
@@ -1647,12 +1809,12 @@ function parents(){const nm=esc(S.name||'Jogador'),pc=(f,n)=>n?`${f}/${n} (${Mat
   openSheet(`<div class="pad"><div class="shop-h" style="padding:0 0 8px"><span class="h2">Progresso de ${nm}</span><button class="xbtn" id="p-x" aria-label="Fechar">✕</button></div>
     <p style="font-family:var(--fb);font-size:17px;line-height:1.45;margin:0">${weak.length?`Onde ${nm} mais precisa de ajuda agora: <b>${weak.map(x=>esc(skillName(x.id))).join('</b>, <b>')}</b>. Vale fazer junto, com objetos de verdade.`:sk.length?'Nenhuma habilidade em dificuldade no momento.':'Ainda não há respostas registradas.'}</p>
     <div class="sec">Por estação</div>
-    <div class="tbl"><table><thead><tr><th>Capítulo</th><th>Estação</th><th>Nível</th><th>Rodadas</th><th>De primeira</th><th>Troféu</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.s.sub}</td><td>${r.s.name}</td><td>${r.t.level}/3</td><td>${r.t.rounds}</td><td>${pc(r.t.first,r.t.total)}</td><td>${['—','🥉','🥈','🏆'][S.trophies[r.s.id]||0]}</td></tr>`).join('')}</tbody></table></div>
+    <div class="tbl"><table><thead><tr><th>Capítulo</th><th>Estação</th><th>Nível</th><th>Rodadas</th><th>De primeira</th><th>Troféu</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.s.sub}</td><td>${r.s.name}</td><td>${r.t.level}/3</td><td>${r.t.rounds}</td><td>${pc(r.t.first,r.t.total)}</td><td>${(MEDAL[S.trophies[r.s.id]||0]||'—')}</td></tr>`).join('')}</tbody></table></div>
     <div class="sec">Semana a semana (acertos de primeira)</div>
     ${any?`<div class="tbl"><table><thead><tr><th>Estação</th>${wks.map((w,i)=>`<th>${i===3?'Esta semana':'Sem. de '+w.slice(8)+'/'+w.slice(5,7)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><td>${r.s.name}</td>${wks.map(w=>{const a=(S.wk[w]||{})[r.s.id];return `<td>${a?pc(a[0],a[1]):'—'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div>`:'<div class="small">Sem respostas nas últimas 4 semanas.</div>'}
     <div class="sec">Por habilidade</div>
     ${sk.length?`<div class="tbl"><table><thead><tr><th>Habilidade</th><th>Estação</th><th>De primeira</th><th>Situação</th></tr></thead><tbody>${sk.map(x=>{const [c,l]=state(x.k);return `<tr><td>${esc(skillName(x.id))}</td><td>${x.st.name}</td><td>${pc(x.k.f,x.k.n)}</td><td><span class="dot" style="background:${c}"></span>${l}${x.k.w?' · volta nas próximas rodadas':''}</td></tr>`}).join('')}</tbody></table></div>`:'<div class="small">Aparece aqui depois das primeiras respostas.</div>'}
-    <p class="small" style="line-height:1.45">A situação pesa mais as respostas recentes. O que a criança erra volta nas rodadas seguintes, até acertar duas vezes de primeira. O nível sobe com 80% de acertos de primeira e desce abaixo de 40%. Estrelas: 3 com tudo certo de primeira (rodadas de 6 ou mais perguntas aceitam um erro), 2 com 60% e 1 com 30%. As moedas de bônus acompanham os acertos de primeira. A taça de ouro da estação sai com 3 estrelas no nível 3, e a Taça dos Campeões, com as 8 taças.</p>
+    <p class="small" style="line-height:1.45">A situação pesa mais as respostas recentes. O que a criança erra volta nas rodadas seguintes, até acertar duas vezes de primeira. O nível sobe com 80% de acertos de primeira e desce abaixo de 40%. Medalha de cada rodada: ouro com tudo certo de primeira, prata com a metade ou mais, bronze com pelo menos um acerto de primeira. A estação guarda a melhor. Medalha de ouro no nível 3 vira a taça de ouro da estação, e as 8 taças dão a Taça dos Campeões. As moedas de bônus acompanham os acertos de primeira.</p>
     <div class="sec">Ajustes</div>
     <form id="nm" class="field"><input id="nm-in" maxlength="14" value="${esc(S.name)}" aria-label="Nome do jogador"><button class="btn gold">Salvar nome</button></form>
     <div class="field" style="margin-top:10px"><label for="p-br" style="font-family:var(--fb);font-size:17px">Aviso de pausa:</label><select id="p-br">${[0,15,20,30,45].map(m=>`<option value="${m}"${S.breakMin===m?' selected':''}>${m?`a cada ${m} minutos`:'desligado'}</option>`).join('')}</select></div>
@@ -1689,7 +1851,7 @@ function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math
   if(autoQual&&QUAL>0&&!document.hidden){if(raw>1){qN=0;qT=0}else{qT+=raw;qN++;if(qT>=2.5){if(T>3&&qN/qT<27)setQuality(QUAL-1);qN=0;qT=0}}}
   updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();breakCheck(dt);renderer.render(scene,camera)}
 function boot(){if(S.lite)setQuality(0);resize();buildPlayer();hud();STATIONS.forEach(updateSign);updateHall();camera.position.set(P.x,P.y+5,P.z+10);requestAnimationFrame(tick);if(!S.tut)openTut()}
-window.__ilhaDebug={set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
+window.__ilhaDebug={set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
   step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
 const fontsReady=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('400 20px Andika')]):Promise.resolve();
 Promise.race([fontsReady,new Promise(r=>setTimeout(r,1800))]).then(()=>{OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));boot()}).catch(boot);
