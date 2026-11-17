@@ -65,6 +65,14 @@ input{user-select:text;-webkit-user-select:text}
 #mission.min #m-text .vt{display:inline-block;font-size:13px;line-height:1.4;margin:0;vertical-align:0}
 #mission.min #m-text .cnt{display:inline;font-size:15px;line-height:1.4}
 #mission.min #m-text small.live{display:block;font-size:14px;line-height:1.4;color:var(--ink);font-weight:600}
+/* steps of an order of the master: done, current, still to come */
+.stp{display:inline-block;padding:0 6px;border-radius:8px;margin:1px 0;border:2px solid transparent}
+.stp.cur{background:var(--gold);border-color:var(--ink)}
+.stp.done{color:var(--ok)}
+.stp.todo{color:var(--muted)}
+#mission .stp small{display:inline;font-size:inherit;color:inherit;font-weight:700}
+#mission.min #m-text .stp.cur{display:inline-block;font-size:14px;line-height:1.4;white-space:nowrap}
+@media (max-height:520px){#mission:not(.min) .stp.done{display:none}.stp{font-size:15px}}
 #mission .rs{display:none}
 #mission.min .rd{display:none}
 #mission.min .rs{display:inline}
@@ -255,7 +263,7 @@ try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().
 /* ================= SKILLS (what was practised, how it went, what to bring back) ================= */
 /* Every question carries a skill id "station.type". For each skill the save keeps: n answers, f right at the first try,
    r a rolling score (recent answers weigh more), w how many clean answers are still owed after a miss, d last day played. */
-const SKN={'vocab.cima':'Em cima e embaixo','vocab.dentro':'Dentro e fora','vocab.perto':'Perto e longe','vocab.tam':'Maior e menor (tamanho)','vocab.qtd':'Mais e menos (quantidade)','vocab.fila':'Ordem na fila: 1º, 2º, último','vocab.entre':'Entre','vocab.lado':'Direita e esquerda','vocab.frente':'Na frente e atrás',
+const SKN={'vocab.cima':'Em cima e embaixo','vocab.dentro':'Dentro e fora','vocab.perto':'Perto e longe','vocab.tam':'Maior e menor (tamanho)','vocab.qtd':'Mais e menos (quantidade)','vocab.fila':'Ordem na fila: 1º, 2º, último','vocab.entre':'Entre','vocab.lado':'Direita e esquerda','vocab.frente':'Na frente e atrás','vocab.cmd1':'Mestre mandou: ordens de 1 passo','vocab.cmd2':'Mestre mandou: ordens de 2 passos','vocab.cmd3':'Mestre mandou: ordens de 3 passos','vocab.pegadinha':'Só obedecer quando o mestre mandou',
   'n10.pint':'Contar até 10','n10.compl':'Completar 10 pintando','n10.leve':'Contar e separar objetos','n10.enche':'Completar 10 no cesto','n10.cont':'Contar e achar o número','n10.grupo':'Achar o grupo com a quantidade','n10.depois':'Antes e depois até 10','n10.palavra':'Ler o nome dos números','n10.padrao':'Padrões que se repetem','n10.grafico':'Ler gráfico de colunas','n10.chance':'Certeza, talvez, impossível','n10.dividir':'Dividir igualmente (desafio extra)','n10.entregar':'Entregar a quantidade pedida',
   'dinheiro.qt':'Somar notas e moedas','dinheiro.pague':'Pagar o valor exato','dinheiro.vale':'Comparar quantias','dinheiro.leve':'Montar um valor no caixa','dinheiro.troco':'Calcular o troco','dinheiro.compre':'O que dá para comprar','dinheiro.trocado':'Dar dinheiro trocado',
   'n100.dez':'Dezenas e unidades','n100.viz':'Vizinhos: antes, depois, entre','n100.maior':'Comparar números até 100','n100.fam':'Famílias das dezenas','n100.monte':'Montar número com barras de 10','n100.quadro':'Quadro do 100','n100.seq':'Contar de 2 em 2, 5 em 5, 10 em 10','n100.conta':'Somar com dezenas',
@@ -768,7 +776,7 @@ const STATIONS=[
   {id:'ordem',name:'Corrida dos Números',sub:'A ordem dos números',color:'#FF8A1F',world:'Estádio',sky:'#9FDBFF',ground:['#4CB84A','#43A743'],prop:'stand',npc:{name:'Juca',skin:'#FFD9B3',shirt:'#FF8A1F',pants:'#20242E',hat:'nenhum'},
     intro:'Oi, eu sou o Juca! Bem-vindo ao estádio dos números. Bora correr?',modes:[{k:'order',i:'🏃',n:'Corrida dos Cubos',d:'Pegue os cubos na ordem certa.'},{k:'floor',gen:genFloorOrder,i:'🌋',n:'Chão de Lava',d:'Fique no número certo antes do tempo acabar!'}]},
   {id:'vocab',name:'Vila das Posições',sub:'Vocabulário fundamental',color:'#2DB34A',world:'Vila',sky:'#BFE8FF',ground:['#7ED36B','#6CC25B'],prop:'house',npc:{name:'Bia',skin:'#8D5A3B',shirt:'#2DB34A',pants:'#5B6475',hat:'nenhum'},
-    intro:'Oi, eu sou a Bia! Aqui a gente aprende EM CIMA, EMBAIXO, DENTRO, FORA, PERTO, LONGE e ENTRE.',modes:[{k:'act',gen:genVocab,i:'⭕',n:'Desafios da Vila',d:'Circule, pule e pinte as posições certas.'},{k:'simon',i:'🗣️',n:'O Mestre Mandou',d:'Corra para o lugar que o mestre falar!'}]},
+    intro:'Oi, eu sou a Bia! Aqui a gente aprende EM CIMA, EMBAIXO, DENTRO, FORA, PERTO, LONGE e ENTRE. E brinca de O Mestre Mandou!',modes:[{k:'act',gen:genVocab,i:'⭕',n:'Desafios da Vila',d:'Circule, pule e pinte as posições certas.'},{k:'simon',i:'🗣️',n:'O Mestre Mandou',d:'Ordens de até 3 passos, com pega-pega e esconde-esconde.'}]},
   {id:'n10',name:'Fazenda do 10',sub:'Números até 10',color:'#E0A800',world:'Fazenda',sky:'#CDEFFF',ground:['#9CCB5B','#8DBB4E'],prop:'fence',npc:{name:'Theo',skin:'#E9B07F',shirt:'#FFC83D',pants:'#1F4FA0',hat:'nenhum'},
     intro:'Eu sou o Theo! Na fazenda a gente conta tudo até 10.',modes:[{k:'act',gen:genN10,i:'🧺',n:'Desafios da Fazenda',d:'Pinte, leve ao cesto e pule nos números.'},{k:'share',gen:genShareN10,i:'🤝',n:'Ajude os Amigos',d:'Divida igualmente e entregue o que cada um pediu.'}]},
   {id:'formas',name:'Parque das Formas',sub:'Figuras geométricas',color:'#8B4CF0',world:'Parque',sky:'#E5D9FF',ground:['#C7B4F5','#B9A4EE'],prop:'shape',npc:{name:'Lia',skin:'#FFD9B3',shirt:'#8B4CF0',pants:'#20242E',hat:'mago'},
@@ -783,7 +791,7 @@ const STATIONS=[
 const STM=Object.fromEntries(STATIONS.map(s=>[s.id,s]));
 STATIONS.forEach(s=>{s.npc.hair=({Rafa:'#1E1A1A',Juca:'#E8C15A',Bia:'#1E1A1A',Theo:'#5A3A22',Lia:'#C1502A','Seu Zé':'#B3BCC7',Duda:'#5A3A22',Nina:'#2A1C14'})[s.npc.name]});
 const withArt=name=>`${({'Bia':'a','Lia':'a','Duda':'a','Nina':'a','Ana':'a'})[name]||'o'} ${name}`;
-window.__ilha={genVocab,genN10,genMoney,genN100,genMeasure,genArith,genShapeQ,genShootArith,genShootShapes,genFloorOrder,genFloorN100,genShareN10,genShareMoney,genBuild};
+window.__ilha={genSimon,genVocab,genN10,genMoney,genN100,genMeasure,genArith,genShapeQ,genShootArith,genShootShapes,genFloorOrder,genFloorN100,genShareN10,genShareMoney,genBuild};
 if(typeof THREE==='undefined'){document.body.insertAdjacentHTML('beforeend','<div id="err">Não consegui carregar o mundo 3D. Verifique a internet e abra a página de novo.</div>');return}
 
 /* ================= THREE BASICS ================= */
@@ -1218,7 +1226,7 @@ function updatePlayer(dt){
   if(m>.08)rotY=lerpA(rotY,Math.atan2(mx,mz),Math.min(1,dt*12));
   const rot=camRot||(keys['q']?1:keys['r']?-1:0);
   if(rot)yaw+=rot*dt*2.3;else if(camId===null&&!paused&&m>.1&&-jy>.3&&camMode==='follow')yaw=lerpA(yaw,rotY+Math.PI,Math.min(1,dt*1.4*m));
-  if(input.jump&&onGround){vy=hasPower('pulo')?11.5:8.6;onGround=false;sfx.jump()}input.jump=false;
+  if(input.jump&&onGround){vy=hasPower('pulo')?11.5:8.6;onGround=false;jumpCount++;sfx.jump()}input.jump=false;
   const prevY=P.y;vy-=24*dt;P.y+=vy*dt;const g=groundAt(P.x,P.z,prevY);
   if(P.y<=g.h){P.y=g.h;vy=0;onGround=true;standing=g.on}else{onGround=false;standing=null}
   if(P.y<-5)respawn();
@@ -1629,35 +1637,125 @@ function updateBuild(dt){updatePickups(CH.items,CH.held,dt,10);
     CH.tries++;if(CH.tries>=2)return failRound(`Sua escada tem ${n} degraus. ${CH.q.explain}`,null,nextBuild);hintBad(`Sua escada tem ${n} degraus. ${CH.q.hint}`)})}
 function nextBuild(){if(!CH||CH.type!=='build')return;CH.idx++;if(CH.idx>=CH.n)return done3D();loadBuildQ()}
 
-/* ---- 🗣️ O MESTRE MANDOU ---- */
-const SIMON=[
-  {k:'dentro',t:'Fique <b>DENTRO</b> do cercado',ok:()=>inAB(8.4,13.6,4.4,9.6),lv:1,h:'O cercado é a cerca amarela.'},
-  {k:'embaixo',t:'Fique <b>EMBAIXO</b> da mesa grande',ok:()=>inAB(0,4,-7.6,-4.4)&&P.y<1.8,lv:1,h:'Entre debaixo da mesa gigante.'},
-  {k:'cima',t:'Fique <b>EM CIMA</b> de um bloco',ok:()=>PLATS.some(p=>p.bloco&&p.active&&Math.abs(P.x-p.cx)<p.ha+.3&&Math.abs(P.z-p.cz)<p.hb+.3&&P.y>p.top-.15),lv:1,h:'Pule em cima de um bloco azul.'},
-  {k:'perto',t:'Fique <b>PERTO</b> da casa',ok:()=>distAB(10,-9)<4.8,lv:1,h:'Corra para pertinho da casa.'},
-  {k:'longe',t:'Fique <b>LONGE</b> da casa',ok:()=>distAB(10,-9)>15,lv:1,h:'Corra para bem longe da casa.'},
-  {k:'entre',t:'Fique <b>ENTRE</b> as duas árvores',ok:()=>inAB(.4,3.6,5.6,10.4),lv:2,h:'No meio das duas árvores.'},
-  {k:'fora',t:'Fique <b>FORA</b> do cercado, mas <b>PERTO</b> dele',ok:()=>!inAB(8.4,13.6,4.4,9.6)&&distAB(11,7)<5.5,lv:3,h:'Do lado de fora da cerca, bem pertinho.'}
-];
+/* ---- 🗣️ O MESTRE MANDOU ----
+   The master gives orders of 1, 2 or 3 steps that must be done in order, and each order is over as soon as its last step is done.
+   Steps: go somewhere, jump N times, step on a coloured circle, ring the bell, walk around something, pick something up and take it
+   somewhere, tag a friend, find a hidden friend, hide from the master, run from the catcher, stand like a statue.
+   Now and then an order comes WITHOUT "O mestre mandou": then the right thing is to do nothing. */
+const SM={house:[10,-9],bell:[-2,-10],master:[-5.5,-3.5],mats:[[-2.5,5],[-2.5,8.2],[-2.5,11.4]],
+  hides:[{w:'casa',A:10,B:-9,r:2.3},{w:'arb',A:13,B:-1.5,r:1.6},{w:'arb',A:6.2,B:8.2,r:1.6}],
+  items:[{k:'bola',e:'⚽',n:'a bola',A:4,B:-2},{k:'balde',e:'🪣',n:'o balde',A:8,B:-4.5},{k:'flor',e:'🌸',n:'a flor',A:0,B:2.5}],
+  kids:[['vermelho','VERMELHA',7,-4],['azul','AZUL',4,6.8],['amarelo','AMARELA',12,1.5]]};
 function inAB(a0,a1,b0,b1){const [a,b]=localAB(CH.st,P.x,P.z);return a>a0&&a<a1&&b>b0&&b<b1}
 function distAB(A,B){const w=L2W(CH.st,A,B);return Math.hypot(P.x-w.x,P.z-w.z)}
-function startSimon(st){CH={type:'simon',st,n:8,idx:0,first:0,coins:0,hearts:3};clearArena();const G=beginArena(st);
-  dHouse(10,-9)(G);const hs=sprite(texOf(g=>bigText(g,'CASA',128,128,220,60,INK)),2.2,2.2);hs.position.set(10,4.8,-9);G.add(hs);
+const SM_PLACES=[
+  {k:'dentro',t:'fique DENTRO do cercado',to:'dentro do cercado',ok:()=>inAB(8.4,13.6,4.4,9.6)},
+  {k:'embaixo',t:'fique EMBAIXO da mesa',to:'debaixo da mesa',ok:()=>inAB(0,4,-7.6,-4.4)&&P.y<1.8},
+  {k:'cima',t:'suba EM CIMA de um bloco azul',ok:()=>PLATS.some(p=>p.bloco&&p.active&&Math.abs(P.x-p.cx)<p.ha+.3&&Math.abs(P.z-p.cz)<p.hb+.3&&P.y>p.top-.15)},
+  {k:'perto',t:'fique PERTO da casa',to:'perto da casa',ok:()=>distAB(10,-9)<4.8},
+  {k:'longe',t:'fique LONGE da casa',ok:()=>distAB(10,-9)>20},
+  {k:'entre',t:'fique ENTRE as duas árvores',to:'o meio das duas árvores',ok:()=>inAB(.4,3.6,5.6,10.4)}];
+/* step makers: k = kind, ic = picture for the checklist, t = the words of the order */
+const SMF={
+  go:()=>{const p=pick(SM_PLACES);return {k:'go',ic:'📍',t:p.t,pk:p.k,ok:p.ok}},
+  jump:()=>{const n=rnd(2,4);return {k:'jump',ic:'⬆️',t:`pule ${n} vezes`,n}},
+  color:()=>{const c=pick(PAINTS);return {k:'color',ic:'⭕',t:`pise no círculo ${c.n}`,c:c.k}},
+  ring:()=>{const n=rnd(1,3);return {k:'ring',ic:'🔔',t:n===1?'toque o sino':`toque o sino ${n} vezes`,n}},
+  around:()=>{const o=pick([{n:'da casa',p:SM.house,r0:2.4},{n:'do sino',p:SM.bell,r0:1}]);return {k:'around',ic:'🔄',t:`dê uma volta em volta ${o.n}`,o}},
+  tag:()=>{const c=pick(SM.kids);return {k:'tag',ic:'🏃',t:`pegue o amigo de camisa ${c[1]}`,c:c[0]}},
+  seek:()=>{const c=pick(SM.kids);return {k:'seek',ic:'🔎',t:`ache o amigo de camisa ${c[1]} que se escondeu`,c:c[0]}},
+  hide:()=>{const w=pick(['casa','arb']);return {k:'hide',ic:'🙈',t:`esconda-se do mestre atrás ${w==='casa'?'da CASA':'de um ARBUSTO'}`,w,T:7}},
+  flee:()=>({k:'flee',ic:'💨',t:'fuja do pegador por 8 segundos',T:8}),
+  statue:()=>({k:'statue',ic:'🗿',t:'fique parado como estátua por 3 segundos',T:3}),
+  take:it=>({k:'take',ic:it.e,t:`pegue ${it.n}`,it:it.k}),
+  bring:(it,p)=>({k:'bring',ic:'📦',t:`leve ${it.n} para ${p.to}`,it:it.k,pk:p.k,ok:p.ok}),
+  carry:()=>{const it=pick(SM.items),p=pick(SM_PLACES.filter(p=>p.to));return {k:'carry',ic:it.e,t:`leve ${it.n} para ${p.to}`,it:it.k,itn:it.n,pk:p.k,ok:p.ok}}};
+/* an order for the level: 1 step at level 1, 2 at level 2, 3 at level 3, with games and the odd trick mixed in */
+function genSimon(L){const F=SMF,act=[F.go,F.jump,F.color,F.ring,F.around,F.tag,F.seek],game=()=>pick([F.hide,F.flee,F.statue])(),some=n=>sample(act,n).map(f=>f()),r=Math.random();let steps,trick=false;
+  if(L===1)steps=r<.18?[F.carry()]:r<.34?[game()]:some(1);
+  else if(L===2){if(r<.13){trick=true;steps=[pick([F.jump,F.color,F.ring])()]}else if(r<.3){const it=pick(SM.items);steps=[F.take(it),F.bring(it,pick(SM_PLACES.filter(p=>p.to)))]}else if(r<.48)steps=[...some(1),game()];else steps=some(2)}
+  else{if(r<.12){trick=true;steps=[pick([F.jump,F.color,F.ring])()]}else if(r<.44){const it=pick(SM.items);steps=[F.take(it),pick([F.jump,F.around,F.color,F.ring])(),F.bring(it,pick(SM_PLACES.filter(p=>p.to)))]}else if(r<.66)steps=[...some(2),game()];else steps=some(3)}
+  const t=steps.map(s=>s.t),cap=s=>s[0].toUpperCase()+s.slice(1),n=steps.length;
+  const text=trick?`${cap(t[0])}!`:n===1?`O mestre mandou: ${t[0]}!`:n===2?`O mestre mandou: PRIMEIRO ${t[0]}, DEPOIS ${t[1]}!`:`O mestre mandou: PRIMEIRO ${t[0]}, DEPOIS ${t[1]} e POR FIM ${t[2]}!`;
+  return {steps,trick,text,skill:tag('vocab',trick?'pegadinha':'cmd'+n),time:trick?6:(9+12*n+sum(steps.map(s=>s.T||0)))*(L===1?1.3:1)}}
+function startSimon(st){CH={type:'simon',st,n:6,idx:0,first:0,coins:0,hearts:3};clearArena();const G=beginArena(st),C=CH,lab=(t,A,y,B,s)=>{const sp=sprite(texOf(g=>bigText(g,t,128,128,236,52,INK)),s||2.2,s||2.2);sp.position.set(A,y,B);G.add(sp)};
+  dHouse(10,-9)(G);lab('CASA',10,4.8,-9);
   [[2,4.6],[2,11.4]].forEach(([A,B])=>{G.add(mesh(BOX(.8,2.4,.8),'#8B5A2B',A,1.2,B),mesh(BOX(2.6,2.2,2.6),'#2FA84F',A,3.4,B));addColl(A,B,.7)});
-  G.add(mesh(BOX(5.2,.04,5.2),'#FFF1B8',11,.03,7,false));[[11,4.4,5.2,.2],[11,9.6,5.2,.2],[13.6,7,.2,5.2]].forEach(([A,B,wa,wb])=>{G.add(mesh(BOX(wa,.9,wb),'#E0A800',A,.45,B));platAt(st,A,B,wa/2,wb/2,.9,true,null,.05)});
-  const cs=sprite(texOf(g=>bigText(g,'CERCADO',128,128,240,52,INK)),2.4,2.4);cs.position.set(11,2.4,7);G.add(cs);
-  G.add(mesh(BOX(4.4,.35,3.6),'#B07A44',2,3.25,-6));[[.1,-7.6],[3.9,-7.6],[.1,-4.4],[3.9,-4.4]].forEach(([A,B])=>{G.add(mesh(BOX(.3,3.2,.3),'#8A552D',A,1.6,B));addColl(A,B,.25)});
-  const ms=sprite(texOf(g=>bigText(g,'MESA',128,128,220,60,INK)),2.2,2.2);ms.position.set(2,4.6,-6);G.add(ms);
+  G.add(mesh(BOX(5.2,.04,5.2),'#FFF1B8',11,.03,7,false));[[11,4.4,5.2,.2],[11,9.6,5.2,.2],[13.6,7,.2,5.2]].forEach(([A,B,wa,wb])=>{G.add(mesh(BOX(wa,.9,wb),'#E0A800',A,.45,B));platAt(st,A,B,wa/2,wb/2,.9,true,null,.05)});lab('CERCADO',11,2.4,7,2.4);
+  G.add(mesh(BOX(4.4,.35,3.6),'#B07A44',2,3.25,-6));[[.1,-7.6],[3.9,-7.6],[.1,-4.4],[3.9,-4.4]].forEach(([A,B])=>{G.add(mesh(BOX(.3,3.2,.3),'#8A552D',A,1.6,B));addColl(A,B,.25)});lab('MESA',2,4.6,-6);
   [[6.5,-.6],[8.4,2.2],[5.2,2.8]].forEach(([A,B])=>{G.add(mesh(BOX(1.6,.9,1.6),'#2E8BF0',A,.45,B));const p=platAt(st,A,B,.8,.8,.9,true,null,.1);p.bloco=true});
-  const w=L2W(st,-3,0),f=L2W(st,6,0);teleport(w.x,w.z,f.x,f.z);CH.last=null;loadSimonQ()}
-function loadSimonQ(){const L=stat(CH.st.id).level,pool=SIMON.filter(c=>c.lv<=L&&c!==CH.last);const c=pick(pool);CH.last=c;Object.assign(CH,{q:c,skill:'vocab.'+(({embaixo:'cima',longe:'perto',fora:'dentro'})[c.k]||c.k),time:[16,13,11][L-1],phase:'read',locked:false,tries:0});
-  simonMission();speak('O mestre mandou: '+plain(c.t),()=>{if(CH&&CH.q===c&&CH.phase==='read'){CH.phase='play';simonMission()}})}
-function simonMission(){setMission(`<span class="vt">🗣️ O MESTRE MANDOU</span>${CH.idx+1}/${CH.n} · ${CH.q.t}!<small class="live">${CH.phase==='read'?'<span class="rd">🗣️ Escute o mestre...</span><span class="rs">🗣️ …</span>':'⏱ '+Math.ceil(Math.max(0,CH.time))+'s'} · ${'❤️'.repeat(Math.max(0,CH.hearts))}${'🖤'.repeat(3-Math.max(0,CH.hearts))}</small>`)}
-function updateSimon(dt){if(CH.phase!=='play'){hideSure();return}showSure('✓ Cheguei!',()=>{CH.time=0});const prev=Math.ceil(CH.time);CH.time-=dt;if(Math.ceil(CH.time)!==prev){simonMission();if(CH.time<=3&&CH.time>0)sfx.tick()}
-  if(CH.time>0)return;CH.phase='done';hideSure();
-  if(CH.q.ok())okRound(2,'Você fez certinho!',null,nextSimon);
-  else{CH.hearts--;CH.locked=true;record(CH.st.id,false,CH.skill);sfx.bad();playAnim('sad');simonMission();
-    if(CH.hearts<=0){toast(`Não era aí! ${CH.q.h}<br>Acabaram os corações! 💔`,4200,true);later(()=>{CH.n=CH.idx+1;done3D(true)},4400)}else{toast(`Não era aí! ${CH.q.h}`,4200,true);later(nextSimon,4400)}}}
+  /* bell, coloured circles, two bushes to hide behind */
+  const [bA,bB]=SM.bell;G.add(mesh(BOX(.3,2.9,.3),'#7A4B2A',bA,1.45,bB),mesh(BOX(.3,.3,1.3),'#7A4B2A',bA,2.9,bB+.5),mesh(new THREE.ConeGeometry(.5,.75,14),GOLD,bA,2.35,bB+.95));addColl(bA,bB,.4);lab('SINO',bA,4,bB);C.bell=L2W(st,bA,bB+.6);
+  C.mats=SM.mats.map(([A,B],i)=>{const c=PAINTS[i],w=L2W(st,A,B);G.add(mesh(new THREE.CylinderGeometry(1.45,1.45,.06,32),INK,A,.03,B,false),mesh(new THREE.CylinderGeometry(1.3,1.3,.08,32),c.c,A,.05,B,false));
+    const sp=sprite(texOf(g=>{fitText(g,c.n,236,44);g.textAlign='center';g.textBaseline='middle';g.lineWidth=8;g.strokeStyle=INK;g.strokeText(c.n,128,128);g.fillStyle='#fff';g.fillText(c.n,128,128)}),2,2);sp.position.set(A,1.1,B);G.add(sp);return {k:c.k,n:c.n,x:w.x,z:w.z}});
+  SM.hides.filter(h=>h.w==='arb').forEach(h=>{G.add(mesh(BOX(2.7,1.9,2.7),'#2FA84F',h.A,.95,h.B),mesh(BOX(1.9,.9,1.9),'#47C266',h.A,2.3,h.B));addColl(h.A,h.B,1.6);lab('ARBUSTO',h.A,3.7,h.B)});
+  /* things to carry */
+  C.items=SM.items.map(it=>{const sp=sprite(texOf(pEmo(it.e)),1.5,1.5),h=L2W(st,it.A,it.B);scene.add(sp);CHX.sprites.push(sp);return {k:it.k,n:it.n,sp,hx:h.x,hz:h.z,x:h.x,z:h.z}});
+  /* the master and three friends in coloured shirts */
+  const mk=(lk,A,B,name)=>{const ch=makeChar(lk),w=L2W(st,A,B);ch.g.position.set(w.x,0,w.z);ch.g.rotation.y=Math.PI/2;scene.add(ch.g);CHX.objs.push(ch.g);if(name){const ns=sprite(labelTex(name,'#fff',null,256,64,40),2.2,.55);ns.position.y=name==='MESTRE'?4.6:3.3;ch.g.add(ns);CHX.texs.push(ns.material.map)}return {ch,x:w.x,z:w.z}};
+  C.master=mk({skin:'#E9B07F',shirt:'#6A3DE8',pants:'#20242E',hat:'mago',hair:'#B3BCC7'},SM.master[0],SM.master[1],'MESTRE');
+  C.kids=SM.kids.map(([k,n,A,B],i)=>Object.assign(mk({skin:['#FFD9B3','#8D5A3B','#C98E5F'][i],shirt:PAINTS.find(c=>c.k===k).c,pants:'#1F4FA0',hat:'nenhum',hair:['#1E1A1A','#5A3A22','#E8C15A'][i]},A,B),{c:k,n,hx:0,hz:0,tx:0,tz:0,wait:0,hid:false,chase:false,ph:i}));
+  C.kids.forEach(f=>{f.hx=f.x;f.hz=f.z;f.tx=f.x;f.tz=f.z});
+  const w=L2W(st,-3,0),f=L2W(st,6,0);teleport(w.x,w.z,f.x,f.z);loadSimonQ()}
+function loadSimonQ(force){const C=CH,L=stat(C.st.id).level;let q=force;if(!q)do q=genSimon(L);while(C.q&&q.steps[0].k===C.q.steps[0].k&&Math.random()<.8);
+  C.items.forEach(o=>{o.x=o.hx;o.z=o.hz});C.kids.forEach(f=>{f.hid=false;f.chase=false;f.ch.g.visible=true});
+  Object.assign(C,{q,skill:q.skill,si:0,hold:null,time:q.time,phase:'read',locked:false,tries:0});showProg(null);simonMission();
+  speak(plain(q.text),()=>{if(CH===C&&C.q===q&&C.phase==='read'){C.phase='play';simonMission()}})}
+function simonMission(){const C=CH,q=C.q;
+  const body=q.trick?`<b>${q.text}</b>`:q.steps.map((s,i)=>`<span class="stp ${i<C.si?'done':i===C.si?'cur':'todo'}">${i<C.si?'✓':s.ic} ${s.t}${s.live&&i===C.si?` <small>${s.live}</small>`:''}</span>`).join(' ');
+  setMission(`<span class="vt">🗣️ MESTRE</span>${C.idx+1}/${C.n} · ${body}<small class="live">${C.phase==='read'?'<span class="rd">🗣️ Escute o mestre com atenção...</span><span class="rs">🗣️ …</span>':'⏱ '+Math.ceil(Math.max(0,C.time))+'s'} · ${'❤️'.repeat(Math.max(0,C.hearts))}${'🖤'.repeat(3-Math.max(0,C.hearts))}</small>`)}
+/* friends: they stroll about, run away while they are being chased in a tag step, and one of them can be the catcher */
+function simonKids(dt){const C=CH,st=C.st,step=C.phase==='play'&&!C.locked?C.q.steps[C.si]:null,flee=step&&step.k==='tag',mid=L2W(st,5,0);
+  for(const f of C.kids){const L=f.ch;if(f.hid){L.legL.rotation.x=L.legR.rotation.x=0;continue}
+    const dx=P.x-f.x,dz=P.z-f.z,d=Math.hypot(dx,dz)||1e-3;let vx=0,vz=0,sp=0;
+    if(f.chase){vx=dx/d;vz=dz/d;sp=4.3}
+    else if(flee&&d<7){const cx=mid.x-f.x,cz=mid.z-f.z,cd=Math.hypot(cx,cz)||1e-3,w=clamp((cd-6)/5,0,1)*1.4;vx=-dx/d+cx/cd*w;vz=-dz/d+cz/cd*w;const m=Math.hypot(vx,vz)||1;vx/=m;vz/=m;sp=4}
+    else{const tx=f.tx-f.x,tz=f.tz-f.z,td=Math.hypot(tx,tz);f.wait-=dt;if(td<.6||f.wait<-9){if(f.wait<=0){const t=L2W(st,rnd(-1,13),rnd(-10,10));f.tx=t.x;f.tz=t.z;f.wait=rnd(1,4)}}else if(f.wait<=0){vx=tx/td;vz=tz/td;sp=1.6}}
+    f.x+=vx*sp*dt;f.z+=vz*sp*dt;
+    for(const c of COLL){const ox=f.x-c.x,oz=f.z-c.z,od=Math.hypot(ox,oz),r2=c.r+.45;if(od<r2&&od>1e-4){f.x=c.x+ox/od*r2;f.z=c.z+oz/od*r2}}
+    const [a,b]=localAB(st,f.x,f.z),q=L2W(st,clamp(a,-4,14),clamp(b,-12,12));f.x=q.x;f.z=q.z;L.g.position.set(f.x,0,f.z);
+    if(sp){L.g.rotation.y=lerpA(L.g.rotation.y,Math.atan2(vx,vz),Math.min(1,dt*10));f.ph+=dt*sp*1.7;const s=Math.sin(f.ph)*.8;L.legL.rotation.x=s;L.legR.rotation.x=-s;L.armL.rotation.x=-s;L.armR.rotation.x=s}
+    else{L.legL.rotation.x=L.legR.rotation.x=L.armL.rotation.x=0;L.armR.rotation.x=d<4?-Math.abs(Math.sin(T*6))*1.5:0;L.g.rotation.y=lerpA(L.g.rotation.y,Math.atan2(dx,dz),Math.min(1,dt*4))}}}
+/* is the player out of the master's sight, behind a house or bush of the kind asked for? */
+function simonHidden(w){const M=CH.master,px=P.x-M.x,pz=P.z-M.z,pd=Math.hypot(px,pz)||1e-3;
+  return SM.hides.some(h=>{if(h.w!==w)return false;const o=L2W(CH.st,h.A,h.B),ox=o.x-M.x,oz=o.z-M.z,od=Math.hypot(ox,oz),t=(ox*px+oz*pz)/pd,perp=Math.sqrt(Math.max(0,od*od-t*t));return t>0&&pd>od+h.r*.4&&perp<h.r&&Math.hypot(P.x-o.x,P.z-o.z)<h.r+3.6})}
+let jumpCount=0;
+/* one step of an order: returns 'ok' when done, 'bad' (with s.why) when the wrong thing was done, or nothing while it is still going */
+function simonStep(s,dt){const C=CH,st=C.st;let btn=null;
+  if(!s.s){s.s={t:0,n:0,j0:jumpCount,acc:0,px:P.x,pz:P.z};
+    if(s.k==='seek'){const f=C.kids.find(f=>f.c===s.c),h=pick(SM.hides),o=L2W(st,h.A,h.B),dx=o.x-P.x,dz=o.z-P.z,d=Math.hypot(dx,dz)||1;f.x=o.x+dx/d*(h.r+1.1);f.z=o.z+dz/d*(h.r+1.1);f.ch.g.position.set(f.x,0,f.z);f.hid=true}
+    if(s.k==='flee'){const f=C.kids[rnd(0,2)],o=L2W(st,12,-5);f.x=o.x;f.z=o.z;f.chase=true;s.s.f=f;toast(`O amigo de camisa <b>${f.n}</b> é o pegador! Corra! 💨`,2600)}
+    if(s.k==='hide')toast('O mestre fechou os olhos e está contando... 🙈',2400)}
+  const v=s.s;v.t+=dt;let res=null;
+  if(s.k==='go'){v.n=s.ok()?v.n+dt:0;if(v.n>.35)res='ok'}
+  else if(s.k==='jump'){const c=jumpCount-v.j0;if(c!==v.c){v.c=c;if(c>0){toast(`<b>${c}</b>`,900);sfx.tick()}}s.live=`(${Math.min(c,s.n)}/${s.n})`;if(c>=s.n&&onGround)res='ok'}
+  else if(s.k==='color'){const m=onGround?C.mats.find(m=>Math.hypot(P.x-m.x,P.z-m.z)<1.25):null;if(m!==v.m){v.m=m;v.n=0}if(m){v.n+=dt;if(m.k===s.c){if(v.n>.25)res='ok'}else if(v.n>.6){s.why=`Esse círculo é o ${m.n}.`;res='bad'}}}
+  else if(s.k==='ring'){s.live=`(${v.n}/${s.n})`;if(isNear(C.bell,2.9))btn=['🔔 Tocar o sino',()=>{v.n++;swingT=.32;tone(1568,.5,'sine',.09);tone(2093,.7,'sine',.05,.02);simonMission()}];if(v.n>=s.n)res='ok'}
+  else if(s.k==='around'){const o=L2W(st,s.o.p[0],s.o.p[1]),d=Math.hypot(P.x-o.x,P.z-o.z),a=Math.atan2(P.z-o.z,P.x-o.x);
+    if(d>s.o.r0&&d<s.o.r0+6){if(v.la==null){v.la=a;v.a0=a}let da=a-v.la;da=((da+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;v.acc+=da;v.la=a;if(Math.abs(v.acc-(v.dr||0))>.1){v.dr=v.acc;showProg({x:o.x,z:o.z,R:s.o.r0+1.5},v.a0,v.acc)}if(Math.abs(v.acc)>=Math.PI*2*.93){showProg(null);res='ok'}}
+    else if(v.t>1&&d>=s.o.r0+6&&v.la!=null){v.la=null;v.acc=0;showProg(null)}}
+  else if(s.k==='take'||(s.k==='carry'&&!C.hold)){const it=C.items.find(o=>o!==C.hold&&Math.hypot(P.x-o.x,P.z-o.z)<2);
+    if(it)btn=[`✋ Pegar ${it.n}`,()=>{if(it.k===s.it){C.hold=it;sfx.pop();if(s.k==='take')v.got=true;else simonMission()}else{s.why=`Isso é ${it.n}. O mestre mandou outra coisa.`;v.bad=true}}];if(v.bad)res='bad';else if(v.got)res='ok'}
+  else if(s.k==='bring'||s.k==='carry'){if(C.hold&&s.ok()){v.n+=dt;if(v.n>.3){C.hold.x=P.x+Math.sin(rotY)*1.2;C.hold.z=P.z+Math.cos(rotY)*1.2;C.hold=null;sfx.coin();res='ok'}}else v.n=0}
+  else if(s.k==='tag'){for(const f of C.kids){if(Math.hypot(P.x-f.x,P.z-f.z)<1.25){if(f.c===s.c)res='ok';else{v.n+=dt;if(v.n>.4){s.why=`Esse é o amigo de camisa ${f.n}.`;res='bad'}}}}}
+  else if(s.k==='seek'){const f=C.kids.find(f=>f.c===s.c);if(Math.hypot(P.x-f.x,P.z-f.z)<2){f.hid=false;res='ok'}}
+  else if(s.k==='hide'){const left=Math.ceil(s.T-v.t);s.live=`(${Math.max(0,left)})`;if(left!==v.c){v.c=left;if(left>0&&left<=5){toast(`<b>${left}</b>`,900);sfx.tick()}}const m=C.master.ch;m.armL.rotation.x=m.armR.rotation.x=-2.5;
+    if(v.t>=s.T){m.armL.rotation.x=m.armR.rotation.x=0;m.g.rotation.y=Math.atan2(P.x-C.master.x,P.z-C.master.z);if(simonHidden(s.w))res='ok';else{s.why='O mestre te viu! Fique bem atrás, do lado que ele não enxerga.';res='bad'}}}
+  else if(s.k==='flee'){s.live=`(${Math.max(0,Math.ceil(s.T-v.t))})`;const f=v.f;if(Math.hypot(P.x-f.x,P.z-f.z)<1.05){f.chase=false;s.why='O pegador te pegou!';res='bad'}else if(v.t>=s.T){f.chase=false;res='ok'}}
+  else if(s.k==='statue'){s.live=`(${Math.max(0,Math.ceil(s.T+1.2-v.t))})`;if(v.t>1.2&&(Math.hypot(P.x-v.px,P.z-v.pz)>.25||!onGround)){s.why='Estátua não se mexe!';res='bad'}else if(v.t<=1.2){v.px=P.x;v.pz=P.z}if(v.t>=s.T+1.2)res='ok'}
+  if(btn&&!res)showSure(btn[0],btn[1]);else hideSure();return res}
+function updateSimon(dt){const C=CH,q=C.q;simonKids(dt);C.items.forEach((o,i)=>{if(o===C.hold)o.sp.position.set(P.x,P.y+3.2,P.z);else o.sp.position.set(o.x,.95+Math.sin(T*2+i)*.12,o.z)});
+  if(C.phase!=='play'||C.locked){hideSure();return}
+  const prev=Math.ceil(C.time),s=q.steps[C.si];C.time-=dt;const r=simonStep(s,dt);
+  if(Math.ceil(C.time)!==prev||s.live!==s.shown){s.shown=s.live;simonMission();if(C.time<=3&&C.time>0&&!q.trick)sfx.tick()}
+  if(q.trick){if(r==='ok')simonFail('O mestre NÃO mandou! Só obedeça quando ouvir "O mestre mandou".');else if(C.time<=0)simonWin('Muito bem! O mestre não mandou, e você não fez.');return}
+  if(r==='bad')return simonFail(`${s.why||'Não era isso!'} O mestre mandou: ${s.t}.`);
+  if(r==='ok'){C.si++;showProg(null);if(C.si>=q.steps.length)return simonWin(q.steps.length>1?`Você fez os ${q.steps.length} passos na ordem certa!`:'Você fez certinho!');
+    sfx.coin();simonMission();const nx=q.steps[C.si];toast(`✓ Passo ${C.si} feito! Agora: <b>${nx.t}</b>`,2600);speak(stat(C.st.id).level<3?'Isso! Agora, '+nx.t:'Isso! E agora?');return}
+  if(C.time<=0)simonFail(`O tempo acabou! O mestre mandou: ${s.t}.`)}
+function simonWin(msg){hideSure();CH.phase='done';okRound(2,msg,null,nextSimon)}
+function simonFail(msg){const C=CH;hideSure();C.phase='done';C.hearts--;C.locked=true;C.kids.forEach(f=>f.chase=false);record(C.st.id,false,C.skill);sfx.bad();playAnim('sad');simonMission();
+  if(C.hearts<=0){toast(`${msg}<br>Acabaram os corações! 💔`,4400,true);later(()=>{C.n=C.idx+1;done3D(true)},4600)}else{toast(msg,4400,true);later(nextSimon,4600)}}
 function nextSimon(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadSimonQ()}
 
 /* ---- obby / order / shapes (classic modes) ---- */
@@ -1819,7 +1917,7 @@ function openTut(){openSheet(`<div class="pad"><div class="h2">Bem-vindo à Cida
     <span class="i">🕹️</span><span>Arraste no lado <b>esquerdo</b> da tela para andar. Botão <b>⬆</b> pula.</span>
     <span class="i">⟲⟳</span><span>Segure <b>⟲ ⟳</b> ou arraste no lado <b>direito</b> para girar a câmera.</span>
     <span class="i">🌀</span><span>Entre nos <b>portais</b> para ir aos mundos. Lá, fale com o personagem do <b>!</b> e escolha o jogo.</span>
-    <span class="i">🎮</span><span>Tem obby, tiro ao balão, chão de lava, <b>kart</b>, construção, ajudar amigos, "o mestre mandou" e muito mais!</span>
+    <span class="i">🎮</span><span>Tem obby, tiro ao balão, chão de lava, <b>kart</b>, construção, ajudar amigos e muito mais! No <b>Mestre Mandou</b> tem pega-pega, esconde-esconde e ordens de até 3 passos.</span>
     <span class="i">🔨⚽</span><span>Em muitas perguntas aparece um <b>botão amarelo de ação</b>: pintar, quebrar a caixa com o martelo, chutar a bola no gol, arremessar na cesta.</span>
     <span class="i">🪙</span><span>Ganhe moedas acertando. Na <b>Loja</b>, faça a conta do troco para comprar.</span>
     <span class="i">🏆</span><span>Cada rodada vale uma medalha: <b>🥇 ouro</b> com tudo certo de primeira, <b>🥈 prata</b> com a metade ou mais, <b>🥉 bronze</b> por terminar. Ouro no <b>nível 3</b> vale a <b>TAÇA 🏆</b>.</span>
@@ -1882,7 +1980,7 @@ function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math
   if(autoQual&&QUAL>0&&!document.hidden){if(raw>1){qN=0;qT=0}else{qT+=raw;qN++;if(qT>=2.5){if(T>3&&qN/qT<27)setQuality(QUAL-1);qN=0;qT=0}}}
   updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();breakCheck(dt);renderer.render(scene,camera)}
 function boot(){if(S.lite)setQuality(0);resize();buildPlayer();hud();STATIONS.forEach(updateSign);updateHall();camera.position.set(P.x,P.y+5,P.z+10);requestAnimationFrame(tick);if(!S.tut)openTut()}
-window.__ilhaDebug={buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
+window.__ilhaDebug={SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
   aim:()=>CH&&CH.type==='shoot'?aimBalloon():null,set pitch(v){pitch=v},step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateCam(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
 const fontsReady=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('400 20px Andika')]):Promise.resolve();
 Promise.race([fontsReady,new Promise(r=>setTimeout(r,1800))]).then(()=>{OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));boot()}).catch(boot);

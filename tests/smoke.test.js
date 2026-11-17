@@ -467,10 +467,19 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         else if (C.type === 'shoot') { const b = C.balloons.find(b => b.alive && b.it.ok); if (b) { const base = Math.atan2(D.P.x - b.x, D.P.z - b.z); let ok = false; for (const pt of [.3, .18, .44, .08, .58]) { for (const dy of [0, .05, -.05, .1, -.1]) { D.pitch = pt; D.yaw = base + dy; run(26); if (D.aim() === b) { ok = true; break; } } if (ok) break; } if (ok) { D.fire(); for (let i = 0; i < 90 && b.alive; i++) D.step(1 / 60); } } }
         else if (C.type === 'floor') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const t = C.tiles.find(t => t.ok); go(t.p.cx, t.p.cz, 1); run(20); document.querySelector('#b-sure').click(); run(3); }
         else if (C.type === 'kart') { if (C.phase === 'ready') C.phase = 'go'; const g = C.gates[C.idx]; C.v = 8; if (g) C.lat = (C.qs[C.idx].ans - 1) * 4; D.P.x = (g ? g.x : C.endX) - .3; run(6); }
-        else if (C.type === 'simon') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const k = C.q.k;
-          if (k === 'cima') { const pl = D.PLATS.find(p => p.bloco); go(pl.cx, pl.cz, 1.3); run(20); }
-          else { const w = { dentro: [11, 7], embaixo: [2, -6], perto: [10, -5.5], longe: [-4, 8], entre: [2, 8], fora: [11, 3] }[k], p = L(w[0], w[1]); go(p.x, p.z); }
-          document.querySelector('#b-sure').click(); run(3); }
+        else if (C.type === 'simon') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const q = C.q, s = q.steps[C.si], idx = C.si, press = () => { const bt = document.querySelector('#b-sure'); if (!bt.hidden) bt.click(); };
+          const spot = { dentro: [11, 7], embaixo: [2, -6], perto: [10, -5.5], longe: [-4, 11.5], entre: [2, 8] }, live = () => D.CH === C && C.q === q && C.si === idx && !C.locked;
+          if (q.trick) { run(60 * 7); }
+          else if (s.k === 'go' || s.k === 'bring' || (s.k === 'carry' && C.hold)) { if (s.pk === 'cima') { const pl = D.PLATS.find(p => p.bloco); go(pl.cx, pl.cz, 1.3); } else { const w = L(spot[s.pk][0], spot[s.pk][1]); go(w.x, w.z); } run(40); }
+          else if (s.k === 'jump') { for (let i = 0; i < s.n; i++) { D.jump(); run(60); } }
+          else if (s.k === 'color') { const m = C.mats.find(m => m.k === s.c); go(m.x, m.z); run(30); }
+          else if (s.k === 'ring') { go(C.bell.x + 1.2, C.bell.z); for (let i = 0; i < s.n; i++) { run(3); press(); } run(3); }
+          else if (s.k === 'around') { const o = L(s.o.p[0], s.o.p[1]), R = s.o.r0 + 1.6; for (let k = 0; k <= 46 && live(); k++) { const a = k / 40 * 2 * Math.PI; D.P.set(o.x + Math.cos(a) * R, 0, o.z + Math.sin(a) * R); D.step(1 / 60); } }
+          else if (s.k === 'take' || s.k === 'carry') { const it = C.items.find(o => o.k === s.it); go(it.x + .8, it.z); press(); run(3); }
+          else if (s.k === 'tag' || s.k === 'seek') { const f = C.kids.find(f => f.c === s.c); for (let i = 0; i < 30 && live(); i++) { D.P.set(f.x, 0, f.z); D.step(1 / 60); } }
+          else if (s.k === 'hide') { const h = D.SM.hides.find(h => h.w === s.w), o = L(h.A, h.B), dx = o.x - C.master.x, dz = o.z - C.master.z, d = Math.hypot(dx, dz); go(o.x + dx / d * (h.r + 1.3), o.z + dz / d * (h.r + 1.3)); for (let i = 0; i < 60 * 8 && live(); i++) D.step(1 / 60); }
+          else if (s.k === 'flee') { for (let i = 0; i < 60 * 9 && live(); i++) { const f = C.kids.find(f => f.chase); if (f && i % 20 === 0) { const w = L(f.x > st.c.x + 5 ? -3 : 13, f.z > st.c.z ? -10 : 10); D.P.set(w.x, 0, w.z); } D.step(1 / 60); } }
+          else if (s.k === 'statue') { for (let i = 0; i < 60 * 5 && live(); i++) D.step(1 / 60); } }
         else if (C.type === 'share') { C.q.sol.forEach((ix, i) => { ix.forEach(j => { const o = C.items[j]; go(o.x, o.z); }); const f = C.friends[i]; go(f.x, f.z); }); const a = L(-6, 0); go(a.x, a.z); go(C.pads.pronto.x, C.pads.pronto.z); }
         else if (C.type === 'build') { let need = C.q.sol - C.steps.length; for (const o of C.items) { if (need <= 0) break; if (o.state === 'ground') { go(o.x, o.z); need--; } } const a = L(-6, 6); go(a.x, a.z); go(C.pads.put.x, C.pads.put.z); go(a.x, a.z); go(C.pads.pronto.x, C.pads.pronto.z); }
         else if (C.type === 'act') { const q = C.q, off = L(-6, -6);
@@ -627,6 +636,38 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     assert(r.gaps <= 1.6 && r.side >= 1.8 && r.far >= 15, `hop ${r.gaps}, space between answers ${r.side}, distance between rows ${r.far}`);
     eq([r.walked, r.ended, r.backAtStart], [[[true, true, true], 1], true, true], 'walked the hop to each of the three answer platforms without falling; round ended; portal took the player back');
     await page.waitForSelector('.result h2', { timeout: 6000 }); await page.evaluate(() => { __ilhaDebug.timeScale = 1; __ilhaDebug.closeSheet(); });
+  });
+
+  await test('master game: at least 10 kinds of step, orders of 1, 2 and 3 steps by level, and the odd trick', async () => {
+    const r = await page.evaluate(() => { const kinds = new Set(), sizes = { 1: new Set(), 2: new Set(), 3: new Set() }, tricks = [0, 0, 0], bad = [];
+      for (const L of [1, 2, 3]) for (let i = 0; i < 1500; i++) { const q = window.__ilha.genSimon(L); q.steps.forEach(s => kinds.add(s.k)); if (q.trick) tricks[L - 1]++; else sizes[L].add(q.steps.length);
+        const want = q.trick ? /^[A-ZÀ-Ú][^:]*!$/ : [0, /^O mestre mandou: [^,]+!$/, /^O mestre mandou: PRIMEIRO .+, DEPOIS .+!$/, /^O mestre mandou: PRIMEIRO .+, DEPOIS .+ e POR FIM .+!$/][q.steps.length];
+        if (!want.test(q.text) || /undefined|null/.test(q.text) || new Set(q.steps.map(s => s.k)).size !== q.steps.length || (q.trick && /mestre/i.test(q.text))) bad.push(q.text);
+        const b = q.steps.findIndex(s => s.k === 'bring'); if (b >= 0 && !q.steps.slice(0, b).some(s => s.k === 'take' && s.it === q.steps[b].it)) bad.push('bring without take: ' + q.text); }
+      return { kinds: [...kinds].sort(), sizes: [1, 2, 3].map(L => [...sizes[L]].sort()), tricks, bad: bad.slice(0, 5) }; });
+    eq(r.bad, [], 'malformed orders');
+    eq(r.kinds, ['around', 'bring', 'carry', 'color', 'flee', 'go', 'hide', 'jump', 'ring', 'seek', 'statue', 'tag', 'take'], 'kinds of step');
+    eq(r.sizes, [[1], [2], [3]], 'steps per order at levels 1, 2, 3');
+    assert(r.tricks[0] === 0 && r.tricks[1] > 80 && r.tricks[2] > 80, `tricks per level: ${r.tricks}`);
+  });
+
+  await test('master game: steps count only in the order given, a wrong action costs a heart, and a trick must not be obeyed', async () => {
+    await enter(page, 'vocab');
+    const r = await page.evaluate(() => {
+      const D = __ilhaDebug, st = D.STM.vocab, G = window.__ilha.genSimon, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, go = (x, z) => { D.P.set(x, 0, z); run(12); };
+      D.timeScale = .01; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[1]); const C = D.CH, out = {};
+      let q; do q = G(3); while (q.trick || q.steps[0].k !== 'jump' || q.steps[1].k !== 'color'); D.simonLoad(q); C.phase = 'play';
+      const right = C.mats.find(m => m.k === q.steps[1].c), wrong = C.mats.find(m => m.k !== q.steps[1].c);
+      const clear = D.L2W(st, 4, 0); go(right.x, right.z); run(60); out.early = [C.si, C.hearts, C.locked]; go(clear.x, clear.z);
+      for (let i = 0; i < q.steps[0].n; i++) { D.jump(); run(60); } out.afterJumps = C.si;
+      go(wrong.x, wrong.z); run(60); out.wrongMat = [C.hearts, C.locked];
+      do q = G(2); while (!q.trick || q.steps[0].k !== 'jump'); D.simonLoad(q); C.phase = 'play'; go(clear.x, clear.z); const h0 = C.hearts; for (let i = 0; i < q.steps[0].n; i++) { D.jump(); run(60); } out.obeyedTrick = [h0 - C.hearts, C.locked, /mestre/i.test(q.text)];
+      do q = G(2); while (!q.trick); D.simonLoad(q); C.phase = 'play'; const f0 = C.first, h1 = C.hearts; run(60 * 7); out.ignoredTrick = [C.first - f0, h1 - C.hearts];
+      do q = G(1); while (q.steps[0].k !== 'hide'); D.simonLoad(q); C.phase = 'play'; const open = D.L2W(st, 4, 0), h2 = C.hearts; go(open.x, open.z); run(60 * 8); out.seen = h2 - C.hearts;
+      return out;
+    });
+    eq(r, { early: [0, 3, false], afterJumps: 1, wrongMat: [2, true], obeyedTrick: [1, true, false], ignoredTrick: [1, 0], seen: 1 }, 'master game rules');
+    await page.waitForTimeout(500); await page.evaluate(() => { __ilhaDebug.timeScale = 1; __ilhaDebug.flushFin(); __ilhaDebug.closeSheet(); if (__ilhaDebug.CH) document.querySelector('#m-quit').click(); });
   });
 
   await test('no script errors during the whole run', async () => { eq(errors, [], 'errors'); });
