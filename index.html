@@ -77,6 +77,13 @@ input{user-select:text;-webkit-user-select:text}
 .rot.on{background:var(--gold);transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
 #b-jump,#b-fire{width:86px;height:86px;border-radius:50%;background:rgba(255,255,255,.9);border:4px solid var(--ink);font-size:38px;font-weight:700;box-shadow:0 5px 0 var(--ink);padding:0;touch-action:none}
 #b-fire{background:#FF6B5E}
+/* crosshair of the balloon game: what is under it gets hit */
+#xh{position:fixed;z-index:3;left:50%;top:37.5%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;border:4px solid #fff;box-shadow:0 0 0 3px var(--ink),inset 0 0 0 3px var(--ink);pointer-events:none;opacity:.75}
+#xh::before,#xh::after{content:"";position:absolute;background:#fff;box-shadow:0 0 0 2px var(--ink)}
+#xh::before{left:50%;top:-12px;bottom:-12px;width:4px;margin-left:-2px}
+#xh::after{top:50%;left:-12px;right:-12px;height:4px;margin-top:-2px}
+#xh.on{border-color:var(--gold);opacity:1}
+#xh.on::before,#xh.on::after{background:var(--gold)}
 #b-jump:active,#b-fire:active,#b-act:active,#b-sure:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
 #b-sure{padding:13px 18px;border-radius:16px;background:var(--gold);border:4px solid var(--ink);font-weight:700;font-size:20px;box-shadow:0 5px 0 var(--ink)}
 #b-act{padding:13px 18px;border-radius:16px;background:var(--go);color:#fff;border:4px solid var(--ink);font-weight:700;font-size:20px;box-shadow:0 5px 0 var(--ink);animation:pulse 1.2s infinite;max-width:60vw}
@@ -199,6 +206,7 @@ select{font-size:17px;padding:8px;border:3px solid var(--ink);border-radius:10px
     <button id="b-jump" aria-label="Pular">⬆</button>
   </div>
 </div>
+<div id="xh" hidden></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 <div id="fade"></div>
 <div id="ov" hidden><div class="sheet" id="sheet"></div></div>
@@ -756,9 +764,9 @@ function genBuild(L){
 /* ================= STATIONS / WORLDS ================= */
 const STATIONS=[
   {id:'contas',name:'Obby das Contas',sub:'Adição e subtração',color:'#E8413A',world:'Ilhas do Mar',sky:'#FFD9A8',ground:['#F2D99B','#E5C77F'],prop:'palm',npc:{name:'Rafa',skin:'#C98E5F',shirt:'#E8413A',pants:'#1F3F8A',hat:'bone'},
-    intro:'Eu sou o Rafa! Aqui no mar a gente faz contas de mais e de menos. Escolha o jogo:',modes:[{k:'obby',i:'⬆',n:'Obby das Contas',d:'Pule na plataforma com a resposta. Errou? Cai na água!'},{k:'shoot',gen:genShootArith,i:'🎯',n:'Estoura-Balão',d:'Mire e estoure os balões com a conta certa.'},{k:'kart',i:'🏎️',n:'Kart das Contas',d:'Dirija o kart e passe pelo portão com o resultado.'}]},
+    intro:'Eu sou o Rafa! Aqui no mar a gente faz contas de mais e de menos. Escolha o jogo:',modes:[{k:'obby',i:'⬆',n:'Obby das Contas',d:'Pule na plataforma com a resposta. Errou? Cai na água!'},{k:'shoot',gen:genShootArith,i:'🎯',n:'Estoura-Balão',d:'Mire e estoure os balões com a conta certa.'},{k:'kart',i:'🏎️',n:'Kart das Contas',d:'Acelere, freie para pensar e passe pelo portão com o resultado.'}]},
   {id:'ordem',name:'Corrida dos Números',sub:'A ordem dos números',color:'#FF8A1F',world:'Estádio',sky:'#9FDBFF',ground:['#4CB84A','#43A743'],prop:'stand',npc:{name:'Juca',skin:'#FFD9B3',shirt:'#FF8A1F',pants:'#20242E',hat:'nenhum'},
-    intro:'Oi, eu sou o Juca! Bem-vindo ao estádio dos números. Bora correr?',modes:[{k:'order',i:'🏃',n:'Corrida dos Cubos',d:'Pegue os cubos na ordem certa.'},{k:'floor',gen:genFloorOrder,i:'🌋',n:'Chão de Lava',d:'Fique no número certo antes do tempo acabar!'},{k:'kart',gen:genFloorOrder,i:'🏎️',n:'Kart dos Números',d:'Dirija o kart e passe pelo portão do número certo.'}]},
+    intro:'Oi, eu sou o Juca! Bem-vindo ao estádio dos números. Bora correr?',modes:[{k:'order',i:'🏃',n:'Corrida dos Cubos',d:'Pegue os cubos na ordem certa.'},{k:'floor',gen:genFloorOrder,i:'🌋',n:'Chão de Lava',d:'Fique no número certo antes do tempo acabar!'}]},
   {id:'vocab',name:'Vila das Posições',sub:'Vocabulário fundamental',color:'#2DB34A',world:'Vila',sky:'#BFE8FF',ground:['#7ED36B','#6CC25B'],prop:'house',npc:{name:'Bia',skin:'#8D5A3B',shirt:'#2DB34A',pants:'#5B6475',hat:'nenhum'},
     intro:'Oi, eu sou a Bia! Aqui a gente aprende EM CIMA, EMBAIXO, DENTRO, FORA, PERTO, LONGE e ENTRE.',modes:[{k:'act',gen:genVocab,i:'⭕',n:'Desafios da Vila',d:'Circule, pule e pinte as posições certas.'},{k:'simon',i:'🗣️',n:'O Mestre Mandou',d:'Corra para o lugar que o mestre falar!'}]},
   {id:'n10',name:'Fazenda do 10',sub:'Números até 10',color:'#E0A800',world:'Fazenda',sky:'#CDEFFF',ground:['#9CCB5B','#8DBB4E'],prop:'fence',npc:{name:'Theo',skin:'#E9B07F',shirt:'#FFC83D',pants:'#1F4FA0',hat:'nenhum'},
@@ -768,7 +776,7 @@ const STATIONS=[
   {id:'dinheiro',name:'Mercadinho',sub:'Nosso dinheiro',color:'#16A34A',world:'Rua do Mercado',sky:'#FFE7C2',ground:['#D9D2C5','#CBC3B4'],prop:'stall',npc:{name:'Seu Zé',skin:'#C98E5F',shirt:'#FFFFFF',pants:'#7A4B2A',hat:'bone'},
     intro:'Bem-vindo ao Mercadinho! Aqui a gente aprende a usar o real.',modes:[{k:'act',gen:genMoney,i:'💵',n:'Desafios do Mercado',d:'Pague certinho, leve ao caixa e ache o troco.'},{k:'share',gen:genShareMoney,i:'🧑‍🤝‍🧑',n:'Atenda os Clientes',d:'Entregue o dinheiro que cada cliente pediu.'}]},
   {id:'n100',name:'Torre do 100',sub:'Números até 39 e até 100',color:'#2E8BF0',world:'Cidade Alta',sky:'#A9C8FF',ground:['#9FB8E8','#8EA9DD'],prop:'tower',npc:{name:'Duda',skin:'#E9B07F',shirt:'#2E8BF0',pants:'#5B6475',hat:'capacete'},
-    intro:'Eu sou a Duda! Aqui moram os números grandes, até 100.',modes:[{k:'act',gen:genN100,i:'🔟',n:'Desafios da Torre',d:'Monte números com barras de 10 e pule no quadro.'},{k:'floor',gen:genFloorN100,i:'🌋',n:'Chão de Lava 100',d:'Fique em cima do número certo para não cair!'},{k:'kart',gen:genFloorN100,i:'🏎️',n:'Kart do 100',d:'Dirija o kart e passe pelo portão do número certo.'}]},
+    intro:'Eu sou a Duda! Aqui moram os números grandes, até 100.',modes:[{k:'act',gen:genN100,i:'🔟',n:'Desafios da Torre',d:'Monte números com barras de 10 e pule no quadro.'},{k:'floor',gen:genFloorN100,i:'🌋',n:'Chão de Lava 100',d:'Fique em cima do número certo para não cair!'}]},
   {id:'medidas',name:'Oficina das Medidas',sub:'Grandezas e medidas',color:'#A0522D',world:'Oficina',sky:'#F2E4CF',ground:['#C9A27A','#BB936B'],prop:'bench',npc:{name:'Nina',skin:'#8D5A3B',shirt:'#A0522D',pants:'#1F4FA0',hat:'nenhum'},
     intro:'Oi, eu sou a Nina! Na oficina a gente mede tudo: comprido, alto, pesado, cheio.',modes:[{k:'act',gen:genMeasure,i:'📏',n:'Desafios da Oficina',d:'Lápis gigantes, prédios, copos e balança.'},{k:'build',gen:genBuild,i:'🏗️',n:'Construa a Escada',d:'Monte a escada do tamanho certo e suba no baú!'}]}
 ];
@@ -1053,18 +1061,27 @@ const markCache={};
 function markTex(ok){return markCache[ok]||(markCache[ok]=tex(cv(128,128,g=>{g.fillStyle=ok?'#22B35E':'#E53935';g.beginPath();g.arc(64,64,56,0,7);g.fill();g.lineWidth=8;g.strokeStyle='#fff';g.stroke();g.lineWidth=16;g.lineCap='round';g.lineJoin='round';g.beginPath();
   if(ok){g.moveTo(36,66);g.lineTo(56,86);g.lineTo(94,44)}else{g.moveTo(42,42);g.lineTo(86,86);g.moveTo(86,42);g.lineTo(42,86)}g.stroke()})))}
 function platLabel(p,text,bg,ok){const g=p.canvas.getContext('2d');g.fillStyle=bg;g.fillRect(0,0,128,128);g.lineWidth=8;g.strokeStyle=INK;g.strokeRect(4,4,120,120);
-  g.save();g.translate(64,64);g.rotate(Math.PI/2);bigText(g,text,0,4,108,70);if(ok!=null)g.drawImage(markTex(ok).image,-58,-58,40,40);g.restore();p.tex.needsUpdate=true}
+  g.save();g.translate(64,64);g.rotate(Math.PI/2);bigText(g,text,0,4,108,70);if(ok!=null)g.drawImage(markTex(ok).image,-58,-58,40,40);g.restore();p.tex.needsUpdate=true;
+  /* the same answer on an upright sign behind the platform, readable from far away */
+  const h=p.sc.getContext('2d');h.clearRect(0,0,128,128);h.fillStyle=bg;rr(h,6,6,116,116,24);h.fill();h.lineWidth=9;h.strokeStyle=INK;h.stroke();bigText(h,text,64,68,96,76);if(ok!=null)h.drawImage(markTex(ok).image,80,6,42,42);p.st.needsUpdate=true}
+/* The course: a start pad on the island, then five rows. Each row has three answer platforms, a board with the sum behind them,
+   and a wide resting deck after it. Gaps are short hops, and every platform has a forgiving edge. */
+const OB={step:15.6,row0:69.4,zs:[-5.6,0,5.6]};
 (function(){
-  addPlatAA(OX+58,OX+66,-4,4,[mat('#E8413A'),mat('#E8413A'),new THREE.MeshLambertMaterial({map:gridTex('#FFFFFF','#E8413A',4)}),mat('#E8413A'),mat('#E8413A'),mat('#E8413A')]);
-  for(let k=0;k<5;k++){const rx=OX+69.5+9*k,row=[];
-    [-4.5,0,4.5].forEach(z=>{const canvas=cv(128,128,()=>{}),t=tex(canvas),side=mat('#FF8A80');
-      const p=addPlatAA(rx-1.5,rx+1.5,z-1.5,z+1.5,[side,side,new THREE.MeshLambertMaterial({map:t}),side,side,side]);p.canvas=canvas;p.tex=t;p.row=k;platLabel(p,'?','#FFFFFF');row.push(p)});
+  /* the start pad is as wide as the rows, so every answer platform is one straight hop away */
+  addPlatAA(OX+58,OX+66,-8,8,[mat('#E8413A'),mat('#E8413A'),new THREE.MeshLambertMaterial({map:gridTex('#FFFFFF','#E8413A',4)}),mat('#E8413A'),mat('#E8413A'),mat('#E8413A')]).mg=.45;
+  for(let k=0;k<5;k++){const rx=OX+OB.row0+OB.step*k,row=[];
+    OB.zs.forEach(z=>{const canvas=cv(128,128,()=>{}),t=tex(canvas),sc=cv(128,128,()=>{}),st=tex(sc),side=mat('#FF8A80');
+      const p=addPlatAA(rx-1.8,rx+1.8,z-1.8,z+1.8,[side,side,new THREE.MeshLambertMaterial({map:t}),side,side,side]);p.mg=.45;p.canvas=canvas;p.tex=t;p.sc=sc;p.st=st;p.row=k;
+      p.sign=sprite(st,2.4,2.4);p.sign.position.set(rx+2.2,2.5,z);scene.add(p.sign);platLabel(p,'?','#FFFFFF');row.push(p)});
     OBBY.rows.push(row);
-    const final=k===4,x0=OX+(final?108.5:72.5+9*k),x1=OX+(final?116:75.5+9*k),zz=final?5:6.5;addPlatAA(x0,x1,-zz,zz,'#C98A4B');OBBY.checkpoints.push({x:(x0+x1)/2,z:0});
-    const bc=cv(512,288,()=>{}),bt=tex(bc),board=new THREE.Mesh(new THREE.PlaneGeometry(5.4,3.04),new THREE.MeshBasicMaterial({map:bt,side:THREE.DoubleSide}));
-    board.position.set(rx+1,5,0);board.rotation.y=-Math.PI/2;scene.add(board);
-    scene.add(mesh(BOX(.25,5,.25),'#7A4B2A',rx+1.2,2.5,-2.8),mesh(BOX(.25,5,.25),'#7A4B2A',rx+1.2,2.5,2.8));OBBY.boards.push({c:bc,t:bt})}
-  const cup=makeCopa(GOLD);cup.scale.setScalar(1.6);cup.position.set(OX+113.5,0,0);scene.add(cup);OBBY.cup=cup})();
+    const final=k===4,x0=rx+3.2,x1=rx+(final?17.5:12.2);addPlatAA(x0,x1,-8,8,[mat('#A8703A'),mat('#A8703A'),new THREE.MeshLambertMaterial({map:gridTex('#D9A066','#C98A4B',final?5:3)}),mat('#A8703A'),mat('#A8703A'),mat('#A8703A')]).mg=.45;OBBY.checkpoints.push({x:x0+2.4,z:0});
+    const bc=cv(512,288,()=>{}),bt=tex(bc),board=new THREE.Mesh(new THREE.PlaneGeometry(6.6,3.72),new THREE.MeshBasicMaterial({map:bt,side:THREE.DoubleSide}));
+    board.position.set(rx+2.6,6.3,0);board.rotation.y=-Math.PI/2;scene.add(board);
+    scene.add(mesh(BOX(.25,6.2,.25),'#7A4B2A',rx+2.8,3.1,-2.8),mesh(BOX(.25,6.2,.25),'#7A4B2A',rx+2.8,3.1,2.8));OBBY.boards.push({c:bc,t:bt})}
+  const fx=OX+OB.row0+OB.step*4,cup=makeCopa(GOLD);cup.scale.setScalar(1.6);cup.position.set(fx+9,0,0);scene.add(cup);OBBY.cup=cup;
+  /* a portal on the last deck takes the player back to the start of the course */
+  makePortal(fx+15,0,Math.PI/2,'#E8413A','INÍCIO','voltar',()=>{checkpoint=null;teleport(OX+62.5,0,OX+80,0);camLook=1.7;toast('De volta ao começo! Fale com o Rafa para jogar de novo.',3000)})})();
 /* Up to 20, the board also shows the sum as dots in groups of 5 (taken-away dots are crossed out), so the child can count. */
 function drawBoard(k,text,done,q){const b=OBBY.boards[k],g=b.c.getContext('2d'),dots=q&&Math.max(q.a,q.ans)<=20;g.clearRect(0,0,512,288);g.fillStyle=done?'#22B35E':'#FFFFFF';rr(g,6,6,500,276,30);g.fill();g.lineWidth=10;g.strokeStyle=INK;g.stroke();
   bigText(g,text,256,dots?78:150,460,dots?84:96,done?'#FFFFFF':INK);
@@ -1320,12 +1337,12 @@ function quit3D(silent){if(!CH)return;
   if(CH.type==='order')CH.cubes.forEach(c=>drop(c.m));
   if(CH.type==='obby')resetObby();
   if(CH.type==='kart')leaveKart();
-  clearArena();checkpoint=null;$('#b-fire').hidden=true;hideSure();camLook=1.7;
+  clearArena();checkpoint=null;$('#b-fire').hidden=true;$('#xh').hidden=true;hideSure();camLook=1.7;
   CH=null;mis.hidden=true;if(!silent)toast('Desafio encerrado. Fale com o personagem para jogar de novo!')}
 /* The result sheet opens a moment after the round ends. If the player starts something else first, the round is still scored (quietly). */
 let pendFin=null;
 function flushFin(){if(!pendFin)return;const p=pendFin;clearTimeout(p.t);p.fn(true)}
-function done3D(lost){const c=CH;clearArena();CH=null;mis.hidden=true;checkpoint=null;$('#b-fire').hidden=true;hideSure();camLook=1.7;
+function done3D(lost){const c=CH;clearArena();CH=null;mis.hidden=true;checkpoint=null;$('#b-fire').hidden=true;$('#xh').hidden=true;hideSure();camLook=1.7;
   const fn=silent=>{pendFin=null;finishChallenge(c.st,c.first,c.n,c.coins,c.level,c.mode,lost,silent===true)};
   if(lost)playAnim('sad');else{playAnim('win');toast(`<b>Fim da rodada!</b> 🎉`,2400)}
   pendFin={fn,t:setTimeout(fn,(lost?1900:2700)*TS)}}
@@ -1497,20 +1514,24 @@ function updateThrow(dt){const sh=CH.shot;
     const w=L2W(CH.st,t.hx,t.B);CH.shot={m,t:0,dur:.8,fx:P.x,fy:P.y+2.6,fz:P.z,tx:w.x,tz:w.z,tgt:t};sfx.jump()})}
 
 /* ---- 🎯 SHOOTER ---- */
-function startShoot(st,gen){CH={type:'shoot',st,gen,n:5,idx:0,first:0,coins:0};$('#b-fire').hidden=false;loadShootQ()}
+function startShoot(st,gen){CH={type:'shoot',st,gen,n:5,idx:0,first:0,coins:0};$('#b-fire').hidden=false;$('#xh').hidden=false;loadShootQ()}
 function loadShootQ(){clearArena();beginArena(CH.st);giveTool('blaster');const q=CH.gen(stat(CH.st.id).level);Object.assign(CH,{q,skill:lastSkill,tries:0,locked:false,left:q.items.filter(i=>i.ok).length,balloons:[],shots:[],cool:0});
   const cols=['#E8413A','#2E8BF0','#2DB34A','#8B4CF0','#FF8A1F','#FF5FA2'],spots=[];
   q.items.forEach(it=>{let A,B,g=0;do{A=4+Math.random()*10;B=-9+Math.random()*18;g++}while(g<200&&spots.some(s=>Math.hypot(s[0]-A,s[1]-B)<3.2));spots.push([A,B]);
     const sp=sprite(texOf(pBalloon(pick(cols),it)),2.7,2.7),p=L2W(CH.st,A,B),h=2.8+Math.random()*3;sp.position.set(p.x,h,p.z);scene.add(sp);CHX.sprites.push(sp);CH.balloons.push({sp,it,x:p.x,z:p.z,h,ph:Math.random()*6,alive:true,pop:0})});
-  const w=L2W(CH.st,-2,0),f=L2W(CH.st,9,0);teleport(w.x,w.z,f.x,f.z);shootMission();sayQ(q.text,CH.idx===0?'Gire a câmera para mirar e toque no botão vermelho para atirar.':'')}
-function shootMission(){setMission(`<span class="vt">🎯 ATIRAR</span>${CH.idx+1}/${CH.n} · ${CH.q.text}<small>Faltam ${CH.left}. Gire a câmera (⟲ ⟳) para mirar e toque em 🎯.</small>`)}
+  CH.ret=sprite(texOf(g=>{g.lineWidth=16;g.strokeStyle='#FFC83D';g.beginPath();g.arc(128,128,104,0,7);g.stroke();g.lineWidth=7;g.strokeStyle=INK;g.beginPath();g.arc(128,128,114,0,7);g.stroke();g.beginPath();g.arc(128,128,94,0,7);g.stroke()}),3.5,3.5);
+  CH.ret.material.depthTest=false;CH.ret.renderOrder=6;CH.ret.visible=false;scene.add(CH.ret);CHX.sprites.push(CH.ret);
+  const w=L2W(CH.st,-2,0),f=L2W(CH.st,9,0);teleport(w.x,w.z,f.x,f.z);pitch=.3;camLook=3.2;shootMission();sayQ(q.text,CH.idx===0?'Arraste a tela para colocar a mira em cima do balão e toque no botão vermelho para atirar.':'')}
+/* the balloon under the crosshair (the crosshair sits at 37.5% of the screen height) */
+function aimBalloon(){camera.updateMatrixWorld();camera.matrixWorldInverse.copy(camera.matrixWorld).invert();let best=null,bd=.27;
+  for(const b of CH.balloons){if(!b.alive)continue;tmpV.copy(b.sp.position).project(camera);if(tmpV.z>1)continue;const d=Math.hypot(tmpV.x,(tmpV.y-.25)*.5);if(d<bd){bd=d;best=b}}return best}
+function shootMission(){setMission(`<span class="vt">🎯 ATIRAR</span>${CH.idx+1}/${CH.n} · ${CH.q.text}<small>Faltam ${CH.left}. Arraste a tela (ou ⟲ ⟳) para pôr a mira no balão e toque em 🎯.</small>`)}
 function fire(){if(!CH||CH.type!=='shoot'||paused||CH.cool>0||CH.locked)return;CH.cool=.35;
-  const dx=-Math.sin(yaw),dz=-Math.cos(yaw);let best=null,ba=.55;
-  CH.balloons.forEach(b=>{if(!b.alive)return;const vx=b.x-P.x,vz=b.z-P.z,d=Math.hypot(vx,vz);if(d>34||d<.5)return;const a=Math.acos(clamp((vx*dx+vz*dz)/d,-1,1));if(a<ba){ba=a;best=b}});
+  const dx=-Math.sin(yaw),dz=-Math.cos(yaw),best=aimBalloon();
   if(best)rotY=Math.atan2(best.x-P.x,best.z-P.z);else rotY=Math.atan2(dx,dz);
   const m=mesh(new THREE.SphereGeometry(.22,10,8),'#FFE45C',P.x+Math.sin(rotY)*.9,P.y+1.9,P.z+Math.cos(rotY)*.9,false);scene.add(m);
   CH.shots.push({m,t:best,life:1.4,dx:Math.sin(rotY),dz:Math.cos(rotY)});sfx.shot()}
-function updateShoot(dt){CH.cool-=dt;
+function updateShoot(dt){CH.cool-=dt;const aim=CH.locked?null:aimBalloon();CH.ret.visible=!!aim;if(aim)CH.ret.position.copy(aim.sp.position);$('#xh').classList.toggle('on',!!aim);
   CH.balloons.forEach(b=>{if(b.alive){b.ph+=dt;b.sp.position.set(b.x+Math.sin(b.ph*.7)*.6,b.h+Math.sin(b.ph*1.3)*.35,b.z+Math.cos(b.ph*.5)*.6)}
     else if(b.pop<1){b.pop+=dt*4;const s=2.7*(1+b.pop*.8);b.sp.scale.set(s,s,1);b.sp.material.transparent=true;b.sp.material.opacity=Math.max(0,1-b.pop);if(b.pop>=1)b.sp.visible=false}});
   CH.shots=CH.shots.filter(s=>{s.life-=dt;
@@ -1640,16 +1661,18 @@ function updateSimon(dt){if(CH.phase!=='play'){hideSure();return}showSure('✓ C
 function nextSimon(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadSimonQ()}
 
 /* ---- obby / order / shapes (classic modes) ---- */
-function resetObby(){OBBY.rows.forEach((row,k)=>{row.forEach(p=>{p.active=true;p.used=false;p.correct=false;p.val=null;p.mesh.position.y=-.5;p.mesh.visible=true;p.falling=false;platLabel(p,'?','#FFFFFF')});drawBoard(k,'? + ?',false)})}
+function resetObby(){OBBY.rows.forEach((row,k)=>{row.forEach(p=>{p.active=true;p.used=false;p.correct=false;p.val=null;p.mesh.position.y=-.5;p.mesh.visible=true;p.sign.visible=true;p.falling=false;platLabel(p,'?','#FFFFFF')});drawBoard(k,'? + ?',false)})}
+/* a row shows its sum and its three answers only when the player gets to it */
+function revealObby(k){const q=CH.qs[k];OBBY.rows[k].forEach(p=>platLabel(p,p.val,'#FFFFFF'));drawBoard(k,`${q.a} ${q.op} ${q.b} = ?`,false,q)}
 function startObby(st){const L=stat(st.id).level;resetObby();CH={type:'obby',st,row:0,n:5,first:0,coins:0,tries:0,qs:[]};
-  OBBY.rows.forEach((row,k)=>{const q=genArith(L);CH.qs.push(q);row.forEach((p,j)=>{p.val=q.opts[j];p.correct=q.opts[j]===q.ans;platLabel(p,q.opts[j],'#FFFFFF')});drawBoard(k,`${q.a} ${q.op} ${q.b} = ?`,false,q)});
-  checkpoint={x:OX+62.5,z:0};teleport(OX+62.5,0,OX+80,0);camLook=3.4;obbyMission();toast('Pule (⬆) na plataforma com a resposta certa!',4500)}
+  OBBY.rows.forEach(row=>{const q=genArith(L);CH.qs.push(q);row.forEach((p,j)=>{p.val=q.opts[j];p.correct=q.opts[j]===q.ans})});revealObby(0);
+  checkpoint={x:OX+62.5,z:0};teleport(OX+62.5,0,OX+80,0);camLook=4;obbyMission();toast('Olhe a conta na placa e pule (⬆) na plataforma com a resposta certa!',4500)}
 function obbyMission(){const q=CH.qs[CH.row];setMission(`<span class="vt">⬆ PULAR</span>Conta ${CH.row+1} de 5: pule na resposta de <b>${q.a} ${q.op} ${q.b}</b>`);speak(`Pule na resposta de ${q.a} ${q.op} ${q.b}`)}
 function updateObby(){if(!onGround||!standing||standing.row==null||standing.used||standing.row!==CH.row)return;const p=standing,q=CH.qs[CH.row];p.used=true;
   if(p.correct){const first=CH.tries===0,gain=first?2:1;if(CH.tries<2)record(CH.st.id,first,q.skill);if(first)CH.first++;CH.coins+=gain;addCoins(gain);
-    platLabel(p,p.val,'#7CE3A0',true);drawBoard(CH.row,`${q.a} ${q.op} ${q.b} = ${q.ans}`,true,q);sfx.ok();confetti(14);checkpoint=OBBY.checkpoints[CH.row];CH.row++;CH.tries=0;
-    playAnim('cheer');if(CH.row>=5){setMission('🏆 Você chegou à taça!');done3D()}else{toast(`${pick(CHEERS)} +${gain} 🪙`,2000);setTimeout(()=>{if(CH&&CH.type==='obby')obbyMission()},900)}}
-  else{CH.tries++;if(CH.tries===2)record(CH.st.id,false,q.skill);p.active=false;p.falling=true;platLabel(p,p.val,'#FF8A80',false);sfx.bad();toast(`Ops! ${q.a} ${q.op} ${q.b} não dá ${p.val}. Tente outra plataforma!`,4500,true)}}
+    platLabel(p,p.val,'#7CE3A0',true);drawBoard(CH.row,`${q.a} ${q.op} ${q.b} = ${q.ans}`,true,q);sfx.ok();confetti(14);checkpoint=OBBY.checkpoints[CH.row];CH.row++;CH.tries=0;if(CH.row<5)revealObby(CH.row);
+    playAnim('cheer');if(CH.row>=5){setMission('🏆 Você chegou à taça! O portal vermelho leva de volta ao começo.');done3D()}else{toast(`${pick(CHEERS)} +${gain} 🪙`,2000);setTimeout(()=>{if(CH&&CH.type==='obby')obbyMission()},900)}}
+  else{CH.tries++;if(CH.tries===2)record(CH.st.id,false,q.skill);p.active=false;p.falling=true;p.sign.visible=false;platLabel(p,p.val,'#FF8A80',false);sfx.bad();toast(`Ops! ${q.a} ${q.op} ${q.b} não dá ${p.val}. Tente outra plataforma!`,4500,true)}}
 const numTexCache={};
 function numTex(n,col){const k=n+col;return numTexCache[k]||(numTexCache[k]=tex(cv(128,128,g=>{g.fillStyle=col;g.fillRect(0,0,128,128);g.lineWidth=10;g.strokeStyle=INK;g.strokeRect(5,5,118,118);
   fitText(g,String(n),104,78);g.textAlign='center';g.textBaseline='middle';g.lineWidth=8;g.strokeText(String(n),64,70);g.fillStyle='#fff';g.fillText(String(n),64,70)})))}
@@ -1685,7 +1708,7 @@ function updateShapes(){const c=CH,t=shapeAt(!!SHAPE_INFO[c.qs[c.idx].n].flat);
     playAnim('cheer');toast(`Isso! ${I.g==='a'?'Essa é a':'Esse é o'} <b>${t.n.toUpperCase()}</b> +${gain} 🪙`,2400);t.pulse=1;c.idx++;if(c.idx>=c.n)done3D();else setTimeout(()=>{if(CH===c)shapesMission()},1200)}
   else{c.tries++;if(c.tries===2)record(c.st.id,false,q.skill);sfx.bad();playAnim('sad');toast(`${I.g==='a'?'Essa é a':'Esse é o'} <b>${t.n.toUpperCase()}</b>. Procure outra forma!`,4200,true)}}
 /* ---- 🏎️ KART: a straight three-lane track over the sea; each gate has three answers and the kart must go through the right one ---- */
-const KART={gap:64,lanes:[-4,0,4],first:46};
+const KART={gap:96,lanes:[-4,0,4],first:56};
 /* one question for a gate: {text, labels[3], ans, explain, skill}. Sums come from genArith; the other stations reuse their lava-floor questions. */
 function kartQ(gen,L){
   if(!gen){const q=genArith(L);return {text:`Passe pelo portão com o resultado de <b>${q.a} ${q.op} ${q.b}</b>`,labels:q.opts.map(String),ans:q.opts.indexOf(q.ans),explain:`${q.a} ${q.op} ${q.b} = ${q.ans}`,skill:q.skill}}
@@ -1693,36 +1716,43 @@ function kartQ(gen,L){
   let text=f.text.replace(/^Pise no /,'Passe pelo portão do ').replace(/^Pise em um /,'Passe pelo portão de um ');if(text===f.text)text='Passe pelo portão certo. '+f.text;
   return {text,labels,ans:labels.indexOf(ok),explain:f.explain||'',skill}}
 function kartSign(label,state){return g=>{g.fillStyle=state==null?'#FFFFFF':state?'#7CE3A0':'#FF8A80';rr(g,10,40,236,176,34);g.fill();g.lineWidth=12;g.strokeStyle=INK;g.stroke();bigText(g,label,128,134,200,110);if(state!=null)g.drawImage(markTex(state).image,170,46,70,70)}}
-function startKart(st,gen){const L=stat(st.id).level,G=(CH={type:'kart',st,gen,n:5,idx:0,first:0,coins:0,phase:'ready',v:0,lat:0,boost:0,spin:0},beginArena(st));
-  const x0=-60,z0=220,len=KART.first+5*KART.gap+34,C=CH;C.x0=st.c.x+x0;C.z0=st.c.z+z0;C.endX=C.x0+len-12;
+function startKart(st,gen){const L=stat(st.id).level,G=(CH={type:'kart',st,gen,n:5,idx:0,first:0,coins:0,phase:'ready',v:0,lat:0,boost:0,spin:0,streak:0,loot:[]},beginArena(st));
+  const x0=-60,z0=220,len=KART.first+4*KART.gap+66,C=CH;C.x0=st.c.x+x0;C.z0=st.c.z+z0;C.endX=C.x0+len-12;
   const roadT=texOf(g=>{g.fillStyle='#5B6475';g.fillRect(0,0,128,192);g.fillStyle='#FFFFFF';[64,128].forEach(y=>g.fillRect(16,y-4,64,8));g.fillStyle='#FFC83D';g.fillRect(0,0,128,10);g.fillRect(0,182,128,10)},128,192);roadT.wrapS=THREE.RepeatWrapping;roadT.repeat.set(len/8,1);
   const side=mat('#3F4756');G.add(mesh(BOX(len,.4,12.6),[side,side,new THREE.MeshLambertMaterial({map:roadT}),side,side,side],x0+len/2,.1,z0));
   const kerbT=texOf(g=>{g.fillStyle='#E8413A';g.fillRect(0,0,64,64);g.fillStyle='#FFFFFF';g.fillRect(32,0,32,64)},64,64);kerbT.wrapS=THREE.RepeatWrapping;kerbT.repeat.set(len/4,1);
   const kerb=new THREE.MeshLambertMaterial({map:kerbT});[-6.7,6.7].forEach(z=>G.add(mesh(BOX(len,.7,.8),kerb,x0+len/2,.35,z0+z)));
-  for(let x=10,j=0;x<len;x+=16,j++)[-8.2,8.2].forEach((z,k)=>{G.add(mesh(new THREE.CylinderGeometry(.5,.6,.9,10),(j+k)%2?'#FF8A1F':'#FFFFFF',x0+x,-.9,z0+z,false),mesh(BOX(.12,2.4,.12),'#FFFFFF',x0+x,.6,z0+z,false),mesh(BOX(.06,.6,.9),(j+k)%2?'#E8413A':'#2E8BF0',x0+x,1.5,z0+z+.45,false))});
+  for(let x=10,j=0;x<len;x+=26,j++)[-8.2,8.2].forEach((z,k)=>{G.add(mesh(new THREE.CylinderGeometry(.5,.6,.9,10),(j+k)%2?'#FF8A1F':'#FFFFFF',x0+x,-.9,z0+z,false),mesh(BOX(.12,2.4,.12),'#FFFFFF',x0+x,.6,z0+z,false),mesh(BOX(.06,.6,.9),(j+k)%2?'#E8413A':'#2E8BF0',x0+x,1.5,z0+z+.45,false))});
   const arch=(x,col,label)=>{G.add(mesh(BOX(.5,5.6,.5),col,x,2.8,z0-6.6),mesh(BOX(.5,5.6,.5),col,x,2.8,z0+6.6),mesh(BOX(.7,1.1,13.7),col,x,5.9,z0));if(label){const sp=sprite(texOf(g=>{g.fillStyle=INK;rr(g,4,70,504,116,40);g.fill();bigText(g,label,256,130,470,80,'#FFC83D')},512,256),9,4.5);sp.position.set(x-.5,6,z0);G.add(sp)}};
   arch(x0+14,'#22B35E','LARGADA');arch(x0+len-12,'#E8413A','CHEGADA');
   C.qs=[];C.gates=range(0,4).map(k=>{const q=kartQ(gen,L),x=x0+KART.first+k*KART.gap;C.qs.push(q);G.add(mesh(BOX(.4,4.6,.4),'#FFFFFF',x,2.3,z0-6.5),mesh(BOX(.4,4.6,.4),'#FFFFFF',x,2.3,z0+6.5),mesh(BOX(.5,.5,13.4),'#FFFFFF',x,4.85,z0));
     [-2,2].forEach(z=>G.add(mesh(BOX(.25,2.6,.25),'#FFC83D',x,1.3,z0+z)));
     const signs=q.labels.map((l,i)=>{const c=cv(256,256,kartSign(l,null)),t=tex(c);CHX.texs.push(t);const sp=sprite(t,2.9,2.9);sp.position.set(x-.3,3.1,z0+KART.lanes[i]);G.add(sp);return {c,t}});return {x:st.c.x+x,signs}});
+  /* coins to pick up in the long stretch between gates (never close to a gate, so they do not hint at the answer) */
+  const coinG=new THREE.CylinderGeometry(.55,.55,.14,16),coinM=new THREE.MeshLambertMaterial({color:'#FFC83D',emissive:'#5a3d00'});
+  const coin=(x,lane)=>{const m=new THREE.Group(),d=new THREE.Mesh(coinG,coinM);d.rotation.z=Math.PI/2;m.add(d);m.position.set(x,1.2,z0+KART.lanes[lane]);G.add(m);C.loot.push({m,x:st.c.x+x,lat:KART.lanes[lane]})};
+  for(let k=0;k<5;k++)(k?[64,52,40]:[32,24]).forEach(d=>coin(x0+KART.first+k*KART.gap-d,rnd(0,2)));[0,1,2].forEach(l=>coin(x0+KART.first+4*KART.gap+28,l));
   /* the kart itself rides with the player */
   const k=new THREE.Group(),red=mat('#E8413A');k.add(mesh(BOX(1.5,.5,2.5),red,0,.75,.1),mesh(BOX(1.1,.35,.8),red,0,.7,1.6),mesh(BOX(1.7,.12,.5),'#1B2232',0,1.25,-1.15),mesh(BOX(.12,.5,.12),'#1B2232',-.6,1,-1.15),mesh(BOX(.12,.5,.12),'#1B2232',.6,1,-1.15),mesh(BOX(1.3,.5,.2),'#FFC83D',0,1,-1.05));
   [[-.9,1.15],[.9,1.15],[-.9,-.85],[.9,-.85]].forEach(([x,z])=>{const w=mesh(new THREE.CylinderGeometry(.36,.36,.34,14),'#1B2232',x,.61,z);w.rotation.z=Math.PI/2;k.add(w)});
   PL.g.add(k);C.kart=k;dropTool();P.set(C.x0+8,.3,C.z0);vy=0;yaw=-Math.PI/2;rotY=Math.PI/2;pitch=.3;camLook=2.6;camera.position.set(P.x-10,5,P.z);kartMission();
-  const q=C.qs[0];toast('Arraste para os lados para trocar de faixa. Puxe para trás para frear e pensar.',5200);sayQ(q.text,'Arraste para os lados para trocar de faixa. Puxe para trás para frear.',()=>{if(CH===C&&C.phase==='ready'){C.phase='go';kartMission();sfx.portal();toast('<b>VAI!</b> 🏁',1400)}})}
-function kartMission(){const C=CH,q=C.qs[C.idx];setMission(`<span class="vt">🏎️ KART</span>${C.idx+1}/${C.n} · ${q.text}<small>${C.phase==='ready'?'🗣️ Escute a pergunta... já vai dar a largada':'Arraste para os lados para escolher a faixa. Para trás freia.'}</small>`)}
+  const q=C.qs[0];toast('Para os lados troca de faixa. Para a frente acelera. Para trás freia para pensar.',5200);sayQ(q.text,'Para os lados troca de faixa. Para a frente acelera. Para trás freia.',()=>{if(CH===C&&C.phase==='ready'){C.phase='go';kartMission();sfx.portal();toast('<b>VAI!</b> 🏁',1400)}})}
+function kartMission(){const C=CH,q=C.qs[C.idx];setMission(`<span class="vt">🏎️ KART</span>${C.idx+1}/${C.n} · ${q.text}<small>${C.phase==='ready'?'🗣️ Escute a pergunta... já vai dar a largada':'Lados: troca de faixa. Para a frente: acelera. Para trás: freia para pensar.'}</small>`)}
 function leaveKart(){const C=CH;if(C.kart){drop(C.kart);C.kart=null}const w=L2W(C.st,-3,0);P.set(w.x,0,w.z);vy=0;yaw=-Math.PI/2;rotY=Math.PI/2;pitch=.38;camLook=1.7;camera.position.set(P.x-10,P.y+5,P.z)}
+/* Speed: forward on the stick accelerates, back brakes to think. Each right gate in a row adds turbo (up to 3 levels); a wrong gate takes it away. */
 function kartDrive(dt,jx,jy){const C=CH;yaw=-Math.PI/2;
-  if(C.phase==='go'&&!paused){const want=jy<-.3?12.5:jy>.3?4.5:8.5;C.v+=(want-C.v)*Math.min(1,dt*2.2);if(C.boost>0)C.boost-=dt;if(C.spin>0)C.spin-=dt;
-    P.x+=(C.v+(C.boost>0?3:0))*(C.spin>0?.45:1)*dt;C.lat=clamp(C.lat+jx*10*dt,-4.7,4.7);
+  if(C.phase==='go'&&!paused){const turbo=Math.min(3,C.streak)*2.2,want=jy<-.3?16+turbo:jy>.3?5:10.5+turbo;C.v+=(want-C.v)*Math.min(1,dt*(want>C.v?3.4:4.2));if(C.boost>0)C.boost-=dt;if(C.spin>0)C.spin-=dt;
+    P.x+=(C.v+(C.boost>0?4:0))*(C.spin>0?.45:1)*dt;C.lat=clamp(C.lat+jx*(9+C.v*.25)*dt,-4.7,4.7);
+    for(const o of C.loot){if(o.m.visible){o.m.rotation.y+=dt*4;if(Math.abs(P.x-o.x)<1.3&&Math.abs(C.lat-o.lat)<1.7){o.m.visible=false;C.coins++;addCoins(1);sfx.coin()}}}
+    if(C.streak>0&&(C.fxT=(C.fxT||0)-dt)<=0){C.fxT=.05;spawnFx('ember',P.x-1.5,.9,P.z+(Math.random()-.5)*.8,-3-Math.random()*3,.6+Math.random(),(Math.random()-.5)*1.5,.45,.5+C.streak*.12,0,0)}
     const g=C.gates[C.idx];if(g&&P.x>=g.x)kartGate(clamp(Math.round(C.lat/4)+1,0,2));
     if(P.x>=C.endX){C.phase='end';leaveKart();return done3D()}}
   P.z=C.z0+C.lat;P.y=.3;rotY=Math.PI/2-jx*.28+(C.spin>0?C.spin*14:0);PL.g.position.set(P.x,P.y-.25,P.z);PL.g.rotation.y=rotY;
   PL.legL.rotation.x=PL.legR.rotation.x=-1.5;PL.armL.rotation.x=PL.armR.rotation.x=-1.15;applyAnim(dt);PL.g.position.y=P.y-.25}
 function kartGate(lane){const C=CH,q=C.qs[C.idx],g=C.gates[C.idx],ok=lane===q.ans;record(C.st.id,ok,q.skill);
   g.signs.forEach((s,i)=>{if(i===q.ans||i===lane){kartSign(q.labels[i],i===q.ans)(s.c.getContext('2d'));s.t.needsUpdate=true}});
-  if(ok){C.first++;C.coins+=2;addCoins(2);C.boost=1.6;sfx.ok();confetti(10);toast(`<b>${pick(CHEERS)}</b> +2 🪙`,1800)}
-  else{C.spin=.9;sfx.dizzy();toast(`Era o portão <b>${q.labels[q.ans]}</b>. ${q.explain}`,4200,true)}
+  if(ok){C.first++;C.coins+=2;addCoins(2);C.boost=1.6;C.streak++;sfx.ok();confetti(10);toast(`<b>${pick(CHEERS)}</b> +2 🪙${C.streak>1?` · TURBO x${Math.min(3,C.streak)} 🔥`:''}`,1800)}
+  else{C.spin=.9;C.streak=0;sfx.dizzy();toast(`Era o portão <b>${q.labels[q.ans]}</b>. ${q.explain}`,4200,true)}
   C.idx++;if(C.idx<C.n){kartMission();if(ok)speak(plain(C.qs[C.idx].text));else later(()=>speak(plain(C.qs[C.idx].text)),2600)}else setMission('<span class="vt">🏎️ KART</span>Agora é só cruzar a CHEGADA! 🏁')}
 function update3D(dt){if(!CH||paused)return;const t=CH.type;
   if(t==='obby')updateObby();else if(t==='order')updateOrder(dt);else if(t==='shapes')updateShapes();else if(t==='act')updateAct(dt);
@@ -1853,7 +1883,7 @@ function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math
   updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();breakCheck(dt);renderer.render(scene,camera)}
 function boot(){if(S.lite)setQuality(0);resize();buildPlayer();hud();STATIONS.forEach(updateSign);updateHall();camera.position.set(P.x,P.y+5,P.z+10);requestAnimationFrame(tick);if(!S.tut)openTut()}
 window.__ilhaDebug={buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
-  step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
+  aim:()=>CH&&CH.type==='shoot'?aimBalloon():null,set pitch(v){pitch=v},step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateCam(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
 const fontsReady=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('400 20px Andika')]):Promise.resolve();
 Promise.race([fontsReady,new Promise(r=>setTimeout(r,1800))]).then(()=>{OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));boot()}).catch(boot);
 })();
