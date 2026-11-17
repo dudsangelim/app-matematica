@@ -55,6 +55,18 @@ input{user-select:text;-webkit-user-select:text}
 #mission b{color:var(--red)}
 #mission .vt{display:inline-block;background:var(--ink);color:#fff;border-radius:8px;padding:1px 8px;margin-right:4px;font-size:15px;vertical-align:2px}
 #mission small{display:block;font-weight:500;font-size:14px;color:var(--muted)}
+#m-text{cursor:pointer}
+/* folded: only the action tag, the question counter and, in timed games, the clock and hearts stay on screen */
+#mission.min{padding:3px 3px 3px 8px;gap:5px;border-width:3px;border-radius:12px;box-shadow:0 3px 0 var(--ink)}
+#mission.min #m-text{font-size:0;line-height:0;display:flex;align-items:center;gap:6px;white-space:nowrap}
+#mission.min #m-text>*{display:none}
+#mission.min #m-text .vt{display:inline-block;font-size:13px;line-height:1.4;margin:0;vertical-align:0}
+#mission.min #m-text .cnt{display:inline;font-size:15px;line-height:1.4}
+#mission.min #m-text small.live{display:block;font-size:14px;line-height:1.4;color:var(--ink);font-weight:600}
+#mission .rs{display:none}
+#mission.min .rd{display:none}
+#mission.min .rs{display:inline}
+#mission.min .mb{width:38px;height:38px;font-size:16px;border-width:2px;border-radius:9px}
 #mission .mb{width:40px;height:40px;flex:none;border-radius:10px;border:3px solid var(--ink);background:var(--gold);display:grid;place-items:center;padding:0;font-size:18px}
 #mission .mb.q{background:#fff}
 .hud-br{position:fixed;z-index:5;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:flex-end;gap:12px}
@@ -170,7 +182,7 @@ select{font-size:17px;padding:8px;border:3px solid var(--ink);border-radius:10px
   <button class="hbtn" id="b-sound" aria-label="Efeitos de som">🔊</button>
   <button class="hbtn" id="b-menu" aria-label="Menu">☰</button>
 </header>
-<div id="mission" hidden><span id="m-text" aria-live="polite"></span><button class="mb q" id="m-spk" aria-label="Ouvir">🗣️</button><button class="mb" id="m-quit" aria-label="Sair do desafio">✕</button></div>
+<div id="mission" hidden><span id="m-text" aria-live="polite"></span><button class="mb q" id="m-min" aria-label="Encolher as instruções" aria-expanded="true">▴</button><button class="mb q" id="m-spk" aria-label="Ouvir">🗣️</button><button class="mb" id="m-quit" aria-label="Sair do desafio">✕</button></div>
 <div id="where">Cidade dos Números</div>
 <div class="hud-br">
   <button id="b-act" hidden></button>
@@ -211,7 +223,7 @@ if(!PF.ids.includes(PF.cur))PF.cur=PF.ids[0];
 const keyOf=id=>id?KEY0+'-p'+id:KEY0,KEY=keyOf(PF.cur);
 function savePF(){try{localStorage.setItem(PKEY,JSON.stringify(PF))}catch(e){}}
 function readSave(id){try{return JSON.parse(localStorage.getItem(keyOf(id)))}catch(e){return null}}
-const DEF={name:'',coins:0,stars:0,sound:true,music:true,voice:true,caps:false,breakMin:0,tut:false,look:{skin:'s2',hair:'castanho',shirt:'azul',pants:'jeans',hat:'nenhum',pet:'nenhum'},lite:false,owned:[],st:{},trophies:{},champ:false,sk:{},wk:{}};
+const DEF={name:'',coins:0,stars:0,sound:true,music:true,voice:true,caps:false,breakMin:0,tut:false,look:{skin:'s2',hair:'castanho',shirt:'azul',pants:'jeans',hat:'nenhum',pet:'nenhum'},lite:false,misMin:false,owned:[],st:{},trophies:{},champ:false,sk:{},wk:{}};
 const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 function normalize(raw){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),isObj(raw)?raw:{});s.look=Object.assign({},DEF.look,isObj(s.look)?s.look:{});
   ['st','trophies','sk','wk'].forEach(k=>{if(!isObj(s[k]))s[k]={}});if(!Array.isArray(s.owned))s.owned=[];s.name=String(s.name||'').slice(0,14);s.coins=Math.max(0,Math.round(+s.coins)||0);s.stars=Math.max(0,Math.round(+s.stars)||0);s.breakMin=[0,15,20,30,45].includes(+s.breakMin)?+s.breakMin:0;
@@ -569,7 +581,7 @@ function genN100(L){
   if(t==='viz'){const x=rnd(10,M-1),m=pick(['depois','antes','entre']),ans=m==='depois'?x+1:m==='antes'?x-1:x;
     const q=numJump(ans,[m==='entre'?x+2:x,ans+1,ans-1,ans+10],0,100);
     return Object.assign(q,{text:say('jump','o',m==='entre'?`número que fica <b>ENTRE</b> ${x-1} e ${x+1}`:`número que vem <b>${m.toUpperCase()}</b> do ${x}`),board:bBig(m==='entre'?`${x-1}  ?  ${x+1}`:m==='antes'?`? ➜ ${x}`:`${x} ➜ ?`),hint:m==='antes'?'ANTES é um a menos.':m==='depois'?'DEPOIS é um a mais.':'O do meio é o que fica entre.'})}
-  if(t==='fam'){const d=rnd(1,Math.floor(M/10)),ins=sample(range(d*10,d*10+9),3),outs=sample(range(1,M).filter(v=>Math.floor(v/10)!==d),3);
+  if(t==='fam'){const d=rnd(1,Math.floor(M/10)),ins=sample(range(d*10,d*10+9),3),outs=sample(range(10,M).filter(v=>Math.floor(v/10)!==d),3);
     const all=shuffle([...ins,...outs]),sol=all.map((v,i)=>Math.floor(v/10)===d?i:-1).filter(i=>i>=0);
     return {verb:'paint',multi:true,layout:'grid',text:`PINTE os números de <b>${d*10} até ${d*10+9}</b>`,opts:all.map(v=>({pic:pNum(v)})),check:s=>setEq(s,sol),sol,hint:`Olhe o primeiro algarismo. Ele precisa ser ${d}.`}}
   if(t==='maior'){const a=rnd(1,Math.floor(M/10)),b=rnd(1,9),nums=new Set([a*10+b]);if(b*10+a<=M&&b!==a)nums.add(b*10+a);
@@ -1108,7 +1120,7 @@ $('#b-fire').addEventListener('pointerdown',e=>{e.preventDefault();fire()});
 [['#b-rl',1],['#b-rr',-1]].forEach(([id,d])=>{const b=$(id);
   b.addEventListener('pointerdown',e=>{e.preventDefault();camRot=d;b.classList.add('on');try{b.setPointerCapture(e.pointerId)}catch(_){}});
   const up=()=>{camRot=0;b.classList.remove('on')};b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up)});
-addEventListener('keydown',e=>{if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)||e.metaKey||e.ctrlKey||e.altKey)return;const k=e.key.toLowerCase();keys[k]=true;if(e.key===' '){input.jump=true;e.preventDefault()}if(k==='e'&&!paused){if(sureFn)sure();else if(near)act()}if(k==='f')fire()});
+addEventListener('keydown',e=>{if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)||e.metaKey||e.ctrlKey||e.altKey)return;const k=e.key.toLowerCase();keys[k]=true;if(e.key===' '){input.jump=true;e.preventDefault()}if(k==='e'&&!paused){if(sureFn)sure();else if(near)act()}if(k==='f')fire();if(k==='m'&&!paused&&!mis.hidden)toggleMission()});
 /* a key let go while Ctrl, Alt or Cmd is down may never report it: releasing a modifier clears every held key */
 addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(/^(meta|control|alt|os)$/.test(k)){for(const x in keys)keys[x]=false}else keys[k]=false});
 
@@ -1199,7 +1211,8 @@ function friendTalk(f){if(f.cool>0){openSheet(`<div class="quiz"><p><b>${f.name}
   $('#q-spk').onclick=()=>speak(plain(text),null,true);speak(plain(text));
   $$('.quiz .btn.big').forEach(b=>b.onclick=()=>{if(+b.dataset.v===q.ans){sfx.ok();confetti(14);playAnim('cheer');speak('Isso! Valeu!');f.cool=45;addCoins(2);
       $('#sheet').innerHTML=`<div class="quiz"><p><b>${f.name}:</b> Isso! ${q.a} ${q.op} ${q.b} = ${q.ans}. Valeu! Toma <b>2 🪙</b>.</p><button class="btn go" id="q-x">De nada!</button></div>`;$('#q-x').onclick=()=>closeSheet()}
-    else{tries++;sfx.bad();shake(b);b.disabled=true;$('#q-fb').textContent=tries>=2?`Era ${q.ans}: ${q.a} ${q.op} ${q.b} = ${q.ans}.`:tip;if(tries>=2){f.cool=20;$$('.quiz .btn.big').forEach(x=>x.disabled=true)}}})}
+    else{tries++;sfx.bad();shake(b);b.disabled=true;if(tries<2){$('#q-fb').textContent=tip;return}
+      f.cool=20;$('#sheet').innerHTML=`<div class="quiz"><p><b>${f.name}:</b> Era <b>${q.ans}</b>: ${q.a} ${q.op} ${q.b} = ${q.ans}. Depois eu trago outra charada!</p><button class="btn go" id="q-x">Tudo bem!</button></div>`;$('#q-x').onclick=()=>closeSheet()}})}
 
 /* ================= SCORING + TROPHIES ================= */
 function checkTrophies(st,lvl,stars){const s=stat(st.id),old=S.trophies[st.id]||0;let t=old;if(stars>=1){t=Math.max(t,1);if(s.level>=2)t=Math.max(t,2);if(lvl===3&&stars===3)t=3}
@@ -1227,8 +1240,16 @@ function finishChallenge(st,first,n,coins,lvl,mode,lost,silent){
 /* ================= CHALLENGE FRAMEWORK ================= */
 let CH=null;const mis=$('#mission');
 const CHEERS=['Isso aí!','Mandou bem!','Show de bola!','Acertou!','Muito bem!','Que fera!'];
-function setMission(html){mis.hidden=false;$('#m-text').innerHTML=html}
-$('#m-spk').onclick=()=>{const d=document.createElement('div');d.innerHTML=$('#m-text').innerHTML;d.querySelectorAll('.vt').forEach(x=>x.remove());speak(d.textContent.replace(/^\s*\d+\/\d+\s*·?/,''),null,true)};
+/* The mission panel can be folded to a small chip (button ▴, a tap on the text, or key M) so it does not cover the scene.
+   While folded, each new question opens it for a few seconds and folds it again. */
+let misKey='',misPeek=null;
+function misFold(on){mis.classList.toggle('min',on);const b=$('#m-min');b.textContent=on?'▾':'▴';b.setAttribute('aria-expanded',String(!on));b.setAttribute('aria-label',on?'Mostrar as instruções':'Encolher as instruções')}
+function toggleMission(){clearTimeout(misPeek);const fold=!mis.classList.contains('min');S.misMin=fold;save();misFold(fold);sfx.tap()}
+function setMission(html){mis.hidden=false;html=html.replace(/(<\/span>)(\d+\/\d+)/,'$1<span class="cnt">$2</span>');$('#m-text').innerHTML=html;
+  const key=html.replace(/<small[\s\S]*?<\/small>/g,'');if(key===misKey)return;misKey=key;
+  if(S.misMin){clearTimeout(misPeek);misFold(false);misPeek=setTimeout(()=>{if(S.misMin)misFold(true)},6000)}}
+$('#m-min').onclick=toggleMission;$('#m-text').onclick=toggleMission;if(S.misMin)misFold(true);
+$('#m-spk').onclick=()=>{const d=document.createElement('div');d.innerHTML=$('#m-text').innerHTML;d.querySelectorAll('.vt,.cnt').forEach(x=>x.remove());speak(d.textContent.replace(/^\s*·/,''),null,true)};
 function sayQ(text,tip,cb){speak(plain(text)+(tip?'. '+plain(tip):''),cb)}
 $('#m-quit').onclick=()=>{sfx.tap();quit3D(false)};
 function quit3D(silent){if(!CH)return;
@@ -1242,7 +1263,7 @@ function flushFin(){if(!pendFin)return;const p=pendFin;clearTimeout(p.t);p.fn(tr
 function done3D(lost){const c=CH;clearArena();CH=null;mis.hidden=true;checkpoint=null;$('#b-fire').hidden=true;hideSure();camLook=1.7;
   const fn=silent=>{pendFin=null;finishChallenge(c.st,c.first,c.n,c.coins,c.level,c.mode,lost,silent===true)};
   if(lost)playAnim('sad');else{playAnim('win');toast(`<b>Fim da rodada!</b> 🎉`,2400)}
-  pendFin={fn,t:setTimeout(fn,lost?1900:2700)}}
+  pendFin={fn,t:setTimeout(fn,(lost?1900:2700)*TS)}}
 const sureB=$('#b-sure');let sureFn=null;
 function showSure(label,fn){sureFn=fn;if(sureB.hidden||sureB.textContent!==label){sureB.textContent=label;sureB.hidden=false}}
 function hideSure(){sureFn=null;if(!sureB.hidden)sureB.hidden=true}
@@ -1250,9 +1271,11 @@ function sure(){if(!sureFn||paused)return;sfx.tap();const f=sureFn;hideSure();f(
 sureB.onclick=sure;
 function teleport(x,z,lookX,lookZ){P.set(x,0,z);vy=0;pitch=.38;camLook=1.7;PL.g.position.copy(P);if(lookX!=null){yaw=Math.atan2(x-lookX,z-lookZ);rotY=Math.atan2(lookX-x,lookZ-z)}
   camera.position.set(P.x+Math.sin(yaw)*10,P.y+5,P.z+Math.cos(yaw)*10)}
-function later(fn,ms){const c=CH;setTimeout(()=>{if(CH===c)fn()},ms)}
+let TS=1;
+function later(fn,ms){const c=CH;setTimeout(()=>{if(CH===c)fn()},ms*TS)}
 const isNear=(p,r)=>Math.hypot(P.x-p.x,P.z-p.z)<r;
-function edge(key,inside,fn){if(inside&&!CH.lastPad[key])fn();CH.lastPad[key]=inside}
+/* A floor pad fires when the player steps ONTO it: it must first have been seen off the pad. Starting a question on top of a pad does nothing. */
+function edge(key,inside,fn){const was=CH.lastPad[key];CH.lastPad[key]=inside;if(inside&&was===false)fn()}
 function beginArena(st){const G=new THREE.Group();G.position.set(st.c.x,0,st.c.z);G.rotation.y=-st.ang;scene.add(G);CHX={st,texs:[],colls:[],plats:[],sprites:[],objs:[]};CH.G=G;CH.lastPad={};return G}
 function clearArena(){if(!CH)return;if(CH.G){drop(CH.G);CH.G=null}
   if(CHX){CHX.sprites.forEach(drop);CHX.objs.forEach(drop);CHX.texs.forEach(t=>t.dispose());
@@ -1262,7 +1285,9 @@ function addMark(t,ok){if(!CH||!CH.G||t.mark===ok)return;drop(t.markS);const m=n
 function addPic(G,draw,A,y,B,s){const sp=sprite(texOf(draw),s,s);sp.position.set(A,y,B);G.add(sp);return sp}
 function platAt(st,A,B,ha,hb,top,solid,tgt,mg){const w=L2W(st,A,B),p={cx:w.x,cz:w.z,ux:st.u.x,uz:st.u.z,vx:st.v.x,vz:st.v.z,ha,hb,top,solid,active:true,tgt,mg};PLATS.push(p);CHX.plats.push(p);return p}
 function padSprite(G,text,A,B,col){G.add(mesh(new THREE.CylinderGeometry(1.3,1.3,.1,28),col,A,.05,B));const s=sprite(texOf(g=>{g.fillStyle=col;rr(g,8,70,240,116,30);g.fill();g.lineWidth=8;g.strokeStyle=INK;g.stroke();bigText(g,text,128,130,220,52,'#fff')}),2.4,2.4);s.position.set(A,1.9,B);G.add(s)}
-function spawnPickups(defs,area,pre){const st=CHX.st,out=[],spots=[];defs.forEach(d=>{let A,B,g=0;do{A=area[0]+Math.random()*(area[1]-area[0]);B=area[2]+Math.random()*(area[3]-area[2]);g++}while(g<400&&spots.some(s=>Math.hypot(s[0]-A,s[1]-B)<(g<200?2.1:1.6)));spots.push([A,B]);
+/* Things to pick up are spread over an area, apart from each other and (keep = [A,B,radius]) away from the basket,
+   so that walking up to the basket never grabs a stray one and drops it in. */
+function spawnPickups(defs,area,keep){const st=CHX.st,out=[],spots=[];defs.forEach(d=>{let A,B,g=0;do{A=area[0]+Math.random()*(area[1]-area[0]);B=area[2]+Math.random()*(area[3]-area[2]);g++}while(g<400&&((keep&&Math.hypot(A-keep[0],B-keep[1])<keep[2])||spots.some(s=>Math.hypot(s[0]-A,s[1]-B)<(g<200?2.1:1.6))));spots.push([A,B]);
   const s=d.s||1.8,sp=sprite(texOf(d.pic||pEmo(d.e)),s,s),p=L2W(st,A,B);sp.position.set(p.x,1,p.z);scene.add(sp);CHX.sprites.push(sp);out.push({sp,v:d.v,x:p.x,z:p.z,state:'ground',ph:Math.random()*6,s})});return out}
 function updatePickups(items,held,dt,max){items.forEach(o=>{if(o.state==='ground'){o.ph+=dt;o.sp.position.y=1+Math.sin(o.ph*2)*.15}});held.forEach((o,k)=>o.sp.position.set(P.x,P.y+3.1+k*.7,P.z));
   if(CH.locked)return;for(const o of items){if(o.state==='ground'&&held.length<(max||12)&&Math.hypot(P.x-o.x,P.z-o.z)<1.15&&P.y<2.5){o.state='held';o.sp.scale.set(1,1,1);held.push(o);sfx.pop()}}}
@@ -1282,7 +1307,7 @@ function layoutPos(q){const n=q.opts.length,ps=[];
   if(q.layout==='grid'){const cols=Math.ceil(n/2);for(let i=0;i<n;i++){const r=i<cols?0:1,c=r?i-cols:i,cc=r?n-cols:cols;ps.push([r?5:.6,(c-(cc-1)/2)*4.4])}return ps}
   const sp=q.verb==='circle'?7.4:4.9;for(let i=0;i<n;i++)ps.push([1.5,(i-(n-1)/2)*sp]);return ps}
 function buildAct(){const st=CH.st,q=CH.q,G=beginArena(st);
-  Object.assign(CH,{targets:[],locked:false,tries:0,cur:null,acc:0,lastStand:null,buckets:[],pads:{},paint:null,away:0});
+  Object.assign(CH,{targets:[],locked:false,tries:0,cur:null,acc:0,lastStand:null,buckets:[],pads:{},paint:null,away:0,pre:null,dwell:0});
   if(q.board){const t=texOf(g=>{boardBg(g);q.board(g)},1024,576),b=new THREE.Mesh(new THREE.PlaneGeometry(8.6,4.84),new THREE.MeshBasicMaterial({map:t}));b.position.set(10,5.4,0);b.rotation.y=-Math.PI/2;G.add(b);
     G.add(mesh(BOX(.2,5.1,9),INK,10.15,5.4,0),mesh(BOX(.3,3.2,.3),'#7A4B2A',10.2,1.6,-3.6),mesh(BOX(.3,3.2,.3),'#7A4B2A',10.2,1.6,3.6))}
   if(q.decor)q.decor(G);
@@ -1304,14 +1329,14 @@ function buildCarry(G){const st=CH.st,q=CH.q,box=q.box==='caixa',BA=-.5,BB=-6.2,
   if(box){G.add(mesh(BOX(2.6,1.1,2.6),'#C98A4B',BA,.55,BB));G.add(mesh(BOX(2.2,.05,2.2),'#7A4B2A',BA,1.12,BB))}
   else{G.add(mesh(new THREE.CylinderGeometry(1.5,1.1,1.1,20,1,true),new THREE.MeshLambertMaterial({color:'#C98A4B',side:THREE.DoubleSide}),BA,.55,BB),mesh(new THREE.CylinderGeometry(1.1,1.1,.08,20),'#8A552D',BA,.04,BB))}
   const lab=sprite(texOf(g=>bigText(g,box?'CAIXA':'CESTO 🧺',128,128,240,60,INK)),2.4,2.4);lab.position.set(BA,3.1,BB);G.add(lab);addColl(BA,BB,1.4);
-  padSprite(G,'PRONTO ✓',-3.2,-2.4,'#22B35E');padSprite(G,'TIRAR ➖',-3.2,-9.6,'#E8413A');CH.pads.pronto=L2W(st,-3.2,-2.4);CH.pads.tirar=L2W(st,-3.2,-9.6);
-  CH.items=spawnPickups(q.items,[.5,8.5,-8.5,8.5]);CH.held=[];
+  padSprite(G,'PRONTO ✓',-3.6,2.6,'#22B35E');padSprite(G,'TIRAR ➖',-3.2,-9.6,'#E8413A');CH.pads.pronto=L2W(st,-3.6,2.6);CH.pads.tirar=L2W(st,-3.2,-9.6);
+  CH.items=spawnPickups(q.items,[.5,8.5,-8.5,8.5],[BA,BB,3.9]);CH.held=[];
   for(let k=0;k<(q.pre||0);k++){const it=q.items[0],sp=sprite(texOf(it.pic||pEmo(it.e)),1.4,1.4);scene.add(sp);CHX.sprites.push(sp);const o={sp,v:it.v,state:'basket',pre:true,s:1.4};CH.items.push(o);CH.basket.items.push(o)}
   placeBasket()}
 function placeBasket(){const b=CH.basket;b.items.forEach((o,k)=>{const a=k*2.4,r=k===0?0:.75,lay=Math.floor(k/7);o.sp.position.set(b.x+Math.cos(a)*r,1.4+lay*.55+(k%7?0:.1),b.z+Math.sin(a)*r);o.sp.scale.set(1.3,1.3,1)})}
 function startAct(st,gen){CH={type:'act',st,gen,n:5,idx:0,first:0,coins:0};loadActQ()}
 function loadActQ(){const st=CH.st;clearArena();CH.q=CH.gen(stat(st.id).level);CH.skill=lastSkill;buildAct();const w=L2W(st,-3,-2.8),f=L2W(st,5,0);teleport(w.x,w.z,f.x,f.z);pitch=CH.q.board?.3:.52;camLook=CH.q.board?4:1.7;
-  const q=CH.q,tip=q.verb==='circle'?'Corra em volta dele até fechar o círculo vermelho.':q.verb==='jump'?'Pule (⬆) e caia em cima da resposta.':q.verb==='paint'?`Pegue tinta no balde 🪣 e pise no quadrado${q.multi?'. Depois pise no PRONTO ✓':''}.`:`Encoste para pegar. Chegue perto ${q.box==='caixa'?'da caixa':'do cesto'} para soltar. Depois pise no PRONTO ✓.`;
+  const q=CH.q,tip=q.verb==='circle'?'Corra em volta dele até fechar o círculo vermelho.':q.verb==='jump'?'Pule (⬆) e caia em cima da resposta.':q.verb==='paint'?`Pegue tinta no balde 🪣 e ${q.multi?'pise nos quadrados. Depois pise no PRONTO ✓':'fique parado em cima do certo'}.`:`Encoste para pegar. Chegue perto ${q.box==='caixa'?'da caixa':'do cesto'} para soltar. Depois pise no PRONTO ✓.`;
   setMission(`<span class="vt">${VTAG[q.verb]}</span>${CH.idx+1}/${CH.n} · ${q.text}<small>${tip}</small>`);sayQ(q.text,CH.idx===0?tip:'')}
 function nextAct(){if(!CH||CH.type!=='act')return;CH.idx++;if(CH.idx>=CH.n)return done3D();loadActQ()}
 function actOK(ts){const q=CH.q;ts.forEach(t=>{t.mat.color.set('#22B35E');addMark(t,true)});okRound(null,q.explain,null,nextAct)}
@@ -1323,6 +1348,7 @@ function revealCarry(){const b=CH.basket,q=CH.q,back=[2,6,-3,3];[...b.items.filt
 function actPick(t){const q=CH.q;if(CH.locked||t.dead)return;if(t.i===q.ans)return actOK([t]);
   CH.tries++;t.dead=true;t.mat.color.set('#FF8A80');addMark(t,false);if(CH.tries>=2)return actReveal();hintBad(q.hint||'Tente outro!')}
 function actCheck(){const q=CH.q;if(CH.locked)return;const sel=q.verb==='carry'?CH.basket.items.map(o=>o.v):CH.targets.filter(t=>t.painted).map(t=>t.i);
+  if(q.verb==='carry'?!CH.basket.items.some(o=>!o.pre):!sel.length){toast(q.verb==='carry'?`Leve alguma coisa para ${q.box==='caixa'?'a caixa':'o cesto'} antes do PRONTO.`:'Pinte antes de pisar no PRONTO.',2200);return}
   if(q.check(sel))return actOK(q.verb==='carry'?[]:CH.targets.filter(t=>t.painted));
   CH.tries++;if(CH.tries>=2)return actReveal();hintBad(`${q.count?q.count(sel)+' ':''}${q.hint}`)}
 function updateAct(dt){const q=CH.q;if(!q)return;
@@ -1341,8 +1367,10 @@ function updateAct(dt){const q=CH.q;if(!q)return;
     if(Math.abs(CH.acc)>=Math.PI*2*.92){const t=inT;CH.cur=null;CH.acc=0;showProg(null);actPick(t)}}
   else{for(const b of CH.buckets){if(isNear(b,1.3)&&CH.paint!==b.col){CH.paint=b.col;giveTool('brush',b.col);sfx.coin();toast('Pegou a tinta! Agora pise no que você quer pintar.',1800)}}
     const s=onGround&&standing&&standing.tgt?standing:null;
-    if(s!==CH.lastStand){CH.lastStand=s;if(s){const t=s.tgt;if(t.dead){}else if(!CH.paint){sfx.bad();toast('Primeiro pegue tinta no balde 🪣!',1800)}
-      else if(q.multi){t.painted=!t.painted;t.mat.color.set(t.painted?CH.paint:t.base);sfx.tap()}else{t.mat.color.set(CH.paint);later(()=>actPick(t),250)}}}
+    if(s!==CH.lastStand){CH.lastStand=s;CH.dwell=0;if(CH.pre){CH.pre.mat.color.set(CH.pre.base);CH.pre=null}
+      if(s){const t=s.tgt;if(t.dead){}else if(!CH.paint){sfx.bad();toast('Primeiro pegue tinta no balde 🪣!',1800)}
+      else if(q.multi){t.painted=!t.painted;t.mat.color.set(t.painted?CH.paint:t.base);sfx.tap()}else{t.mat.color.set(CH.paint);CH.pre=t;sfx.tap()}}}
+    else if(CH.pre){CH.dwell+=dt;if(CH.dwell>=.6){const t=CH.pre;CH.pre=null;actPick(t)}}
     if(CH.pads.pronto)edge('pronto',isNear(CH.pads.pronto,1.4),actCheck)}}
 
 /* ---- 🎯 SHOOTER ---- */
@@ -1385,21 +1413,23 @@ function loadFloorQ(first){const q=CH.gen(stat(CH.st.id).level);Object.assign(CH
   CH.tiles.forEach((t,i)=>{t.ok=q.ok[i];t.p.active=true;t.m.position.y=.3;t.m.visible=true;t.falling=false;drawTile(t,q.labels[i],'#FFFFFF')});
   if(first){const f=L2W(CH.st,8,0);teleport(checkpoint.x,checkpoint.z,f.x,f.z);toast('Pule nos blocos. Quando o tempo acabar, só o bloco certo fica em pé! Já sabe a resposta? Toque em <b>Já sei!</b>',6000)}
   floorMission();sayQ(q.text,first?'Quando o tempo acabar, só o bloco certo fica em pé.':'',()=>{if(CH&&CH.q===q&&CH.phase==='read'){CH.phase='play';floorMission()}})}
-function floorMission(){setMission(`<span class="vt">🌋 SOBREVIVER</span>${CH.idx+1}/${CH.n} · ${CH.q.text}<small>${CH.phase==='read'?'🗣️ Leia com calma... o tempo já vai começar':'⏱ '+Math.ceil(Math.max(0,CH.time))+'s'} · ${'❤️'.repeat(Math.max(0,CH.hearts))}${'🖤'.repeat(3-Math.max(0,CH.hearts))}</small>`)}
+function floorMission(){setMission(`<span class="vt">🌋 SOBREVIVER</span>${CH.idx+1}/${CH.n} · ${CH.q.text}<small class="live">${CH.phase==='read'?'<span class="rd">🗣️ Leia com calma... o tempo já vai começar</span><span class="rs">🗣️ …</span>':'⏱ '+Math.ceil(Math.max(0,CH.time))+'s'} · ${'❤️'.repeat(Math.max(0,CH.hearts))}${'🖤'.repeat(3-Math.max(0,CH.hearts))}</small>`)}
 function updateFloor(dt){const [a,b]=localAB(CH.st,P.x,P.z),r=CH.lavaR;
   CH.tiles.forEach(t=>{if(t.falling){t.m.position.y-=dt*4;if(t.m.position.y<-1.2){t.falling=false;t.m.visible=false}}});
   if(CH.lava)CH.lava.material.color.setHSL(.04+Math.sin(T*3)*.012,1,.5+Math.sin(T*4)*.05);
   if(P.y<.3&&onGround&&a>r[0]&&a<r[1]&&b>r[2]&&b<r[3]&&CH.phase!=='burn'&&!(ANIM&&ANIM.type==='burn')){burnFloor();return}
   if(CH.phase==='play'&&!CH.locked&&onGround&&standing&&CH.tiles.some(t=>t.p===standing))showSure('✓ Já sei! É este',()=>{CH.time=0});else hideSure();
   if(CH.phase==='play'){const prev=Math.ceil(CH.time);CH.time-=dt;if(Math.ceil(CH.time)!==prev){floorMission();if(CH.time<=3&&CH.time>0)sfx.tick()}if(CH.time<=0)resolveFloor()}}
-function resolveFloor(){CH.phase='resolve';hideSure();const on=standing&&CH.tiles.find(t=>t.p===standing);
+/* the tile under the player's feet, also in the middle of a hop */
+function tileUnder(){const [a,b]=localAB(CH.st,P.x,P.z);return P.y>.4?CH.tiles.find(t=>t.p.active&&Math.abs(a-t.A)<1.8&&Math.abs(b-t.B)<1.8):null}
+function resolveFloor(){CH.phase='resolve';hideSure();const on=tileUnder();
   CH.tiles.forEach((t,i)=>{if(!t.ok){t.p.active=false;t.falling=true;drawTile(t,CH.q.labels[i],'#FF8A80',false)}else drawTile(t,CH.q.labels[i],'#7CE3A0',true)});
   if(on&&on.ok){CH.won=true;okRound(2,`Você sobreviveu! ${CH.q.explain||''}`,null,nextFloor)}
-  else if(!on){playAnim('sad');loseHeart('Você precisa estar EM CIMA de um número quando o tempo acabar!',false)}}
+  else{playAnim('sad');loseHeart(on?`Esse número não era a resposta. ${CH.q.explain||''}`:'Você precisa estar EM CIMA de um número quando o tempo acabar!',false)}}
 /* stepping on the lava while still choosing is a slip of the feet, not of the maths: back to the start, no heart lost */
 function burnFloor(){const prev=CH.phase,c=CH;CH.phase='burn';hideSure();
   playAnim('burn',()=>{if(CH!==c)return;P.set(checkpoint.x,.4,checkpoint.z);vy=0});
-  if(prev==='play'||prev==='read'){sfx.bad();toast('Ai, ai, queimou! 🔥 Volte e pule só nos blocos.',3200);CH.phase=prev}else if(CH.won){CH.phase='resolve'}else loseHeart(`Esse número não era a resposta. ${CH.q.explain||''}`,false)}
+  if(prev==='play'||prev==='read'){sfx.bad();toast('Ai, ai, queimou! 🔥 Volte e pule só nos blocos.',3200);CH.phase=prev}else CH.phase='resolve'}
 function loseHeart(msg,cont,back){CH.hearts--;if(!cont){CH.locked=true;record(CH.st.id,false,CH.skill)}sfx.bad();floorMission();
   if(CH.hearts<=0){CH.locked=true;CH.phase='over';toast(`${msg}<br>Acabaram os corações! 💔`,4000,true);later(()=>{CH.n=CH.idx+1;done3D(true)},4200);return}
   toast(msg,4200,true);if(cont){CH.phase=back||'play';floorMission()}else later(nextFloor,4400)}
@@ -1413,7 +1443,7 @@ function loadShareQ(){clearArena();const st=CH.st,G=beginArena(st),q=CH.gen(stat
     G.add(mesh(new THREE.CylinderGeometry(1.25,1.25,.1,28),'#FFFFFF',8,.05,B,false));const ring=new THREE.Mesh(new THREE.RingGeometry(1.3,1.5,40),new THREE.MeshBasicMaterial({color:st.color}));ring.rotation.x=-Math.PI/2;ring.position.set(8,.08,B);G.add(ring);
     const bub=sprite(texOf(fr.bubble),3,3);const bw=L2W(st,10.5,B);bub.position.set(bw.x,5,bw.z);scene.add(bub);CHX.sprites.push(bub);const pw=L2W(st,8,B);return {x:pw.x,z:pw.z,items:[],ch}});
   CH.area=[-.5,4.5,-9,9];CH.items=spawnPickups(q.items,CH.area);
-  padSprite(G,'PRONTO ✓',-3.2,3.6,'#22B35E');padSprite(G,'DEVOLVER ↺',-3.2,-3.6,'#E8413A');CH.pads={pronto:L2W(st,-3.2,3.6),dev:L2W(st,-3.2,-3.6)};
+  padSprite(G,'PRONTO ✓',-7.4,2.6,'#22B35E');padSprite(G,'DEVOLVER ↺',-7.4,-3.4,'#E8413A');CH.pads={pronto:L2W(st,-7.4,2.6),dev:L2W(st,-7.4,-3.4)};
   const w=L2W(st,-4.8,0),f2=L2W(st,8,0);teleport(w.x,w.z,f2.x,f2.z);
   const tip='Encoste para pegar, leve até o círculo de cada amigo. Depois pise no PRONTO ✓.';
   setMission(`<span class="vt">🤝 AJUDAR</span>${CH.idx+1}/${CH.n} · ${q.text}<small>${tip}</small>`);sayQ(q.text,CH.idx===0?tip:'')}
@@ -1422,7 +1452,7 @@ function updateShare(dt){updatePickups(CH.items,CH.held,dt,12);CH.friends.forEac
   CH.friends.forEach(fr=>{if(CH.held.length&&isNear(fr,1.8)){CH.held.forEach(o=>{o.state='friend';fr.items.push(o)});CH.held=[];placeFriend(fr);sfx.coin()}});
   edge('dev',isNear(CH.pads.dev,1.4),()=>{CH.friends.forEach(fr=>{fr.items.forEach(o=>dropToGround(o,CH.area));fr.items=[]});sfx.tap();toast('Tudo voltou para o chão.',1500)});
   edge('pronto',isNear(CH.pads.pronto,1.4),()=>{if(CH.held.length){toast('Entregue o que está na sua cabeça primeiro!',1800);return}
-    const arrs=CH.friends.map(fr=>fr.items.map(o=>o.v));if(CH.q.check(arrs))return okRound(null,CH.q.explain,null,nextShare);
+    const arrs=CH.friends.map(fr=>fr.items.map(o=>o.v));if(!arrs.some(a=>a.length)){toast('Entregue alguma coisa antes do PRONTO.',2200);return}if(CH.q.check(arrs))return okRound(null,CH.q.explain,null,nextShare);
     CH.tries++;if(CH.tries>=2){revealShare();return failRound(`Olhe como fica certo. ${CH.q.explain}`,null,nextShare)}hintBad(`${CH.q.count(arrs)} ${CH.q.hint}`)})}
 function revealShare(){CH.items.forEach(o=>{if(o.state!=='ground')dropToGround(o,CH.area)});CH.held=[];CH.friends.forEach(fr=>fr.items=[]);
   CH.q.sol.forEach((ix,i)=>{const fr=CH.friends[i];ix.forEach(j=>{const o=CH.items[j];if(o){o.state='friend';fr.items.push(o)}});placeFriend(fr)})}
@@ -1436,7 +1466,7 @@ function loadBuildQ(){clearArena();const st=CH.st,G=beginArena(st),q=CH.gen(stat
   q.refs.forEach((r,k)=>{const B=3.2+k*3.4;stepsMesh(G,2.2,B,r.steps,k?'#2E8BF0':'#FF5FA2');const s=sprite(texOf(g=>bigText(g,`Escada d${withArt(r.name)}`,128,128,240,44,INK)),3,3);s.position.set(.4,2.4,B);G.add(s);for(let j=1;j<=r.steps;j++)platAt(st,2.2+(j-1)*1.25,B,.625,1.1,j*.7,true,null,.1)});
   padSprite(G,'COLOCAR ⬇',.4,-2,'#FF8A1F');CH.pads.put=L2W(st,.4,-2);
   CH.area=[-1.5,6.5,-13,-6.4];CH.items=spawnPickups(range(1,q.supply).map(()=>({pic:pBlock,v:1,s:1.5})),CH.area);
-  padSprite(G,'PRONTO ✓',-3.6,2.2,'#22B35E');padSprite(G,'TIRAR ➖',-4.4,-5,'#E8413A');CH.pads.pronto=L2W(st,-3.6,2.2);CH.pads.tirar=L2W(st,-4.4,-5);
+  padSprite(G,'PRONTO ✓',-7.6,2.4,'#22B35E');padSprite(G,'TIRAR ➖',-7.6,-5.4,'#E8413A');CH.pads.pronto=L2W(st,-7.6,2.4);CH.pads.tirar=L2W(st,-7.6,-5.4);
   const w=L2W(st,-5,-2),f=L2W(st,6,-2);teleport(w.x,w.z,f.x,f.z);
   const tip='Pegue blocos 🟧, pise no COLOCAR ⬇ para montar. Depois pise no PRONTO ✓.';
   setMission(`<span class="vt">🏗️ CONSTRUIR</span>${CH.idx+1}/${CH.n} · ${q.text}<small>${tip}</small>`);sayQ(q.text,CH.idx===0?tip:'')}
@@ -1448,7 +1478,7 @@ function updateBuild(dt){updatePickups(CH.items,CH.held,dt,10);
   if(CH.locked)return;
   edge('put',isNear(CH.pads.put,1.4),()=>{if(!CH.held.length)return;CH.held.forEach(o=>{o.state='used';o.sp.visible=false;if(CH.steps.length<12)addStep()});CH.held=[];sfx.coin()});
   edge('tirar',isNear(CH.pads.tirar,1.4),()=>{if(removeStep()){const o=CH.items.find(o=>o.state==='used');if(o)dropToGround(o,CH.area);sfx.tap();toast('Tirou um degrau.',1200)}});
-  edge('pronto',isNear(CH.pads.pronto,1.4),()=>{if(CH.held.length){toast('Coloque os blocos que estão na cabeça primeiro!',1800);return}const n=CH.steps.length;
+  edge('pronto',isNear(CH.pads.pronto,1.4),()=>{if(CH.held.length){toast('Coloque os blocos que estão na cabeça primeiro!',1800);return}const n=CH.steps.length;if(!n){toast('Monte a escada antes do PRONTO.',2200);return}
     if(CH.q.check(n)){CH.locked=true;const first=CH.tries===0;record(CH.st.id,first,CH.skill);if(first)CH.first++;const g=first?2:1;CH.coins+=g;addCoins(g);sfx.ok();confetti(16);
       const k=n,A=2.2+(k-1)*1.25,w=L2W(CH.st,A,-2),cm=new THREE.Group();cm.add(mesh(BOX(.9,.6,.7),'#8B5A2B',0,.3,0),mesh(BOX(.95,.25,.75),'#FFC83D',0,.68,0));cm.position.set(w.x,k*.7,w.z);scene.add(cm);CHX.objs.push(cm);
       CH.chest={m:cm,x:w.x,z:w.z,y:k*.7};CH.chestT=40;playAnim('cheer');toast(`<b>${pick(CHEERS)}</b> +${g} 🪙 Agora SUBA a escada e pegue o baú! 🎁`,4500,true);return}
@@ -1458,8 +1488,8 @@ function nextBuild(){if(!CH||CH.type!=='build')return;CH.idx++;if(CH.idx>=CH.n)r
 /* ---- 🗣️ O MESTRE MANDOU ---- */
 const SIMON=[
   {k:'dentro',t:'Fique <b>DENTRO</b> do cercado',ok:()=>inAB(8.4,13.6,4.4,9.6),lv:1,h:'O cercado é a cerca amarela.'},
-  {k:'embaixo',t:'Fique <b>EMBAIXO</b> da mesa grande',ok:()=>inAB(0,4,-7.6,-4.4)&&P.y<1,lv:1,h:'Entre debaixo da mesa gigante.'},
-  {k:'cima',t:'Fique <b>EM CIMA</b> de um bloco',ok:()=>standing&&standing.bloco,lv:1,h:'Pule em cima de um bloco azul.'},
+  {k:'embaixo',t:'Fique <b>EMBAIXO</b> da mesa grande',ok:()=>inAB(0,4,-7.6,-4.4)&&P.y<1.8,lv:1,h:'Entre debaixo da mesa gigante.'},
+  {k:'cima',t:'Fique <b>EM CIMA</b> de um bloco',ok:()=>PLATS.some(p=>p.bloco&&p.active&&Math.abs(P.x-p.cx)<p.ha+.3&&Math.abs(P.z-p.cz)<p.hb+.3&&P.y>p.top-.15),lv:1,h:'Pule em cima de um bloco azul.'},
   {k:'perto',t:'Fique <b>PERTO</b> da casa',ok:()=>distAB(10,-9)<4.8,lv:1,h:'Corra para pertinho da casa.'},
   {k:'longe',t:'Fique <b>LONGE</b> da casa',ok:()=>distAB(10,-9)>15,lv:1,h:'Corra para bem longe da casa.'},
   {k:'entre',t:'Fique <b>ENTRE</b> as duas árvores',ok:()=>inAB(.4,3.6,5.6,10.4),lv:2,h:'No meio das duas árvores.'},
@@ -1478,7 +1508,7 @@ function startSimon(st){CH={type:'simon',st,n:8,idx:0,first:0,coins:0,hearts:3};
   const w=L2W(st,-3,0),f=L2W(st,6,0);teleport(w.x,w.z,f.x,f.z);CH.last=null;loadSimonQ()}
 function loadSimonQ(){const L=stat(CH.st.id).level,pool=SIMON.filter(c=>c.lv<=L&&c!==CH.last);const c=pick(pool);CH.last=c;Object.assign(CH,{q:c,skill:'vocab.'+(({embaixo:'cima',longe:'perto',fora:'dentro'})[c.k]||c.k),time:[16,13,11][L-1],phase:'read',locked:false,tries:0});
   simonMission();speak('O mestre mandou: '+plain(c.t),()=>{if(CH&&CH.q===c&&CH.phase==='read'){CH.phase='play';simonMission()}})}
-function simonMission(){setMission(`<span class="vt">🗣️ O MESTRE MANDOU</span>${CH.idx+1}/${CH.n} · ${CH.q.t}!<small>${CH.phase==='read'?'🗣️ Escute o mestre...':'⏱ '+Math.ceil(Math.max(0,CH.time))+'s'} · ${'❤️'.repeat(Math.max(0,CH.hearts))}${'🖤'.repeat(3-Math.max(0,CH.hearts))}</small>`)}
+function simonMission(){setMission(`<span class="vt">🗣️ O MESTRE MANDOU</span>${CH.idx+1}/${CH.n} · ${CH.q.t}!<small class="live">${CH.phase==='read'?'<span class="rd">🗣️ Escute o mestre...</span><span class="rs">🗣️ …</span>':'⏱ '+Math.ceil(Math.max(0,CH.time))+'s'} · ${'❤️'.repeat(Math.max(0,CH.hearts))}${'🖤'.repeat(3-Math.max(0,CH.hearts))}</small>`)}
 function updateSimon(dt){if(CH.phase!=='play'){hideSure();return}showSure('✓ Cheguei!',()=>{CH.time=0});const prev=Math.ceil(CH.time);CH.time-=dt;if(Math.ceil(CH.time)!==prev){simonMission();if(CH.time<=3&&CH.time>0)sfx.tick()}
   if(CH.time>0)return;CH.phase='done';hideSure();
   if(CH.q.ok())okRound(2,'Você fez certinho!',null,nextSimon);
@@ -1506,7 +1536,7 @@ function startOrder(st){const L=stat(st.id).level;let seq,step=1;
   else{step=pick([2,5,10]);const s=step===10?pick([10,20]):step*rnd(1,step===5?8:15);seq=range(0,7).map(i=>s+i*step)}
   const extra=L===1?[]:optNums(seq[3],[seq[0]-step,seq[7]+step,seq[2]+1,seq[5]-1],0,999,4).filter(v=>!seq.includes(v)).slice(0,2);
   const nums=shuffle([...seq,...extra]),cubes=[],c={x:st.c.x+st.u.x*3,z:st.c.z+st.u.z*3},cols=['#E8413A','#2E8BF0','#2DB34A','#8B4CF0','#FF8A1F'];
-  nums.forEach(n=>{let x,z,g=0;do{const a=Math.random()*Math.PI*2,r=Math.random()*10+1;x=c.x+Math.cos(a)*r;z=c.z+Math.sin(a)*r;g++}while(g<200&&(Math.hypot(x-st.npcPos.x,z-st.npcPos.z)<3||cubes.some(q=>Math.hypot(q.x-x,q.z-z)<2.6)));
+  nums.forEach(n=>{let x,z,g=0;do{const a=Math.random()*Math.PI*2,r=Math.random()*10+1;x=c.x+Math.cos(a)*r;z=c.z+Math.sin(a)*r;g++}while(g<200&&(Math.hypot(x-st.npcPos.x,z-st.npcPos.z)<3||Math.hypot(x-P.x,z-P.z)<3.2||cubes.some(q=>Math.hypot(q.x-x,q.z-z)<2.6)));
     const m=new THREE.Mesh(BOX(1.3,1.3,1.3),new THREE.MeshLambertMaterial({map:numTex(n,pick(cols))}));m.position.set(x,1.2,z);m.castShadow=true;scene.add(m);cubes.push({n,x,z,m,taken:false,ph:Math.random()*6})});
   CH={type:'order',st,seq,idx:0,n:seq.length,first:0,coins:0,tries:0,cubes,last:null,L,step,desc:seq[1]<seq[0]};CH.skill='ordem.'+(step>1?'salto':CH.desc?'seqdec':'seq');orderMission();toast('Corra até os cubos e encoste neles!',2400)}
 function orderMission(){const c=CH,nx=c.seq[c.idx],prev=c.seq[c.idx-1];let t;
@@ -1521,10 +1551,12 @@ function updateOrder(dt){const c=CH;let touching=null;
   else{c.last=touching;c.tries++;if(c.tries===2)record(c.st.id,false,c.skill);sfx.dizzy();playAnim('dizzy');toast(`Esse é o <b>${touching.n}</b>. ${c.L===1?`Procure o ${c.seq[c.idx]}!`:'Pense de novo e procure outro!'}`,4200,true);
     const dx=P.x-touching.x,dz=P.z-touching.z,d=Math.hypot(dx,dz)||1;P.x+=dx/d*1.2;P.z+=dz/d*1.2;vy=5}}
 function startShapes(st){const L=stat(st.id).level,qs=[];let prev=null;for(let i=0;i<6;i++){const q=genShapeQ(L,prev);prev=q.n;qs.push(q)}
-  CH={type:'shapes',st,qs,idx:0,n:6,first:0,coins:0,tries:0,last:null};shapesMission();toast('Corra até a forma certa!',3500)}
+  CH={type:'shapes',st,qs,idx:0,n:6,first:0,coins:0,tries:0,last:shapeAt(!!SHAPE_INFO[qs[0].n].flat)};shapesMission();toast('Corra até a forma certa!',3500)}
 function shapesMission(){setMission(`<span class="vt">🏃 ENCOSTAR</span>${CH.idx+1}/6 · ${CH.qs[CH.idx].text}`);speak(CH.qs[CH.idx].text)}
-function updateShapes(){const c=CH;let t=null;
-  for(const s of SHAPES){const d=Math.hypot(P.x-s.x,P.z-s.z);if(s.flat?(d<1.25&&onGround&&P.y<.5):(d<s.r+.95)){t=s;break}}
+/* Only shapes of the kind being asked for count (floor drawings for "pise", solids for "encoste"), so walking over a drawing on the way to a solid is not an answer. */
+function shapeAt(flatQ){let best=null,bd=1e9;for(const s of SHAPES){if(!!s.flat!==flatQ)continue;const d=Math.hypot(P.x-s.x,P.z-s.z);
+  if((s.flat?(d<1.25&&onGround&&P.y<.5):(d<s.r+.95))&&d-(s.flat?0:s.r)<bd){best=s;bd=d-(s.flat?0:s.r)}}return best}
+function updateShapes(){const c=CH,t=shapeAt(!!SHAPE_INFO[c.qs[c.idx].n].flat);
   if(!t){c.last=null;return}if(t===c.last)return;c.last=t;const q=c.qs[c.idx],I=SHAPE_INFO[t.n];
   if(t.n===q.n){const first=c.tries===0,gain=first?2:1;if(c.tries<2)record(c.st.id,first,q.skill);if(first)c.first++;c.coins+=gain;addCoins(gain);sfx.ok();confetti(10);c.tries=0;
     playAnim('cheer');toast(`Isso! ${I.g==='a'?'Essa é a':'Esse é o'} <b>${t.n.toUpperCase()}</b> +${gain} 🪙`,2400);t.pulse=1;c.idx++;if(c.idx>=c.n)done3D();else setTimeout(()=>{if(CH===c)shapesMission()},1200)}
@@ -1598,6 +1630,7 @@ function openTut(){openSheet(`<div class="pad"><div class="h2">Bem-vindo à Cida
     <span class="i">🪙</span><span>Ganhe moedas acertando. Na <b>Loja</b>, faça a conta do troco para comprar.</span>
     <span class="i">🏆</span><span>Ganhe medalhas e taças! Elas ficam na <b>Sala de Troféus</b>.</span>
     <span class="i">🎸🗣️</span><span>No topo da tela: <b>🎸</b> liga ou desliga a música, e <b>🗣️</b> liga ou desliga a voz que lê as perguntas.</span>
+    <span class="i">▴</span><span>Nos jogos, toque na <b>instrução</b> (ou no <b>▴</b>) para encolher o painel e ver o cenário inteiro. Toque de novo para abrir.</span>
     <span class="i">☰</span><span>No <b>Menu</b> dá para trocar de jogador e deixar tudo em <b>LETRAS MAIÚSCULAS</b>.</span></div>
     ${S.name?'':'<form id="t-name" class="field" style="justify-content:center;margin-bottom:14px"><label for="t-in" style="font-family:var(--fb);font-size:20px">Qual é o seu nome?</label><input id="t-in" maxlength="14" autocomplete="off" placeholder="Seu nome"></form>'}
     <div class="btns"><button class="btn go" id="t-ok">Bora! ▶</button></div></div>`);
@@ -1655,7 +1688,7 @@ function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math
   if(autoQual&&QUAL>0&&!document.hidden){if(raw>1){qN=0;qT=0}else{qT+=raw;qN++;if(qT>=2.5){if(T>3&&qN/qT<27)setQuality(QUAL-1);qN=0;qT=0}}}
   updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();breakCheck(dt);renderer.render(scene,camera)}
 function boot(){if(S.lite)setQuality(0);resize();buildPlayer();hud();STATIONS.forEach(updateSign);updateHall();camera.position.set(P.x,P.y+5,P.z+10);requestAnimationFrame(tick);if(!S.tut)openTut()}
-window.__ilhaDebug={scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
+window.__ilhaDebug={set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
   step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
 const fontsReady=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('400 20px Andika')]):Promise.resolve();
 Promise.race([fontsReady,new Promise(r=>setTimeout(r,1800))]).then(()=>{OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));boot()}).catch(boot);
