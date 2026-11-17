@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Ilha dos Números</title>
 <meta name="description" content="Jogo 3D de matemática do 1º ano: contar, somar, formas, dinheiro e medidas.">
 <meta name="theme-color" content="#1B2232">
@@ -13,10 +13,14 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Ilha dos Números">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Andika:wght@400;700&display=swap">
+<link rel="preload" href="fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+/* Fonts are served from this site (no third-party requests). */
+@font-face{font-family:'Fredoka';font-weight:500;font-display:swap;src:url(fonts/fredoka-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Fredoka';font-weight:600;font-display:swap;src:url(fonts/fredoka-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Fredoka';font-weight:700;font-display:swap;src:url(fonts/fredoka-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Andika';font-weight:400;font-display:swap;src:url(fonts/andika-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Andika';font-weight:700;font-display:swap;src:url(fonts/andika-latin-700-normal.woff2) format('woff2')}
 /* Layout: full-screen 3D. A central city with portals to 8 themed worlds; every exercise is played with the avatar. HUD floats on top. Single bright game look. */
 :root{
   --ink:#1B2232; --paper:#FFFFFF;
@@ -28,8 +32,10 @@
 }
 [hidden]{display:none!important}
 html,body{height:100%;margin:0}
-body{background:#8FD3FF;color:var(--ink);font-family:var(--fd);overflow:hidden;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+body{background:#8FD3FF;color:var(--ink);font-family:var(--fd);overflow:hidden;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+body.caps{text-transform:uppercase}
+body.caps input{text-transform:none}
+button,select{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;text-transform:inherit}
 button:focus-visible,input:focus-visible{outline:4px solid var(--gold);outline-offset:2px}
 input{user-select:text;-webkit-user-select:text}
 #c{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
@@ -44,7 +50,7 @@ input{user-select:text;-webkit-user-select:text}
 .hbtn.off{opacity:.55}
 .hbtn.off::after{content:"";position:absolute;left:8px;right:8px;top:50%;height:4px;background:#FF5F57;transform:rotate(-40deg);border-radius:2px}
 #where{position:fixed;z-index:5;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));background:var(--glass);color:#fff;border-radius:10px;padding:4px 12px;font-size:14px;font-weight:600;white-space:nowrap}
-#mission{position:fixed;z-index:5;top:calc(64px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 24px);box-sizing:border-box;background:#fff;border:4px solid var(--ink);border-radius:16px;padding:6px 6px 6px 12px;display:flex;align-items:center;gap:8px;font-weight:600;font-size:19px;line-height:1.25;box-shadow:0 5px 0 var(--ink)}
+#mission{position:fixed;z-index:5;top:calc(var(--hudh,56px) + 8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 24px);box-sizing:border-box;background:#fff;border:4px solid var(--ink);border-radius:16px;padding:6px 6px 6px 12px;display:flex;align-items:center;gap:8px;font-weight:600;font-size:19px;line-height:1.25;box-shadow:0 5px 0 var(--ink)}
 #mission b{color:var(--red)}
 #mission .vt{display:inline-block;background:var(--ink);color:#fff;border-radius:8px;padding:1px 8px;margin-right:4px;font-size:15px;vertical-align:2px}
 #mission small{display:block;font-weight:500;font-size:14px;color:var(--muted)}
@@ -56,7 +62,8 @@ input{user-select:text;-webkit-user-select:text}
 .rot.on{background:var(--gold);transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
 #b-jump,#b-fire{width:86px;height:86px;border-radius:50%;background:rgba(255,255,255,.9);border:4px solid var(--ink);font-size:38px;font-weight:700;box-shadow:0 5px 0 var(--ink);padding:0;touch-action:none}
 #b-fire{background:#FF6B5E}
-#b-jump:active,#b-fire:active,#b-act:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+#b-jump:active,#b-fire:active,#b-act:active,#b-sure:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+#b-sure{padding:13px 18px;border-radius:16px;background:var(--gold);border:4px solid var(--ink);font-weight:700;font-size:20px;box-shadow:0 5px 0 var(--ink)}
 #b-act{padding:13px 18px;border-radius:16px;background:var(--go);color:#fff;border:4px solid var(--ink);font-weight:700;font-size:20px;box-shadow:0 5px 0 var(--ink);animation:pulse 1.2s infinite;max-width:60vw}
 @keyframes pulse{50%{transform:scale(1.06)}}
 #joy{position:fixed;z-index:4;width:130px;height:130px;margin:-65px 0 0 -65px;border-radius:50%;background:rgba(255,255,255,.2);border:3px solid rgba(255,255,255,.7);pointer-events:none;box-sizing:border-box}
@@ -133,7 +140,15 @@ th{font-family:var(--fd);font-size:13px;color:var(--muted);text-transform:upperc
 .cf{position:fixed;top:-20px;width:12px;height:12px;border:2px solid rgba(0,0,0,.4);z-index:30;pointer-events:none;animation:fall 1.4s ease-in forwards}
 @keyframes fall{to{transform:translateY(105vh) rotate(540deg)}}
 #err{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center;font-size:20px;background:#8FD3FF;z-index:50}
-@media (max-width:520px){#where{display:none}}
+.sec{font-weight:700;font-size:19px;margin:16px 0 4px}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);margin-right:6px;vertical-align:-1px}
+.players{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.players button{border:3px solid var(--ink);border-radius:12px;background:#fff;padding:10px;text-align:left;font-weight:600;font-size:17px}
+.players button.on{background:var(--okbg)}
+.players small{display:block;font-weight:500;font-size:13px;color:var(--muted)}
+select{font-size:17px;padding:8px;border:3px solid var(--ink);border-radius:10px;background:#fff}
+@media (max-width:520px){#where{display:none}.chip{font-size:15px;padding:6px 8px}.hbtn{width:42px;height:42px;font-size:20px}}
+@media (max-height:520px){#toast{bottom:calc(112px + env(safe-area-inset-bottom,0px));max-width:56%;font-size:16px;padding:8px 14px}#mission{font-size:16px;border-width:3px;box-shadow:0 3px 0 var(--ink)}#mission small{font-size:12px}}
 @media (prefers-reduced-motion:reduce){.cf{display:none}.shake,#b-act,.chip.bump{animation:none}#fade{transition:none}}
 </style>
 </head>
@@ -153,10 +168,11 @@ th{font-family:var(--fd);font-size:13px;color:var(--muted);text-transform:upperc
   <button class="hbtn" id="b-sound" aria-label="Efeitos de som">🔊</button>
   <button class="hbtn" id="b-menu" aria-label="Menu">☰</button>
 </header>
-<div id="mission" hidden><span id="m-text"></span><button class="mb q" id="m-spk" aria-label="Ouvir">🗣️</button><button class="mb" id="m-quit" aria-label="Sair do desafio">✕</button></div>
+<div id="mission" hidden><span id="m-text" aria-live="polite"></span><button class="mb q" id="m-spk" aria-label="Ouvir">🗣️</button><button class="mb" id="m-quit" aria-label="Sair do desafio">✕</button></div>
 <div id="where">Cidade dos Números</div>
 <div class="hud-br">
   <button id="b-act" hidden></button>
+  <button id="b-sure" hidden></button>
   <button id="b-fire" hidden aria-label="Atirar">🎯</button>
   <div class="hud-row">
     <button class="rot" id="b-rl" aria-label="Girar câmera para a esquerda">⟲</button>
@@ -164,11 +180,11 @@ th{font-family:var(--fd);font-size:13px;color:var(--muted);text-transform:upperc
     <button id="b-jump" aria-label="Pular">⬆</button>
   </div>
 </div>
-<div id="toast" hidden></div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
 <div id="fade"></div>
 <div id="ov" hidden><div class="sheet" id="sheet"></div></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="vendor/three.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -184,21 +200,66 @@ const setEq=(s,t)=>s.length===t.length&&t.every(i=>s.includes(i));
 const sum=a=>a.reduce((x,y)=>x+y,0);
 
 /* ================= SAVE ================= */
-const KEY='ilha-numeros-3d-v1';
-const DEF={name:'',coins:0,stars:0,sound:true,music:true,voice:true,tut:false,look:{skin:'s2',shirt:'azul',pants:'jeans',hat:'nenhum',pet:'nenhum'},owned:[],st:{},trophies:{},champ:false};
-let S=null;
-try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-S=Object.assign(JSON.parse(JSON.stringify(DEF)),S||{});S.look=Object.assign({},DEF.look,S.look||{});S.st=S.st||{};S.owned=S.owned||[];S.trophies=S.trophies||{};
+/* One save per player profile. Profile 0 keeps the original key, so older saves keep working. */
+const KEY0='ilha-numeros-3d-v1',PKEY='ilha-numeros-perfis',MAXP=6;
+let PF=null;
+try{PF=JSON.parse(localStorage.getItem(PKEY))}catch(e){}
+if(!PF||!Array.isArray(PF.ids)||!PF.ids.length)PF={cur:0,ids:[0],next:1};
+if(!PF.ids.includes(PF.cur))PF.cur=PF.ids[0];
+const keyOf=id=>id?KEY0+'-p'+id:KEY0,KEY=keyOf(PF.cur);
+function savePF(){try{localStorage.setItem(PKEY,JSON.stringify(PF))}catch(e){}}
+function readSave(id){try{return JSON.parse(localStorage.getItem(keyOf(id)))}catch(e){return null}}
+const DEF={name:'',coins:0,stars:0,sound:true,music:true,voice:true,caps:false,breakMin:0,tut:false,look:{skin:'s2',shirt:'azul',pants:'jeans',hat:'nenhum',pet:'nenhum'},owned:[],st:{},trophies:{},champ:false,sk:{},wk:{}};
+const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
+function normalize(raw){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),isObj(raw)?raw:{});s.look=Object.assign({},DEF.look,isObj(s.look)?s.look:{});
+  ['st','trophies','sk','wk'].forEach(k=>{if(!isObj(s[k]))s[k]={}});if(!Array.isArray(s.owned))s.owned=[];s.name=String(s.name||'').slice(0,14);s.coins=Math.max(0,Math.round(+s.coins)||0);s.stars=Math.max(0,Math.round(+s.stars)||0);s.breakMin=[0,15,20,30,45].includes(+s.breakMin)?+s.breakMin:0;
+  const num=(o,ks)=>ks.forEach(k=>o[k]=Math.max(0,+o[k]||0));
+  Object.keys(s.st).forEach(k=>{const t=s.st[k];if(!isObj(t))return delete s.st[k];num(t,['rounds','first','total','stars']);t.level=Math.min(3,Math.max(1,Math.round(+t.level)||1))});
+  Object.keys(s.sk).forEach(k=>{const t=s.sk[k];if(!isObj(t))return delete s.sk[k];num(t,['n','f','r','w','d']);t.r=Math.min(1,t.r)});
+  Object.keys(s.wk).forEach(k=>{const w=s.wk[k];if(!/^\d{4}-\d\d-\d\d$/.test(k)||!isObj(w))return delete s.wk[k];Object.keys(w).forEach(i=>{if(!Array.isArray(w[i]))delete w[i];else w[i]=[+w[i][0]||0,+w[i][1]||0]})});
+  Object.keys(s.trophies).forEach(k=>{s.trophies[k]=Math.min(3,Math.max(0,Math.round(+s.trophies[k])||0))});s.owned=s.owned.filter(x=>typeof x==='string');return s}
+let S=normalize(readSave(PF.cur));
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const stat=id=>S.st[id]||(S.st[id]={level:1,rounds:0,first:0,total:0,stars:0});
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+if(S.caps)document.body.classList.add('caps');
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})}catch(e){}
+
+/* ================= SKILLS (what was practised, how it went, what to bring back) ================= */
+/* Every question carries a skill id "station.type". For each skill the save keeps: n answers, f right at the first try,
+   r a rolling score (recent answers weigh more), w how many clean answers are still owed after a miss, d last day played. */
+const SKN={'vocab.cima':'Em cima e embaixo','vocab.dentro':'Dentro e fora','vocab.perto':'Perto e longe','vocab.tam':'Maior e menor (tamanho)','vocab.qtd':'Mais e menos (quantidade)','vocab.fila':'Ordem na fila: 1º, 2º, último','vocab.entre':'Entre','vocab.lado':'Direita e esquerda','vocab.frente':'Na frente e atrás',
+  'n10.pint':'Contar até 10','n10.compl':'Completar 10 pintando','n10.leve':'Contar e separar objetos','n10.enche':'Completar 10 no cesto','n10.cont':'Contar e achar o número','n10.grupo':'Achar o grupo com a quantidade','n10.depois':'Antes e depois até 10','n10.palavra':'Ler o nome dos números','n10.padrao':'Padrões que se repetem','n10.grafico':'Ler gráfico de colunas','n10.chance':'Certeza, talvez, impossível','n10.dividir':'Dividir igualmente (desafio extra)','n10.entregar':'Entregar a quantidade pedida',
+  'dinheiro.qt':'Somar notas e moedas','dinheiro.pague':'Pagar o valor exato','dinheiro.vale':'Comparar quantias','dinheiro.leve':'Montar um valor no caixa','dinheiro.troco':'Calcular o troco','dinheiro.compre':'O que dá para comprar','dinheiro.trocado':'Dar dinheiro trocado',
+  'n100.dez':'Dezenas e unidades','n100.viz':'Vizinhos: antes, depois, entre','n100.maior':'Comparar números até 100','n100.fam':'Famílias das dezenas','n100.monte':'Montar número com barras de 10','n100.quadro':'Quadro do 100','n100.seq':'Contar de 2 em 2, 5 em 5, 10 em 10','n100.conta':'Somar com dezenas',
+  'medidas.comp':'Comprimento','medidas.altura':'Altura','medidas.peso':'Peso','medidas.capac':'Cheio e vazio','medidas.tempo':'Manhã e noite','medidas.semana':'Dias da semana','medidas.clipes':'Medir com clipes','medidas.esc1':'Escada: contar degraus','medidas.esc2':'Escada: a mais e a menos','medidas.esc3':'Escada: entre duas alturas','medidas.esc4':'Escada: somar degraus',
+  'contas.soma':'Adição','contas.sub':'Subtração','contas.decompor':'Jeitos de formar um número',
+  'ordem.depois':'O número que vem depois','ordem.antes':'O número que vem antes','ordem.maior':'Achar um número maior','ordem.menor':'Achar um número menor','ordem.salto':'Contar pulando: 2, 5, 10','ordem.seq':'Sequência crescente','ordem.seqdec':'Sequência decrescente',
+  'formas.tfig':'Figuras planas pelo nome','formas.tsol':'Sólidos pelo nome','formas.lados4':'Figuras de 4 lados','formas.lados3':'Figuras de 3 lados','formas.rolam':'Formas que rolam','formas.semcanto':'Figuras sem cantos'};
+const skillName=id=>SKN[id]||'Reconhecer: '+id.split('.')[1];
+const dayNum=()=>{const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()};
+function weekKey(off){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7)-7*(off||0));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+let lastSkill=null;const prevPick={};
+function tag(pre,t){lastSkill=pre+'.'+t;return t}
+/* Chooses the next question type: half of the time one that was missed and is still owed; otherwise weaker and newer types weigh more. */
+function pickSkill(pre,list){const prev=prevPick[pre],due=list.filter(t=>t!==prev&&(S.sk[pre+'.'+t]||{}).w>0);let t;
+  if(due.length&&Math.random()<.5)t=pick(due);
+  else{let c=list.filter(x=>x!==prev);if(!c.length)c=list;const w=c.map(x=>{const k=S.sk[pre+'.'+x];return k?1+(1-k.r)*1.5:1.6});let r=Math.random()*sum(w);t=c[c.length-1];for(let i=0;i<c.length;i++){r-=w[i];if(r<0){t=c[i];break}}}
+  prevPick[pre]=t;return tag(pre,t)}
+function record(id,first,skill){const s=stat(id);s.total++;if(first)s.first++;
+  if(skill){const k=S.sk[skill]||(S.sk[skill]={n:0,f:0,r:0,w:0,d:0});k.r=k.n?Math.round((k.r*.7+(first?.3:0))*1000)/1000:first?1:0;k.n++;if(first){k.f++;if(k.w>0)k.w--}else k.w=2;k.d=dayNum()}
+  const wk=weekKey(),W=S.wk[wk]||(S.wk[wk]={}),a=W[id]||(W[id]=[0,0]);a[1]++;if(first)a[0]++;
+  const ks=Object.keys(S.wk).sort();while(ks.length>12)delete S.wk[ks.shift()];save()}
 
 /* ================= SOUND ================= */
 let actx=null,sfxBus=null,musBus=null,noiseBuf=null;const MUSVOL=.3;
-function ensureAudio(){if(actx){if(actx.state==='suspended')actx.resume();return}
+function ensureAudio(){if(actx){if(actx.state==='suspended'&&!document.hidden)actx.resume();return}
   try{actx=new (window.AudioContext||window.webkitAudioContext)();sfxBus=actx.createGain();sfxBus.connect(actx.destination);musBus=actx.createGain();musBus.gain.value=S.music?MUSVOL:0;musBus.connect(actx.destination);
     noiseBuf=actx.createBuffer(1,actx.sampleRate,actx.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;startMusic()}catch(e){actx=null}}
 document.addEventListener('pointerdown',()=>{ensureAudio();unlockSpeech()},true);
 document.addEventListener('keydown',()=>{ensureAudio();unlockSpeech()},true);
+/* silence everything while the page is in the background */
+document.addEventListener('visibilitychange',()=>{try{if(document.hidden){if(actx)actx.suspend();if(window.speechSynthesis)speechSynthesis.cancel()}else if(actx)actx.resume()}catch(e){}});
 function tone(f,d,type,vol,when,f2){if(!S.sound||!actx)return;try{
   const t=actx.currentTime+(when||0),o=actx.createOscillator(),g=actx.createGain();o.type=type||'square';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);
   g.gain.setValueAtTime(vol||.05,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(sfxBus);o.start(t);o.stop(t+d+.02)}catch(e){}}
@@ -271,7 +332,9 @@ const plain=html=>{const d=document.createElement('div');d.innerHTML=html;return
 let toastT;
 function toast(msg,ms,say){const t=$('#toast');t.innerHTML=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms||3200);if(say)speak(plain(msg))}
 const trophyCount=()=>Object.values(S.trophies).filter(v=>v===3).length+(S.champ?1:0);
-function hud(){$('#h-name').textContent=S.name||'Jogador';$('#h-coins').textContent=S.coins;$('#h-stars').textContent=S.stars;$('#h-troph').textContent=trophyCount();$('#b-sound').classList.toggle('off',!S.sound);$('#b-music').classList.toggle('off',!S.music);$('#b-voice').classList.toggle('off',!S.voice)}
+function hud(){$('#h-name').textContent=S.name||'Jogador';$('#h-coins').textContent=S.coins;$('#h-stars').textContent=S.stars;$('#h-troph').textContent=trophyCount();$('#b-sound').classList.toggle('off',!S.sound);$('#b-music').classList.toggle('off',!S.music);$('#b-voice').classList.toggle('off',!S.voice);layoutTop()}
+/* the mission panel sits right under the top bar, however many rows the bar wraps into */
+function layoutTop(){const h=$('.hud-top');if(h)document.documentElement.style.setProperty('--hudh',h.offsetHeight+'px')}
 function bump(id){const el=$(id);el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump')}
 function addCoins(n){S.coins+=n;save();hud();bump('#h-c')}
 function confetti(n){const cs=['#E8413A','#2E8BF0','#FFC83D','#2DB34A','#8B4CF0','#FF8A1F'];
@@ -324,14 +387,15 @@ function drawSolid(g,kind,cx,cy,s,col){g.strokeStyle=INK;g.lineWidth=6;const d=s
   else if(kind==='cone'){const w=s*.56,y=cy+s*.3;g.fillStyle=col;g.beginPath();g.moveTo(cx,cy-s*.38);g.lineTo(cx+w/2,y);g.ellipse(cx,y,w/2,s*.09,0,0,Math.PI);g.closePath();g.fill();g.stroke()}
   else if(kind==='pirâmide'){const y=cy+s*.3;poly([[cx-s*.32,y],[cx,cy-s*.38],[cx+s*.12,y]],col);poly([[cx+s*.12,y],[cx,cy-s*.38],[cx+s*.34,y-s*.12]],shade(col,.7))}}
 const pNum=n=>g=>{card(g);bigText(g,n,128,136,206,140)};
-const pWord=w=>g=>{card(g);bigText(g,w,128,132,212,66)};
+const CAPS=t=>S.caps?String(t).toUpperCase():t;
+const pWord=w0=>g=>{card(g);const w=CAPS(w0),p=String(w).split(' ');if(p.length===2&&w.length>9){bigText(g,p[0],128,96,212,58);bigText(g,p[1],128,170,212,58)}else bigText(g,w,128,132,212,66)};
 const pEmo=e=>g=>emo(g,e,128,140,200);
 const pEmoGrid=(e,n)=>g=>{if(!n)return;const cols=n<=1?1:n<=4?2:n<=9?3:4,rows=Math.ceil(n/cols),s=Math.min(236/cols,236/rows);
   for(let i=0;i<n;i++){const r=Math.floor(i/cols),c=i%cols;emo(g,e,128+(c-(cols-1)/2)*s,132+(r-(rows-1)/2)*s,s*.84)}};
 const pMoney=v=>g=>drawMoney(g,v,128,128,v===1?1.4:1.02);
 const pMoneyGroup=list=>g=>{card(g,'#FFE1EC');const n=list.length,cols=n<=2?1:2,rows=Math.ceil(n/cols);list.forEach((v,i)=>{const r=Math.floor(i/cols),c=i%cols;drawMoney(g,v,128+(c-(cols-1)/2)*110,128+(r-(rows-1)/2)*62,.44)})};
 const pGoods=(e,p)=>g=>{card(g);emo(g,e,128,100,120);g.fillStyle='#FFC83D';rr(g,48,170,160,62,16);g.fill();g.lineWidth=5;g.strokeStyle=INK;g.stroke();bigText(g,'R$ '+p,128,203,140,46)};
-const pTime=(e,l)=>g=>{card(g);emo(g,e,128,100,96);bigText(g,l,128,205,216,34)};
+const pTime=(e,l)=>g=>{card(g);emo(g,e,128,100,96);bigText(g,CAPS(l),128,205,216,34)};
 const pRod=g=>{for(let j=0;j<10;j++){g.fillStyle='#2E8BF0';g.fillRect(100,14+j*23,56,20);g.lineWidth=3;g.strokeStyle=INK;g.strokeRect(100,14+j*23,56,20)}};
 const pCube=g=>{g.fillStyle='#E8413A';g.fillRect(88,88,80,80);g.lineWidth=6;g.strokeStyle=INK;g.strokeRect(88,88,80,80)};
 const pBlock=g=>drawSolid(g,'cubo',128,132,250,'#FF8A1F');
@@ -356,12 +420,21 @@ const bTroco=(H,e,p)=>g=>{drawMoney(g,H,270,290,1.1);bigText(g,'➜',512,290,120
 const bClips=k=>g=>{const u=90,x0=512-k*u/2;g.fillStyle='#FFC83D';g.fillRect(x0,170,k*u-60,70);g.lineWidth=6;g.strokeStyle=INK;g.strokeRect(x0,170,k*u-60,70);
   g.fillStyle='#F1C894';g.beginPath();g.moveTo(x0+k*u-60,170);g.lineTo(x0+k*u,205);g.lineTo(x0+k*u-60,240);g.closePath();g.fill();g.stroke();
   for(let i=0;i<k;i++){emo(g,'📎',x0+u*i+u/2,340,76);g.strokeStyle='#9AB3CF';g.lineWidth=4;g.setLineDash([10,8]);g.beginPath();g.moveTo(x0+u*(i+1),290);g.lineTo(x0+u*(i+1),390);g.stroke();g.setLineDash([])}};
+/* boards for the newer activities: left/right picture, repeating pattern, column chart, bag of balls */
+const bSides=(l,ref,r)=>g=>{emo(g,l,236,300,200);emo(g,ref,512,300,250);emo(g,r,788,300,200)};
+const bPat=es=>g=>{const n=es.length+1,w=Math.min(150,960/n);for(let i=0;i<n;i++){const x=512+(i-(n-1)/2)*w;g.fillStyle=i===n-1?'#FFC83D':'#F4F7FB';rr(g,x-w/2+6,300-w/2+6,w-12,w-12,18);g.fill();g.lineWidth=5;g.strokeStyle=INK;g.stroke();
+  if(i===n-1)bigText(g,'?',x,304,w-30,w*.6);else emo(g,es[i],x,306,w*.6)}};
+const bBars=(es,cs)=>g=>{const y0=446,ch=50;g.lineWidth=6;g.strokeStyle=INK;g.beginPath();g.moveTo(180,y0+3);g.lineTo(844,y0+3);g.stroke();
+  es.forEach((e,i)=>{const x=512+(i-1)*210;g.lineWidth=4;for(let j=0;j<cs[i];j++){g.fillStyle=['#E8413A','#2E8BF0','#2DB34A'][i];g.fillRect(x-48,y0-(j+1)*ch,96,ch-6);g.strokeRect(x-48,y0-(j+1)*ch,96,ch-6)}emo(g,e,x,y0+58,80)})};
+const bBag=cols=>g=>{g.fillStyle='#EAD9AE';g.beginPath();g.moveTo(330,120);g.quadraticCurveTo(150,530,512,530);g.quadraticCurveTo(874,530,694,120);g.closePath();g.fill();g.lineWidth=10;g.strokeStyle=INK;g.stroke();
+  const n=cols.length,per=Math.ceil(n/2);cols.forEach((c,i)=>{const r=Math.floor(i/per),k=i%per,m=r?n-per:per;g.fillStyle=c;g.beginPath();g.arc(512+(k-(m-1)/2)*120,270+r*124,48,0,7);g.fill();g.lineWidth=7;g.stroke()})};
 
 /* ================= QUESTION GENERATORS ================= */
 const NOMES=['zero','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez'];
 const ANIMAIS=[['🐱','gato'],['🐶','cachorro'],['🐰','coelho'],['🐻','urso'],['🐷','porquinho'],['🐸','sapo'],['🐵','macaco'],['🐭','ratinho']];
 const COUNT=[['🍎','maçãs','a'],['⭐','estrelas','a'],['🐟','peixes','o'],['🍄','cogumelos','o'],['🐞','joaninhas','a'],['🌸','flores','a'],['🐣','pintinhos','o'],['🍓','morangos','o'],['⚽','bolas','a']];
 const FRUTA=['🍎','🍊','🍓','🍐','🍌','🍇'];
+const FRN=[['🍎','maçã','a'],['🍌','banana','a'],['🍇','uva','a'],['🍊','laranja','a'],['🍓','morango','o'],['🍐','pera','a']];
 function say(verb,a,rest){if(verb==='jump')return `PULE EM CIMA d${a} ${rest}`;if(verb==='circle')return `CIRCULE ${a} ${rest}`;return `PINTE ${a} ${rest}`}
 function optNums(ans,cands,min,max,count){count=count||4;const s=new Set([ans]);
   shuffle(cands||[]).forEach(v=>{if(s.size<count&&v>=min&&v<=max)s.add(v)});
@@ -390,15 +463,21 @@ const dFlag=(A,B)=>G=>{G.add(mesh(BOX(.15,3.2,.15),'#5B6475',A,1.6,B),mesh(BOX(.
 const dBalance=tilt=>G=>{G.add(mesh(BOX(.5,2.4,.5),'#5B6475',2,1.2,0),mesh(new THREE.CylinderGeometry(.9,1.1,.3,16),'#5B6475',2,.15,0));const b=mesh(BOX(.3,.25,7.8),INK,2,2.5,0);b.rotation.x=tilt*.17;G.add(b)};
 
 function genVocab(L){
-  const t=pick(L===1?['cima','dentro','perto','tam','qtd']:L===2?['cima','dentro','perto','tam','qtd','fila','entre']:['perto','tam','qtd','fila','entre','dentro','cima']);
-  if(t==='cima'){const [e,nm]=pick(ANIMAIS),up=Math.random()<.5,list=shuffle(L>=2?['top','under','side']:['top','under']);
+  const t=pickSkill('vocab',L===1?['cima','dentro','perto','tam','qtd','frente']:L===2?['cima','dentro','perto','tam','qtd','fila','entre','lado','frente']:['perto','tam','qtd','fila','entre','dentro','cima','lado','frente']);
+  if(t==='lado'){const [x,y,z]=sample(ANIMAIS,3),ref=pick([['🌳','da árvore'],['🏠','da casa'],['🚗','do carro']]),dir=Math.random()<.5,opts=shuffle([x,y,z]);
+    return {verb:'jump',text:`Olhe a placa. ${say('jump','o',`animal que está à <b>${dir?'DIREITA':'ESQUERDA'}</b> ${ref[1]}`)}`,board:bSides(x[0],ref[0],y[0]),opts:opts.map(a=>({pic:pEmo(a[0])})),ans:opts.indexOf(dir?y:x),
+      hint:'ESQUERDA é o lado onde a gente começa a ler. DIREITA é o outro lado.',explain:`À ${dir?'direita':'esquerda'} ${ref[1]} está o ${(dir?y:x)[1]}.`}}
+  if(t==='frente'){const an=sample(ANIMAIS,5),m=rnd(1,3),fr=Math.random()<.5;
+    return {verb:'paint',text:say('paint','o',`animal que está logo <b>${fr?'NA FRENTE':'ATRÁS'}</b> do ${an[m][1]} na fila`),decor:dFlag(1.5,-9.3),opts:an.map((a,i)=>({pos:[1.5,-5.8+i*2.9],pic:pEmo(a[0]),picS:1.8,picY:1.5})),ans:fr?m-1:m+1,
+      hint:'A fila anda para a bandeira. NA FRENTE é quem está mais perto dela. ATRÁS é quem vem depois.'}}
+  if(t==='cima'){const [e,nm]=pick(ANIMAIS),up=Math.random()<.5,list=shuffle(['top','under','side']);
     return {verb:'circle',text:say('circle','o',`${nm} que está <b>${up?'EM CIMA':'EMBAIXO'}</b> da mesa`),opts:list.map(w=>({model:mTable(e,w),cr:1.9})),ans:list.indexOf(up?'top':'under'),hint:up?'EM CIMA é sobre a mesa.':'EMBAIXO é debaixo da mesa, perto do chão.'}}
   if(t==='dentro'){const [e,nm,g]=pick([['⚽','bola','a'],['🍎','maçã','a'],['🧸','ursinho','o'],['🎾','bolinha','a']]);
-    let nin=1,nout=1;if(L>=2){if(Math.random()<.5)nin=2;else nout=2}
+    let nin=1,nout=1;if(Math.random()<.5)nin=2;else nout=2;
     const ask=nin===nout?pick(['DENTRO','FORA']):nin===1?'DENTRO':'FORA',list=shuffle([...Array(nin).fill('in'),...Array(nout).fill('out')]);
     return {verb:'circle',text:say('circle',g,`${nm} que está <b>${ask}</b> da caixa`),opts:list.map(w=>({model:mCrate(e,w),cr:1.7})),ans:list.indexOf(ask==='DENTRO'?'in':'out'),hint:ask==='DENTRO'?'DENTRO é no meio da caixa.':'FORA é do lado de fora da caixa.'}}
-  if(t==='perto'){const [e,nm]=pick(ANIMAIS),Bs=L>=2?[-6.5,0,6.5]:[-6.5,4.5],ask=pick(['PERTO','LONGE']);
-    return {verb:'circle',text:say('circle','o',`${nm} que está <b>${L>=2?'MAIS ':''}${ask}</b> da casa`),decor:dHouse(1.5,-12.5),opts:Bs.map(B=>({pos:[1.5,B],pic:pEmo(e),bare:true,picS:2,cr:.8})),ans:ask==='PERTO'?0:Bs.length-1,hint:ask==='PERTO'?'PERTO é pertinho da casa.':'LONGE é bem afastado da casa.'}}
+  if(t==='perto'){const [e,nm]=pick(ANIMAIS),Bs=[-6.5,0,6.5],ask=pick(['PERTO','LONGE']);
+    return {verb:'circle',text:say('circle','o',`${nm} que está <b>MAIS ${ask}</b> da casa`),decor:dHouse(1.5,-12.5),opts:Bs.map(B=>({pos:[1.5,B],pic:pEmo(e),bare:true,picS:2,cr:.8})),ans:ask==='PERTO'?0:Bs.length-1,hint:ask==='PERTO'?'PERTO é pertinho da casa.':'LONGE é bem afastado da casa.'}}
   if(t==='tam'){const [e,nm]=pick([['🐟','peixe'],['🐢','jabuti'],['🎈','balão'],['🐘','elefante'],['🚗','carro']]),sizes=shuffle(L===1?[1.3,2.2,3.3]:[1.2,1.9,2.6,3.4]),ask=pick(['MAIOR','MENOR']);
     return {verb:'circle',text:say('circle','o',`<b>${ask}</b> ${nm}`),opts:sizes.map(s=>({pic:pEmo(e),bare:true,picS:s,picY:s/2+.3,cr:.9})),ans:sizes.indexOf(ask==='MAIOR'?Math.max(...sizes):Math.min(...sizes)),hint:'Compare o tamanho de todos.'}}
   if(t==='qtd'){const f=pick(FRUTA),cnt=sample(L===1?[1,2,3,4,5]:range(1,8),3),ask=pick(['MAIS','MENOS']);
@@ -409,8 +488,20 @@ function genVocab(L){
   return {verb:'jump',text:say('jump','o',`animal que está <b>ENTRE</b> o ${an[i][1]} e o ${an[i+2][1]}`),opts:an.map(a=>({pic:pEmo(a[0])})),ans:i+1,hint:'ENTRE é no meio dos dois.'};
 }
 function genN10(L){
-  const t=pick(L===1?['leve','cont','grupo','depois','pint']:L===2?['pint','compl','leve','cont','grupo','palavra']:['compl','enche','palavra','cont','grupo','depois']);
+  const t=pickSkill('n10',L===1?['leve','cont','grupo','depois','pint','padrao','grafico']:L===2?['pint','compl','leve','cont','grupo','palavra','padrao','grafico','chance']:['compl','enche','palavra','cont','grupo','depois','padrao','grafico','chance']);
   const [e,nm,g]=pick(COUNT);
+  if(t==='padrao'){const its=sample(FRUTA,3),pat=L===1?[0,1]:L===2?pick([[0,0,1],[0,1,1]]):pick([[0,1,2],[0,0,1,1]]),len=L===3?7:6,seq=range(0,len).map(i=>pat[i%pat.length]),opts=shuffle([0,1,2]);
+    return {verb:'jump',text:`Olhe a fileira da placa. ${say('jump','a','fruta que vem <b>DEPOIS</b>, continuando o padrão')}`,board:bPat(seq.slice(0,len).map(i=>its[i])),opts:opts.map(i=>({pic:pEmo(its[i])})),ans:opts.indexOf(seq[len]),
+      hint:'Fale as frutas em voz alta, na ordem. Descubra o pedaço que se repete.',explain:`Veja o pedaço que se repete: ${pat.map(i=>its[i]).join(' ')}`}}
+  if(t==='grafico'){const fs=sample(FRN,3),cs=sample(range(1,L===1?5:7),3),mode=L===1?'mais':pick(['mais','menos','quantos']),board=bBars(fs.map(f=>f[0]),cs),intro='No gráfico, cada quadradinho é um voto. ';
+    if(mode==='quantos'){const i=rnd(0,2),q=numJump(cs[i],[cs[i]+1,cs[i]-1,...cs],0,10);
+      return Object.assign(q,{text:intro+say('jump','o',`número de votos d${fs[i][2]} <b>${fs[i][1]}</b>`),board,hint:'Ache a coluna dessa fruta e conte os quadradinhos.',explain:`${fs[i][2].toUpperCase()} ${fs[i][1]} teve ${cs[i]} voto${cs[i]>1?'s':''}.`})}
+    const mx=mode==='mais',win=cs.indexOf(mx?Math.max(...cs):Math.min(...cs)),opts=shuffle([0,1,2]);
+    return {verb:'jump',text:intro+say('jump','a',`fruta que teve <b>${mx?'MAIS':'MENOS'}</b> votos`),board,opts:opts.map(i=>({pic:pEmo(fs[i][0])})),ans:opts.indexOf(win),hint:mx?'A coluna mais alta é a que tem mais votos.':'A coluna mais baixa é a que tem menos votos.',explain:`${fs[win][2].toUpperCase()} ${fs[win][1]} teve ${cs[win]} voto${cs[win]>1?'s':''}.`}}
+  if(t==='chance'){const [c1,c2]=sample([['#E8413A','VERMELHA'],['#2E8BF0','AZUL'],['#2DB34A','VERDE'],['#FFC83D','AMARELA']],2),K=['COM CERTEZA','TALVEZ','IMPOSSÍVEL'],k=rnd(0,2),n=rnd(4,6),m=rnd(2,n-2);
+    const balls=k===0?Array(n).fill(c1[0]):k===2?Array(n).fill(c2[0]):shuffle([...Array(m).fill(c1[0]),...Array(n-m).fill(c2[0])]),opts=shuffle([0,1,2]),low=c1[1].toLowerCase();
+    return {verb:'jump',text:`Vou tirar uma bola do saco sem olhar. Vai sair uma bola <b>${c1[1]}</b>? PULE EM CIMA da resposta`,board:bBag(balls),opts:opts.map(i=>({pic:pWord(K[i])})),ans:opts.indexOf(k),
+      hint:`Olhe as bolas do saco. Todas são da cor ${low}? Só algumas? Nenhuma?`,explain:k===0?`Só tem bola ${low}. Então sai com certeza!`:k===2?`Não tem nenhuma bola ${low}. Então é impossível!`:`Tem bola ${low} e de outra cor. Então talvez saia.`}}
   if(t==='pint'){const n=rnd(L===1?2:4,L===1?9:10);
     return {verb:'paint',multi:true,layout:'tiles',text:`PINTE <b>${n}</b> quadrados do chão`,opts:range(1,10).map(()=>({})),check:s=>s.length===n,sol:range(0,n-1),count:s=>`Você pintou ${s.length}.`,hint:`Conte enquanto pinta. Precisa dar ${n}.`}}
   if(t==='compl'){const k=rnd(2,8);
@@ -435,7 +526,7 @@ function compose(T,dens){for(let k=0;k<25;k++){const out=[];let r=T;while(r>0){c
   const out=[];let r=T;dens.slice().sort((a,b)=>b-a).forEach(d=>{while(r>=d){out.push(d);r-=d}});return out}
 function genMoney(L){
   const dens=L===1?[1,2,5]:L===2?[1,2,5,10]:[1,2,5,10,20,50];
-  const t=pick(L===1?['qt','pague','vale','leve']:L===2?['qt','leve','troco','compre']:['qt','leve','troco','pague']);
+  const t=pickSkill('dinheiro',L===1?['qt','pague','vale','leve']:L===2?['qt','leve','troco','compre']:['qt','leve','troco','pague']);
   const lo=L===1?3:L===2?8:15,hi=L===1?10:L===2?30:95;
   if(t==='qt'){const T=rnd(lo,hi),items=shuffle(compose(T,dens)),q=numJump(T,[T+1,T-1,T+5,T-5,T+10],1,200,3,v=>'R$ '+v);
     return Object.assign(q,{text:say('jump','o',`valor de todo o dinheiro da placa`),board:bMoney(items),hint:'Comece pelas notas maiores e vá somando.',explain:`${items.slice().sort((a,b)=>b-a).join(' + ')} = ${T} reais`})}
@@ -445,8 +536,8 @@ function genMoney(L){
   if(t==='leve'){const T=rnd(lo,Math.min(hi,L===3?60:hi)),sol=compose(T,dens),items=shuffle([...sol,pick(dens),pick(dens),pick(dens)]).map(v=>({pic:pMoney(v),v,s:2.2}));
     const solIdx=[],used=items.map(()=>false);sol.forEach(v=>{const i=items.findIndex((x,j)=>!used[j]&&x.v===v);used[i]=true;solIdx.push(i)});
     return {verb:'carry',box:'caixa',text:`LEVE dinheiro para o caixa 🧾 até dar <b>R$ ${T}</b>`,items,check:v=>sum(v)===T,solIdx,count:v=>`No caixa tem R$ ${sum(v)}.`,hint:`Some o que está no caixa. Precisa dar R$ ${T}. Para tirar, pise no ➖.`}}
-  if(t==='vale'){let a=rnd(3,10),b;do{b=rnd(3,10)}while(b===a);const ask=pick(['MAIS','MENOS']);
-    return {verb:'circle',text:say('circle','o',`cofrinho com <b>${ask}</b> dinheiro`),opts:[a,b].map(T=>({pic:pMoneyGroup(shuffle(compose(T,[1,2,5]))),picS:2.8,cr:.9})),ans:(ask==='MAIS')===(a>b)?0:1,hint:'Some o dinheiro de cada cofrinho e compare.',explain:`Um tem R$ ${a} e o outro tem R$ ${b}.`}}
+  if(t==='vale'){const vs=sample(range(3,10),3),ask=pick(['MAIS','MENOS']);
+    return {verb:'circle',text:say('circle','o',`cofrinho com <b>${ask}</b> dinheiro`),opts:vs.map(T=>({pic:pMoneyGroup(shuffle(compose(T,[1,2,5]))),picS:2.8,cr:.9})),ans:vs.indexOf(ask==='MAIS'?Math.max(...vs):Math.min(...vs)),hint:'Some o dinheiro de cada cofrinho e compare.',explain:`Os cofrinhos têm ${vs.map(v=>'R$ '+v).join(', ')}.`}}
   if(t==='troco'){const H=L===2?pick([5,10]):pick([10,20,50]),pr=rnd(1,H-1),gd=pick(GOODS),ans=H-pr,q=numJump(ans,[ans+1,ans-1,pr],0,100,3,v=>'R$ '+v);
     return Object.assign(q,{text:`Você comprou ${gd[1]} de R$ ${pr} e pagou com uma nota de R$ ${H}. PULE EM CIMA do <b>troco</b>`,board:bTroco(H,gd[0],pr),hint:`Tire ${pr} de ${H}. Pode contar para trás!`,explain:`${H} − ${pr} = ${ans} reais de troco`})}
   const B=rnd(4,9),gs=sample(GOODS,4),prices=shuffle([rnd(1,B),rnd(1,B),rnd(B+1,B+6),rnd(B+1,B+6)]),sol=prices.map((p,i)=>p<=B?i:-1).filter(i=>i>=0);
@@ -454,11 +545,11 @@ function genMoney(L){
 }
 function genN100(L){
   const M=[39,69,99][L-1];
-  const t=pick(L===1?['dez','viz','maior','fam','monte']:L===2?['dez','quadro','monte','fam','seq']:['quadro','monte','maior','seq','viz','fam']);
+  const t=pickSkill('n100',L===1?['dez','viz','maior','fam','monte']:L===2?['dez','quadro','monte','fam','seq']:['quadro','monte','maior','seq','viz','fam']);
   if(t==='dez'){const n=rnd(11,M),d=Math.floor(n/10),u=n%10,sw=u*10+d,q=numJump(n,[u&&sw<=100&&sw!==n?sw:n+10,n+10,n-10,n+1],10,100);
     return Object.assign(q,{text:say('jump','o',`número que mostra quantos cubinhos tem na placa`),board:bRods(d,u),hint:'Cada barra azul tem 10. Conte 10, 20, 30... e depois some os cubinhos vermelhos.',explain:`${d} dezenas e ${u} unidades = ${n}`})}
   if(t==='monte'){const n=rnd(L===1?12:21,M),d=Math.floor(n/10),u=n%10;
-    const items=shuffle([...range(1,Math.min(9,d+2)).map(()=>({pic:pRod,v:10,s:2.4})),...range(1,Math.min(12,u+3)).map(()=>({pic:pCube,v:1,s:1.5}))]);
+    const items=shuffle([...range(1,Math.min(9,d+1)).map(()=>({pic:pRod,v:10,s:2.4})),...range(1,u+2).map(()=>({pic:pCube,v:1,s:1.5}))]);
     const solIdx=[];let dd=d,uu=u;items.forEach((x,i)=>{if(x.v===10&&dd>0){dd--;solIdx.push(i)}else if(x.v===1&&uu>0){uu--;solIdx.push(i)}});
     return {verb:'carry',box:'caixa',text:`MONTE o número <b>${n}</b>: leve barras de 10 e cubinhos para a caixa`,items,check:v=>sum(v)===n,solIdx,count:v=>`Na caixa tem ${v.filter(x=>x===10).length} barras e ${v.filter(x=>x===1).length} cubinhos = ${sum(v)}.`,hint:`${n} é ${d} barras de 10 e ${u} cubinhos.`,explain:`${d} dezenas e ${u} unidades = ${n}`}}
   if(t==='quadro'){const x=rnd(12,M),r0=Math.floor((x-1)/10),c0=(x-1)%10,c1=clamp(c0-2,0,5);
@@ -479,22 +570,24 @@ function genN100(L){
 }
 const DIAS=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
 function genMeasure(L){
-  const t=pick(L===1?['comp','altura','peso','capac','tempo']:L===2?['comp','altura','peso','capac','semana','clipes']:['comp','peso','clipes','semana','capac','altura']);
+  const t=pickSkill('medidas',L===1?['comp','altura','peso','capac','tempo']:L===2?['comp','altura','peso','capac','semana','clipes','tempo']:['comp','peso','clipes','semana','capac','altura']);
   if(t==='comp'){const lens=sample([5,7,9.5,12],3),ask=pick(['MAIS COMPRIDO','MAIS CURTO']);
     const opts=lens.map((Ln,i)=>{const A=-.2+i*3.4,start=L===1?-7.5:-9+Math.random()*(17-Ln-1.5);return {pos:[A,start+Ln/2],size:[1.4,.8,Ln],noPic:true,color:'#FFC83D',model:mPencil(start,Ln)}});
     return {verb:'jump',text:say('jump','o',`lápis <b>${ask}</b>`),opts,ans:lens.indexOf(ask==='MAIS COMPRIDO'?Math.max(...lens):Math.min(...lens)),hint:L===1?'Todos começam no mesmo lugar. Veja onde cada um termina.':'Eles não começam no mesmo lugar! Compare o tamanho de cada um, da borracha até a ponta.'}}
   if(t==='altura'){const hs=sample([2,3.4,4.8,6.2],3),ask=pick(['MAIS ALTO','MAIS BAIXO']);
     return {verb:'circle',text:say('circle','o',`prédio <b>${ask}</b>`),opts:hs.map(h=>({model:mBuild(h),cr:1.6})),ans:hs.indexOf(ask==='MAIS ALTO'?Math.max(...hs):Math.min(...hs)),hint:'Olhe até onde cada prédio chega.'}}
   if(t==='peso'){const ask=pick(['PESADO','LEVE']);
-    if(L===1){const pr=pick([['🐘','🐭'],['🧱','🪶'],['🍉','🍒'],['🚗','🚲'],['🐋','🐟']]),arr=Math.random()<.5?[pr[1],pr[0]]:pr.slice();
-      return {verb:'circle',text:say('circle','o',`mais <b>${ask}</b>`),opts:arr.map(e=>({pic:pEmo(e),bare:true,picS:3,picY:1.7,cr:.9})),ans:arr.indexOf(ask==='PESADO'?pr[0]:pr[1]),hint:'Pense: qual seria mais difícil de levantar?'}}
+    if(L===1){const pr=pick([['🐘','🐶','🐭'],['🚌','🚲','⚽'],['🐋','🐬','🐟'],['🍉','🍎','🍒'],['🚗','🧸','🎈']]),arr=shuffle(pr);
+      return {verb:'circle',text:say('circle','o',`mais <b>${ask}</b>`),opts:arr.map(e=>({pic:pEmo(e),bare:true,picS:3,picY:1.7,cr:.9})),ans:arr.indexOf(ask==='PESADO'?pr[0]:pr[2]),hint:ask==='PESADO'?'Pense: qual seria o mais difícil de levantar?':'Pense: qual seria o mais fácil de levantar?'}}
     const [a,b]=sample(['🧸','⚽','📦','🎁','🍍','🥥','🎒'],2),tilt=Math.random()<.5?1:-1,end=s=>2.5-s*3.8*Math.sin(tilt*.17),heavy=tilt>0?1:0;
     return {verb:'circle',text:`Olhe a balança. ${say('circle','o',`mais <b>${ask}</b>`)}`,decor:dBalance(tilt),opts:[{pos:[2,-3.8],model:mPan(end(-1)-1.1,a),cr:1},{pos:[2,3.8],model:mPan(end(1)-1.1,b),cr:1}],ans:ask==='PESADO'?heavy:1-heavy,hint:'Na balança, o lado mais pesado desce e o mais leve sobe.'}}
   if(t==='capac'){const lv=sample([.12,.34,.56,.76,.94],3),ask=pick(['MAIS CHEIO','MAIS VAZIO']);
     return {verb:'circle',text:say('circle','o',`copo <b>${ask}</b>`),opts:lv.map(v=>({model:mCup(v),cr:1.1})),ans:lv.indexOf(ask==='MAIS CHEIO'?Math.max(...lv):Math.min(...lv)),hint:'Olhe até onde vai a água azul.'}}
-  if(t==='tempo'){const cards=shuffle([{e:'🌙😴',l:'Dormir',k:'NOITE'},{e:'🐓☕',l:'Café da manhã',k:'MANHÃ'},{e:'☀️⚽',l:'Brincar no sol',k:'DIA'}]),ask=pick(['NOITE','MANHÃ']);
-    return {verb:'jump',text:`PULE EM CIMA do que fazemos de <b>${ask}</b>`,opts:cards.map(c=>({pic:pTime(c.e,c.l)})),ans:cards.findIndex(c=>c.k===ask),hint:'Pense no seu dia: o que você faz quando acorda? E antes de dormir?'}}
+  if(t==='tempo'){const M=[['🌅⏰','Acordar'],['☕🥖','Café da manhã'],['🌅🐓','O galo canta']],N=[['🌙😴','Dormir'],['🌙🍽️','Jantar'],['🌙⭐','Ver as estrelas']],noite=Math.random()<.5,ok=pick(noite?N:M),cards=shuffle([ok,...sample(noite?M:N,2)]);
+    return {verb:'jump',text:`PULE EM CIMA do que acontece de <b>${noite?'NOITE':'MANHÃ'}</b>`,opts:cards.map(c=>({pic:pTime(c[0],c[1])})),ans:cards.indexOf(ok),hint:'Pense no seu dia: o que acontece quando você acorda? E antes de dormir?'}}
   if(t==='semana'){
+    if(Math.random()<.35){const i=rnd(0,6),ontem=L===3&&Math.random()<.5,ans=(i+(ontem?6:1))%7,opts=shuffle([ans,...sample(range(0,6).filter(d=>d!==ans&&d!==i),2)]);
+      return {verb:'jump',text:`Hoje é ${DIAS[i]}. PULE EM CIMA do dia que ${ontem?'foi <b>ONTEM</b>':'vai ser <b>AMANHÃ</b>'}`,board:bBig(DIAS[i].toUpperCase(),'HOJE'),opts:opts.map(v=>({pic:pWord(DIAS[v])})),ans:opts.indexOf(ans),hint:'ONTEM é o dia que já passou. AMANHÃ é o dia que vem depois de hoje.'}}
     if(L===3&&Math.random()<.25){const q=numJump(7,[5,6,10],1,12);return Object.assign(q,{text:say('jump','o',`número que diz quantos dias tem <b>uma semana</b>`),board:bBig('📅 SEMANA'),hint:'Domingo, segunda, terça... conte todos!'})}
     const i=rnd(0,6),antes=L===3&&Math.random()<.5,ans=(i+(antes?-1:1)+7)%7,opts=shuffle([ans,...sample(range(0,6).filter(d=>d!==ans&&d!==i),2)]);
     return {verb:'jump',text:say('jump','o',`dia que vem <b>${antes?'ANTES':'DEPOIS'}</b> de ${DIAS[i]}`),board:bBig(DIAS[i].toUpperCase()),opts:opts.map(v=>({pic:pWord(DIAS[v])})),ans:opts.indexOf(ans),hint:'Domingo, segunda, terça, quarta, quinta, sexta, sábado.'}}
@@ -503,14 +596,13 @@ function genMeasure(L){
 }
 
 /* --- obby + shapes --- */
-function genArith(L){let a,b,op;
-  if(L===1){if(Math.random()<.6){op='+';a=rnd(1,8);b=rnd(1,10-a)}else{op='−';a=rnd(3,10);b=rnd(1,a-1)}}
-  else if(L===2){if(Math.random()<.55){op='+';a=rnd(4,14);b=rnd(2,20-a)}else{op='−';a=rnd(8,20);b=rnd(2,a-2)}}
-  else{const k=Math.random();
-    if(k<.3){op='+';a=rnd(1,6)*10;b=rnd(1,9-a/10)*10}else if(k<.6){op='+';a=rnd(2,8)*10+rnd(0,5);b=rnd(1,4)}
-    else if(k<.8){op='−';a=rnd(3,9)*10;b=rnd(1,a/10-1)*10}else{op='−';a=rnd(2,9)*10+rnd(5,9);b=rnd(1,5)}}
+function genArith(L){let a,b;const add=pickSkill('contas',['soma','sub'])==='soma',op=add?'+':'−';
+  if(L===1){if(add){a=rnd(1,8);b=rnd(1,10-a)}else{a=rnd(3,10);b=rnd(1,a-1)}}
+  else if(L===2){if(add){a=rnd(4,14);b=rnd(2,20-a)}else{a=rnd(8,20);b=rnd(2,a-2)}}
+  else if(add){if(Math.random()<.5){a=rnd(1,6)*10;b=rnd(1,9-a/10)*10}else{a=rnd(2,8)*10+rnd(0,5);b=rnd(1,4)}}
+  else if(Math.random()<.5){a=rnd(3,9)*10;b=rnd(1,a/10-1)*10}else{a=rnd(2,9)*10+rnd(5,9);b=rnd(1,5)}
   const ans=op==='+'?a+b:a-b,wrong=optNums(ans,[ans+1,ans-1,ans+2,op==='+'?Math.abs(a-b):a+b,ans+10,ans-10],0,200,3).filter(v=>v!==ans);
-  return {a,b,op,ans,opts:shuffle([ans,...wrong])}}
+  return {a,b,op,ans,opts:shuffle([ans,...wrong]),skill:lastSkill}}
 const SHAPE_INFO={
   'cubo':{g:'o',obj:'um dado 🎲',prop:'que tem 6 faces quadradas, igual a um dado'},
   'esfera':{g:'a',obj:'uma bola ⚽',prop:'que ROLA e não tem nenhuma ponta'},
@@ -522,17 +614,17 @@ const SHAPE_INFO={
   'triângulo':{g:'o',prop:'com 3 lados',flat:1},'retângulo':{g:'o',prop:'com 4 lados: 2 compridos e 2 curtos',flat:1}
 };
 function genShapeQ(L,prev){const names=Object.keys(SHAPE_INFO).filter(n=>n!==prev&&(L>=2||!SHAPE_INFO[n].flat));
-  const n=pick(names),I=SHAPE_INFO[n],art=I.g==='a'?'na':'no',UP=n.toUpperCase();let text;
+  const n=pickSkill('formas',names),I=SHAPE_INFO[n],art=I.g==='a'?'na':'no',UP=n.toUpperCase();let text;
   if(I.flat)text=L===3?`Pise na figura <b>${I.prop}</b>`:`Pise ${art} <b>${UP}</b> desenhado no chão`;
   else if(L===1)text=`Encoste ${art} <b>${UP}</b>`;else if(L===2)text=Math.random()<.5?`Encoste na forma que parece <b>${I.obj}</b>`:`Encoste ${art} <b>${UP}</b>`;
-  else text=`Encoste na forma <b>${I.prop}</b>`;return {n,text}}
+  else text=`Encoste na forma <b>${I.prop}</b>`;return {n,text,skill:lastSkill}}
 
 /* --- NEW: 🎯 shooter --- */
 function mkExpr(v,L){const sub=Math.random()<(L===1?.3:.45);
   if(L<3){if(sub){const b=rnd(1,L===1?5:9),a=v+b;if(a>(L===1?10:20))return null;return `${a} − ${b}`}if(v<2)return null;const a=rnd(1,v-1);return `${a} + ${v-a}`}
   if(sub){const b=pick([10,20,1,2,3]),a=v+b;if(a>99)return null;return `${a} − ${b}`}
   const tens=Math.floor(v/10),u=v%10;if(Math.random()<.5&&tens>=2){const x=rnd(1,tens-1)*10;return `${x} + ${v-x}`}if(u>=1){const k=rnd(1,u);return `${v-k} + ${k}`}return `${v-10} + 10`}
-function genShootArith(L){const T=L===1?rnd(4,10):L===2?rnd(8,18):pick([20,30,40,50,60,70,80])+(Math.random()<.5?0:rnd(1,8));
+function genShootArith(L){tag('contas','decompor');const T=L===1?rnd(4,10):L===2?rnd(8,18):pick([20,30,40,50,60,70,80])+(Math.random()<.5?0:rnd(1,8));
   const ok=new Set();let g=0;while(ok.size<3&&g<200){g++;const e=mkExpr(T,L);if(e)ok.add(e)}
   const bad=new Set();g=0;while(bad.size<5&&g<400){g++;const v=T+pick(L===3?[-10,-2,-1,1,2,10]:[-2,-1,1,2,3]);if(v<1)continue;const e=mkExpr(v,L);if(e&&!ok.has(e))bad.add(e)}
   const items=shuffle([...[...ok].map(l=>({label:l,ok:true})),...[...bad].map(l=>({label:l,ok:false}))]);
@@ -541,7 +633,7 @@ const FIGS=['círculo','quadrado','triângulo','retângulo'],SOLS=['esfera','cub
 const PLUR={'círculo':'CÍRCULOS','quadrado':'QUADRADOS','triângulo':'TRIÂNGULOS','retângulo':'RETÂNGULOS','esfera':'ESFERAS','cubo':'CUBOS','cilindro':'CILINDROS','cone':'CONES','pirâmide':'PIRÂMIDES','bloco':'BLOCOS'};
 function genShootShapes(L){const cols=['#E8413A','#2E8BF0','#FFC83D','#2DB34A','#8B4CF0','#FF8A1F'];
   const fig=k=>({name:k,draw:(g,cx,cy,s)=>drawFig(g,k,cx,cy,s,pick(cols))}),sol=k=>({name:k,draw:(g,cx,cy,s)=>drawSolid(g,k,cx,cy,s,pick(cols))});
-  let text,pool,isOk,make;const mode=L===1?'fig':L===2?pick(['fig','sol','lados4']):pick(['rolam','lados3','sol','semcanto']);
+  let text,pool,isOk,make;const mode=L===1?tag('formas','tfig')&&'fig':pickSkill('formas',L===2?['tfig','tsol','lados4']:['rolam','lados3','tsol','semcanto']).replace(/^t(fig|sol)$/,'$1');
   if(mode==='fig'){const k=pick(FIGS);text=`Estoure TODOS os <b>${PLUR[k]}</b>`;pool=FIGS;isOk=n=>n===k;make=fig}
   else if(mode==='sol'){const k=pick(SOLS);text=`Estoure ${['esfera','pirâmide'].includes(k)?'TODAS as':'TODOS os'} <b>${PLUR[k]}</b>`;pool=SOLS;isOk=n=>n===k;make=sol}
   else if(mode==='lados4'){text='Estoure as figuras com <b>4 lados</b>';pool=FIGS;isOk=n=>n==='quadrado'||n==='retângulo';make=fig}
@@ -556,11 +648,11 @@ function genShootShapes(L){const cols=['#E8413A','#2E8BF0','#FFC83D','#2DB34A','
 function floorQ(text,pred,pool,needOk,explain){const oks=shuffle(pool.filter(pred)),bads=shuffle(pool.filter(v=>!pred(v))),k=Math.min(oks.length,needOk,9);
   const vals=shuffle([...oks.slice(0,k),...bads.slice(0,9-k)]);return {text,labels:vals.map(String),ok:vals.map(pred),explain}}
 const near9=(n,lo,hi)=>range(Math.max(lo,n-9),Math.min(hi,n+9));
-function genFloorOrder(L){const max=L===1?20:L===2?60:100,t=pick(L===1?['depois','antes','depois']:L===2?['depois','antes','maior','menor']:['salto','maior','depois','antes']);
+function genFloorOrder(L){const max=L===1?20:L===2?60:100,t=pickSkill('ordem',L===1?['depois','antes','depois']:L===2?['depois','antes','maior','menor']:['salto','maior','depois','antes']);
   if(t==='depois'||t==='antes'){const x=rnd(1,max-1),ans=t==='depois'?x+1:x-1;return floorQ(`Pise no número que vem <b>${t.toUpperCase()}</b> do ${x}`,v=>v===ans,near9(ans,0,max),1,`${t==='depois'?`${x}, ${ans}`:`${ans}, ${x}`}`)}
   if(t==='maior'||t==='menor'){const x=rnd(10,max-10);return floorQ(`Pise em um número <b>${t.toUpperCase()}</b> que ${x}`,t==='maior'?v=>v>x:v=>v<x,range(Math.max(0,x-20),Math.min(max,x+20)),3,`Os números ${t==='maior'?'maiores':'menores'} que ${x} ficaram.`)}
   const s=pick([2,5,10]),a=s*rnd(1,s===10?6:8),ans=a+2*s;return floorQ(`Conte de ${s} em ${s}: ${a}, ${a+s}, <b>?</b>`,v=>v===ans,near9(ans,0,100).concat([ans+s,a]).filter((v,i,ar)=>ar.indexOf(v)===i),1,`${a}, ${a+s}, ${ans}`)}
-function genFloorN100(L){const M=[39,69,99][L-1],t=pick(L===1?['du','familia','entre']:L===2?['du','familia','maior','entre']:['du','maior','conta','familia']);
+function genFloorN100(L){const M=[39,69,99][L-1],t=({dez:'du',fam:'familia',viz:'entre'})[pickSkill('n100',L===1?['dez','fam','viz']:L===2?['dez','fam','maior','viz']:['dez','maior','conta','fam'])]||lastSkill.split('.')[1];
   if(t==='du'){const n=rnd(11,M),d=Math.floor(n/10),u=n%10,pool=near9(n,10,M).concat(u&&u*10+d<=99?[u*10+d]:[]).filter((v,i,a)=>a.indexOf(v)===i);return floorQ(`Pise no número com <b>${d} dezena${d>1?'s':''} e ${u} unidade${u===1?'':'s'}</b>`,v=>v===n,pool,1,`${d} dezenas e ${u} unidades = ${n}`)}
   if(t==='familia'){const d=rnd(1,Math.floor(M/10));return floorQ(`Pise em um número de <b>${d*10} até ${d*10+9}</b>`,v=>Math.floor(v/10)===d,range(1,M),3,`Começam com ${d}: são da família do ${d*10}.`)}
   if(t==='entre'){const x=rnd(11,M-1);return floorQ(`Pise no número que fica <b>ENTRE</b> ${x-1} e ${x+1}`,v=>v===x,near9(x,0,M),1,`${x-1}, ${x}, ${x+1}`)}
@@ -569,24 +661,25 @@ function genFloorN100(L){const M=[39,69,99][L-1],t=pick(L===1?['du','familia','e
 
 /* --- NEW: 🤝 help friends (share / deliver) --- */
 function genShareN10(L){const [e,nm,ar]=pick([['🍪','biscoitos','os'],['🍎','maçãs','as'],['🍓','morangos','os'],['⚽','bolas','as'],['🍬','balas','as']]);
-  if(Math.random()<.5){const f=L===1?2:L===2?pick([2,3]):pick([3,4]),p=L===1?rnd(1,4):L===2?rnd(1,4):rnd(2,3),tot=f*p;
+  if(pickSkill('n10',['dividir','entregar'])==='dividir'){const f=L===1?2:L===2?pick([2,3]):pick([3,4]),p=L===1?rnd(1,4):L===2?rnd(1,4):rnd(2,3),tot=f*p;
     const items=range(1,tot).map(()=>({e,v:1})),sol=range(0,f-1).map(i=>range(i*p,i*p+p-1));
     return {text:`Divida ${ar} <b>${tot} ${nm}</b> IGUALMENTE entre os ${f} amigos. Use tod${ar}!`,friends:range(1,f).map(()=>({bubble:pBubble('Divida','igualmente!')})),items,sol,
       check:a=>a.every(x=>x.length===p),count:a=>`Cada um ficou com: ${a.map(x=>x.length).join(', ')}.`,hint:'Dê um para cada amigo, depois mais um para cada, até acabar.',explain:`${tot} dividido entre ${f} amigos dá ${p} para cada um.`}}
-  const f=L===1?2:3,wants=range(1,f).map(()=>rnd(1,L===1?5:6)),tot=sum(wants),items=range(1,tot+2).map(()=>({e,v:1}));let k=0;const sol=wants.map(w=>{const s=range(k,k+w-1);k+=w;return s});
+  const f=L===1?2:3,wants=range(1,f).map(()=>rnd(1,5)),tot=sum(wants),items=range(1,tot+2).map(()=>({e,v:1}));let k=0;const sol=wants.map(w=>{const s=range(k,k+w-1);k+=w;return s});
   return {text:`Cada amigo pediu ${nm}. Entregue o que cada um pediu!`,friends:wants.map(w=>{if(L>=2&&w>=2){const a=rnd(1,w-1);return {bubble:pBubble(`Quero ${a} + ${w-a}`,e)}}return {bubble:pBubble(`Quero ${w}`,e)}}),items,sol,
     check:a=>a.every((x,i)=>x.length===wants[i]),count:a=>`Você entregou: ${a.map(x=>x.length).join(', ')}.`,hint:'Leia o balão de cada amigo e conte antes de entregar.',explain:`Eles queriam ${wants.join(', ')}.`}}
-function genShareMoney(L){const f=L===1?2:3,dens=L===1?[1,2]:L===2?[1,2,5]:[1,2,5,10],hi=L===1?6:L===2?12:25,wants=range(1,f).map(()=>rnd(L===1?2:4,hi));
+function genShareMoney(L){tag('dinheiro','trocado');const f=L===1?2:3,dens=L===1?[1,2]:L===2?[1,2,5]:[1,2,5,10],hi=L===1?6:L===2?12:25,wants=range(1,f).map(()=>rnd(L===1?2:4,hi));
   const parts=wants.map(w=>compose(w,dens)),vals=[...parts.flat(),pick(dens),pick(dens)],items=vals.map(v=>({pic:pMoney(v),v,s:2.1}));let k=0;const sol=parts.map(p=>{const s=range(k,k+p.length-1);k+=p.length;return s});
   return {text:'Os clientes pediram dinheiro trocado. Entregue o valor certo para cada um!',friends:wants.map(w=>({bubble:pBubble('Quero',`R$ ${w}`)})),items,sol,
     check:a=>a.every((x,i)=>sum(x)===wants[i]),count:a=>`Você entregou: ${a.map(x=>'R$ '+sum(x)).join(', ')}.`,hint:'Some as notas e moedas de cada cliente.',explain:`Eles pediram ${wants.map(w=>'R$ '+w).join(', ')}.`}}
 
 /* --- NEW: 🏗️ build stairs --- */
 function genBuild(L){
+  tag('medidas','esc'+(L<3?L:Math.random()<.5?3:4));
   if(L===1){const n=rnd(3,7);return {text:`Construa uma escada com <b>${n}</b> degraus`,refs:[],check:x=>x===n,sol:n,supply:n+3,hint:`Conte os degraus. Precisa ter ${n}.`,explain:`A escada precisava de ${n} degraus.`}}
   if(L===2){const r=rnd(2,6),d=rnd(1,3),more=r-d<1||Math.random()<.6,n=more?r+d:r-d;
     return {text:`Olhe a escada da Nina. Construa uma com <b>${d} degrau${d>1?'s':''} a ${more?'MAIS':'MENOS'}</b>`,refs:[{name:'Nina',steps:r}],check:x=>x===n,sol:n,supply:Math.max(n,r)+3,hint:`A da Nina tem ${r}. ${more?'Some':'Tire'} ${d}.`,explain:`${r} ${more?'+':'−'} ${d} = ${n}`}}
-  if(Math.random()<.5){const a=rnd(2,5),b=a+rnd(2,4);return {text:'Construa uma escada <b>MAIS ALTA</b> que a da Nina e <b>MAIS BAIXA</b> que a do Theo',refs:[{name:'Nina',steps:a},{name:'Theo',steps:b}],check:x=>x>a&&x<b,sol:a+1,supply:b+2,hint:`A da Nina tem ${a} e a do Theo tem ${b}. Pode ser um número entre eles.`,explain:`Qualquer número entre ${a} e ${b} servia.`}}
+  if(lastSkill==='medidas.esc3'){const a=rnd(2,5),b=a+rnd(2,4);return {text:'Construa uma escada <b>MAIS ALTA</b> que a da Nina e <b>MAIS BAIXA</b> que a do Theo',refs:[{name:'Nina',steps:a},{name:'Theo',steps:b}],check:x=>x>a&&x<b,sol:a+1,supply:b+2,hint:`A da Nina tem ${a} e a do Theo tem ${b}. Pode ser um número entre eles.`,explain:`Qualquer número entre ${a} e ${b} servia.`}}
   const x=rnd(1,5),y=rnd(1,9-x);return {text:`Construa uma escada com <b>${x} + ${y}</b> degraus`,refs:[],check:v=>v===x+y,sol:x+y,supply:x+y+3,hint:`Faça a conta: ${x} + ${y}.`,explain:`${x} + ${y} = ${x+y}`}}
 
 /* ================= STATIONS / WORLDS ================= */
@@ -609,7 +702,7 @@ const STATIONS=[
     intro:'Oi, eu sou a Nina! Na oficina a gente mede tudo: comprido, alto, pesado, cheio.',modes:[{k:'act',gen:genMeasure,i:'📏',n:'Desafios da Oficina',d:'Lápis gigantes, prédios, copos e balança.'},{k:'build',gen:genBuild,i:'🏗️',n:'Construa a Escada',d:'Monte a escada do tamanho certo e suba no baú!'}]}
 ];
 const STM=Object.fromEntries(STATIONS.map(s=>[s.id,s]));
-const withArt=name=>`${({'Bia':'a','Lia':'a','Duda':'a','Nina':'a'})[name]||'o'} ${name}`;
+const withArt=name=>`${({'Bia':'a','Lia':'a','Duda':'a','Nina':'a','Ana':'a'})[name]||'o'} ${name}`;
 window.__ilha={genVocab,genN10,genMoney,genN100,genMeasure,genArith,genShapeQ,genShootArith,genShootShapes,genFloorOrder,genFloorN100,genShareN10,genShareMoney,genBuild};
 if(typeof THREE==='undefined'){document.body.insertAdjacentHTML('beforeend','<div id="err">Não consegui carregar o mundo 3D. Verifique a internet e abra a página de novo.</div>');return}
 
@@ -625,15 +718,19 @@ scene.add(new THREE.HemisphereLight(0xffffff,0x6f9a62,.78));
 const sun=new THREE.DirectionalLight(0xffffff,.82);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
 Object.assign(sun.shadow.camera,{left:-30,right:30,top:30,bottom:-30,near:1,far:120});scene.add(sun);scene.add(sun.target);
 const MC={};
-const mat=c=>MC[c]||(MC[c]=new THREE.MeshLambertMaterial({color:c}));
+const shared=m=>{m.userData.shared=true;return m};
+const mat=c=>MC[c]||(MC[c]=shared(new THREE.MeshLambertMaterial({color:c})));
+/* frees the GPU memory of a removed object; cached materials and textures are kept */
+function disposeTree(o){o.traverse(c=>{if(c.isSprite){c.material.dispose();return}if(c.geometry)c.geometry.dispose();(Array.isArray(c.material)?c.material:[c.material]).forEach(m=>{if(m&&!m.userData.shared)m.dispose()})})}
+function drop(o){if(!o)return;if(o.parent)o.parent.remove(o);disposeTree(o)}
 const BOX=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
 function mesh(geo,m,x,y,z,sh){const o=new THREE.Mesh(geo,typeof m==='string'?mat(m):m);o.position.set(x||0,y||0,z||0);if(sh!==false){o.castShadow=true;o.receiveShadow=true}return o}
 function cv(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);return c}
 function tex(c){const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t}
 function gridTex(base,line,n){const t=tex(cv(64,64,g=>{g.fillStyle=base;g.fillRect(0,0,64,64);g.strokeStyle=line;g.lineWidth=4;g.strokeRect(2,2,60,60)}));t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(n,n);return t}
 let _win=null,_glass=null;
-function winMat(){return _win||(_win=new THREE.MeshLambertMaterial({map:tex(cv(64,128,g=>{g.fillStyle='#A9BCD8';g.fillRect(0,0,64,128);g.fillStyle='#FFF6C2';for(let y=8;y<120;y+=22)for(let x=8;x<56;x+=26)g.fillRect(x,y,18,13)}))}))}
-function glassMat(){return _glass||(_glass=new THREE.MeshLambertMaterial({color:'#DDF3FF',transparent:true,opacity:.35}))}
+function winMat(){return _win||(_win=shared(new THREE.MeshLambertMaterial({map:tex(cv(64,128,g=>{g.fillStyle='#A9BCD8';g.fillRect(0,0,64,128);g.fillStyle='#FFF6C2';for(let y=8;y<120;y+=22)for(let x=8;x<56;x+=26)g.fillRect(x,y,18,13)}))})))}
+function glassMat(){return _glass||(_glass=shared(new THREE.MeshLambertMaterial({color:'#DDF3FF',transparent:true,opacity:.35})))}
 function labelTex(text,fg,bg,w,h,size){return tex(cv(w,h,g=>{if(bg){g.fillStyle=bg;rr(g,4,4,w-8,h-8,h/3);g.fill()}fitText(g,text,w-24,size);g.textAlign='center';g.textBaseline='middle';
   g.lineWidth=8;g.strokeStyle=INK;g.strokeText(text,w/2,h/2+2);g.fillStyle=fg;g.fillText(text,w/2,h/2+2)}))}
 function sprite(t,sx,sy){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t}));s.scale.set(sx,sy,1);return s}
@@ -694,7 +791,7 @@ function addTree(x,z){const g=new THREE.Group(),lv=pick(['#2FA84F','#3DBB5A','#2
   g.position.set(x,0,z);g.rotation.y=Math.random()*Math.PI;scene.add(g);COLL.push({x,z,r:.7})}
 
 /* ================= TROPHY MODELS ================= */
-const GOLD=new THREE.MeshLambertMaterial({color:'#FFC83D',emissive:'#4a3200'}),SILVER=new THREE.MeshLambertMaterial({color:'#DCE3EE',emissive:'#202630'}),GHOST=new THREE.MeshLambertMaterial({color:'#9AA6B2',transparent:true,opacity:.35});
+const GOLD=shared(new THREE.MeshLambertMaterial({color:'#FFC83D',emissive:'#4a3200'})),SILVER=shared(new THREE.MeshLambertMaterial({color:'#DCE3EE',emissive:'#202630'})),GHOST=shared(new THREE.MeshLambertMaterial({color:'#9AA6B2',transparent:true,opacity:.35}));
 function makeCopa(m){const g=new THREE.Group(),green=new THREE.MeshLambertMaterial({color:'#2E8B57'});
   g.add(mesh(new THREE.CylinderGeometry(.42,.48,.18,24),m,0,.09,0),mesh(new THREE.CylinderGeometry(.4,.4,.08,24),m===GHOST?m:green,0,.22,0),mesh(new THREE.CylinderGeometry(.4,.42,.1,24),m,0,.31,0));
   const pts=[[.34,0],[.22,.25],[.16,.55],[.2,.8],[.3,1.0],[.36,1.12]].map(([x,y])=>new THREE.Vector2(x,y));
@@ -747,10 +844,10 @@ const HALL={c:{x:0,z:20},tops:{},champTop:null,peds:{}};
     const lab=sprite(labelTex(st.name,'#fff',st.color,512,96,52),3,.56);lab.position.set(x,3.4,z);scene.add(lab);HALL.peds[st.id]={x,z}});
   scene.add(mesh(new THREE.CylinderGeometry(1.1,1.3,1.4,24),'#1B2232',c.x,.7,c.z));COLL.push({x:c.x,z:c.z,r:1.3});
   const cl=sprite(labelTex('TAÇA DOS CAMPEÕES','#FFC83D',INK,768,110,64),4.4,.63);cl.position.set(c.x,5,c.z);scene.add(cl)})();
-function updateHall(){STATIONS.forEach(st=>{const p=HALL.peds[st.id],old=HALL.tops[st.id];if(old)scene.remove(old);const tier=S.trophies[st.id]||0;let m;
+function updateHall(){STATIONS.forEach(st=>{const p=HALL.peds[st.id],old=HALL.tops[st.id];drop(old);const tier=S.trophies[st.id]||0;let m;
     if(tier===3){m=makeCopa(GOLD);m.scale.setScalar(.95)}else if(tier===2)m=makeMedal('#DCE3EE');else if(tier===1)m=makeMedal('#CD7F32');else{m=makeCopa(GHOST);m.scale.setScalar(.8)}
     m.position.set(p.x,1.1,p.z);scene.add(m);HALL.tops[st.id]=m});
-  if(HALL.champTop)scene.remove(HALL.champTop);const m=makeOrelhuda(S.champ?SILVER:GHOST);m.scale.setScalar(1.5);m.position.set(HALL.c.x,1.4,HALL.c.z);scene.add(m);HALL.champTop=m}
+  drop(HALL.champTop);const m=makeOrelhuda(S.champ?SILVER:GHOST);m.scale.setScalar(1.5);m.position.set(HALL.c.x,1.4,HALL.c.z);scene.add(m);HALL.champTop=m}
 /* portals */
 const swirlTex=tex(cv(256,256,g=>{const gr=g.createRadialGradient(128,128,10,128,128,128);gr.addColorStop(0,'#ffffff');gr.addColorStop(.4,'#B8F3FF');gr.addColorStop(1,'#5B6CFF');g.fillStyle=gr;g.fillRect(0,0,256,256);
   g.strokeStyle='rgba(255,255,255,.8)';g.lineWidth=10;for(let i=0;i<5;i++){g.beginPath();g.arc(128,128,30+i*20,i,i+2.2);g.stroke()}}));
@@ -817,8 +914,12 @@ STATIONS.forEach((st,i)=>{const W={x:1000+i*400,z:0};st.c=W;st.u={x:1,z:0};st.v=
 const OBBY={rows:[],boards:[],checkpoints:[]},OX=STM.contas.c.x-42+4;
 function addPlatAA(x0,x1,z0,z1,m){const o=mesh(BOX(x1-x0,1,z1-z0),m,(x0+x1)/2,-.5,(z0+z1)/2);scene.add(o);
   const p={cx:(x0+x1)/2,cz:(z0+z1)/2,ux:1,uz:0,vx:0,vz:1,ha:(x1-x0)/2,hb:(z1-z0)/2,top:0,active:true,mesh:o,mg:.3};PLATS.push(p);return p}
-function platLabel(p,text,bg){const g=p.canvas.getContext('2d');g.fillStyle=bg;g.fillRect(0,0,128,128);g.lineWidth=8;g.strokeStyle=INK;g.strokeRect(4,4,120,120);
-  g.save();g.translate(64,64);g.rotate(Math.PI/2);bigText(g,text,0,4,108,70);g.restore();p.tex.needsUpdate=true}
+/* right and wrong are never shown by colour alone: a ✓ or ✗ badge goes with the green and the red */
+const markCache={};
+function markTex(ok){return markCache[ok]||(markCache[ok]=tex(cv(128,128,g=>{g.fillStyle=ok?'#22B35E':'#E53935';g.beginPath();g.arc(64,64,56,0,7);g.fill();g.lineWidth=8;g.strokeStyle='#fff';g.stroke();g.lineWidth=16;g.lineCap='round';g.lineJoin='round';g.beginPath();
+  if(ok){g.moveTo(36,66);g.lineTo(56,86);g.lineTo(94,44)}else{g.moveTo(42,42);g.lineTo(86,86);g.moveTo(86,42);g.lineTo(42,86)}g.stroke()})))}
+function platLabel(p,text,bg,ok){const g=p.canvas.getContext('2d');g.fillStyle=bg;g.fillRect(0,0,128,128);g.lineWidth=8;g.strokeStyle=INK;g.strokeRect(4,4,120,120);
+  g.save();g.translate(64,64);g.rotate(Math.PI/2);bigText(g,text,0,4,108,70);if(ok!=null)g.drawImage(markTex(ok).image,-58,-58,40,40);g.restore();p.tex.needsUpdate=true}
 (function(){
   addPlatAA(OX+58,OX+66,-4,4,[mat('#E8413A'),mat('#E8413A'),new THREE.MeshLambertMaterial({map:gridTex('#FFFFFF','#E8413A',4)}),mat('#E8413A'),mat('#E8413A'),mat('#E8413A')]);
   for(let k=0;k<5;k++){const rx=OX+69.5+9*k,row=[];
@@ -826,12 +927,17 @@ function platLabel(p,text,bg){const g=p.canvas.getContext('2d');g.fillStyle=bg;g
       const p=addPlatAA(rx-1.5,rx+1.5,z-1.5,z+1.5,[side,side,new THREE.MeshLambertMaterial({map:t}),side,side,side]);p.canvas=canvas;p.tex=t;p.row=k;platLabel(p,'?','#FFFFFF');row.push(p)});
     OBBY.rows.push(row);
     const final=k===4,x0=OX+(final?108.5:72.5+9*k),x1=OX+(final?116:75.5+9*k),zz=final?5:6.5;addPlatAA(x0,x1,-zz,zz,'#C98A4B');OBBY.checkpoints.push({x:(x0+x1)/2,z:0});
-    const bc=cv(512,192,()=>{}),bt=tex(bc),board=new THREE.Mesh(new THREE.PlaneGeometry(5.4,2),new THREE.MeshBasicMaterial({map:bt,side:THREE.DoubleSide}));
-    board.position.set(rx+1,5.2,0);board.rotation.y=-Math.PI/2;scene.add(board);
+    const bc=cv(512,288,()=>{}),bt=tex(bc),board=new THREE.Mesh(new THREE.PlaneGeometry(5.4,3.04),new THREE.MeshBasicMaterial({map:bt,side:THREE.DoubleSide}));
+    board.position.set(rx+1,5,0);board.rotation.y=-Math.PI/2;scene.add(board);
     scene.add(mesh(BOX(.25,5,.25),'#7A4B2A',rx+1.2,2.5,-2.8),mesh(BOX(.25,5,.25),'#7A4B2A',rx+1.2,2.5,2.8));OBBY.boards.push({c:bc,t:bt})}
   const cup=makeCopa(GOLD);cup.scale.setScalar(1.6);cup.position.set(OX+113.5,0,0);scene.add(cup);OBBY.cup=cup})();
-function drawBoard(k,text,done){const b=OBBY.boards[k],g=b.c.getContext('2d');g.clearRect(0,0,512,192);g.fillStyle=done?'#22B35E':'#FFFFFF';rr(g,6,6,500,180,30);g.fill();g.lineWidth=10;g.strokeStyle=INK;g.stroke();
-  bigText(g,text,256,100,460,96,done?'#FFFFFF':INK);b.t.needsUpdate=true}
+/* Up to 20, the board also shows the sum as dots in groups of 5 (taken-away dots are crossed out), so the child can count. */
+function drawBoard(k,text,done,q){const b=OBBY.boards[k],g=b.c.getContext('2d'),dots=q&&Math.max(q.a,q.ans)<=20;g.clearRect(0,0,512,288);g.fillStyle=done?'#22B35E':'#FFFFFF';rr(g,6,6,500,276,30);g.fill();g.lineWidth=10;g.strokeStyle=INK;g.stroke();
+  bigText(g,text,256,dots?78:150,460,dots?84:96,done?'#FFFFFF':INK);
+  if(dots){const add=q.op==='+',n=add?q.a+q.b:q.a,r=n>10?15:17,sx=2*r+8,x0=256-(Math.min(n,10)*sx+(n>5?14:0))/2+sx/2;
+    for(let i=0;i<n;i++){const c=i%10,x=x0+c*sx+(c>=5?14:0),y=n>10?172+Math.floor(i/10)*46:196;g.fillStyle=add&&i>=q.a?'#FF8A1F':'#2E8BF0';g.beginPath();g.arc(x,y,r,0,7);g.fill();g.lineWidth=3;g.strokeStyle=INK;g.stroke();
+      if(!add&&i>=q.a-q.b){g.lineWidth=7;g.strokeStyle='#E53935';g.beginPath();g.moveTo(x-r-2,y-r-2);g.lineTo(x+r+2,y+r+2);g.moveTo(x+r+2,y-r-2);g.lineTo(x-r-2,y+r+2);g.stroke()}}}
+  b.t.needsUpdate=true}
 OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));
 /* shapes park (world 'formas') */
 const SHAPES=[];
@@ -847,15 +953,15 @@ const SHAPES=[];
 const P=new THREE.Vector3(SPAWN.x,0,SPAWN.z);let vy=0,onGround=true,standing=null,rotY=Math.PI,yaw=0,pitch=.38,camRot=0;
 let PL=null,PET=null,checkpoint=null,tool=null,WORLD=null,portalCD=0;
 function look(){return {skin:find('skin',S.look.skin).c,shirt:find('shirt',S.look.shirt).c,pants:find('pants',S.look.pants).c,hat:S.look.hat}}
-function buildPlayer(){if(PL)scene.remove(PL.g);PL=makeChar(look());PL.g.position.copy(P);PL.g.rotation.y=rotY;
-  const ns=sprite(labelTex(S.name||'Jogador','#fff',null,256,64,40),2.2,.55);ns.position.y=3.35;PL.g.add(ns);scene.add(PL.g);
-  if(PET)scene.remove(PET);PET=makePet(S.look.pet);if(PET){PET.position.set(P.x+1,0,P.z+1);scene.add(PET)}
+function buildPlayer(){if(PL){endAnim(true);dropTool();if(PL.ns)PL.ns.material.map.dispose();drop(PL.g)}PL=makeChar(look());PL.g.position.copy(P);PL.g.rotation.y=rotY;
+  const ns=sprite(labelTex(S.name||'Jogador','#fff',null,256,64,40),2.2,.55);ns.position.y=3.35;PL.g.add(ns);PL.ns=ns;scene.add(PL.g);
+  drop(PET);PET=makePet(S.look.pet);if(PET){PET.position.set(P.x+1,0,P.z+1);scene.add(PET)}
   if(CH&&CH.paint)giveTool('brush',CH.paint);if(CH&&CH.type==='shoot')giveTool('blaster')}
 function giveTool(kind,col){dropTool();tool=new THREE.Group();
   if(kind==='brush')tool.add(mesh(BOX(.14,.8,.14),'#8B5A2B',0,-1.3,.15),mesh(BOX(.36,.36,.36),col,0,-1.8,.15));
   else{tool.add(mesh(BOX(.3,.35,.9),'#2E8BF0',0,-1.05,.35),mesh(new THREE.CylinderGeometry(.1,.1,.6,10),'#FF8A1F',0,-1.05,.95));tool.children[1].rotation.x=Math.PI/2}
   tool.userData.kind=kind;PL.armR.add(tool)}
-function dropTool(){if(tool&&tool.parent)tool.parent.remove(tool);tool=null}
+function dropTool(){drop(tool);tool=null}
 
 /* ================= AVATAR REACTIONS (animations + particles) ================= */
 let ANIM=null;const PARTS=[],fxCache={};
@@ -869,7 +975,7 @@ function fxT(k){if(fxCache[k])return fxCache[k];let c;
 function spawnFx(k,x,y,z,vx,vy,vz,life,size,grow,grav){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:fxT(k),transparent:true,depthWrite:false}));sp.position.set(x,y,z);sp.scale.set(size,size,1);scene.add(sp);PARTS.push({sp,vx,vy,vz,life,max:life,size,grow:grow||0,grav:grav||0})}
 function updateFx(dt){for(let i=PARTS.length-1;i>=0;i--){const p=PARTS[i];p.life-=dt;if(p.life<=0){scene.remove(p.sp);p.sp.material.dispose();PARTS.splice(i,1);continue}
   p.vy-=p.grav*dt;p.sp.position.x+=p.vx*dt;p.sp.position.y+=p.vy*dt;p.sp.position.z+=p.vz*dt;const s=p.size+p.grow*(p.max-p.life);p.sp.scale.set(s,s,1);p.sp.material.opacity=Math.min(1,p.life/p.max*1.7)}}
-const charMat=new THREE.MeshLambertMaterial({color:'#2B2B2B'});
+const charMat=shared(new THREE.MeshLambertMaterial({color:'#2B2B2B'}));
 function charPL(on){if(!PL)return;PL.g.traverse(o=>{if(!o.isMesh)return;
   if(on){if(!o.userData.orig){o.userData.orig=o.material;o.material=Array.isArray(o.material)?o.material.map((m,i)=>i===4?new THREE.MeshLambertMaterial({map:faceTex('#3A3A3A','burn')}):charMat):charMat}}
   else if(o.userData.orig){o.material=o.userData.orig;o.userData.orig=null}})}
@@ -919,7 +1025,7 @@ $('#b-fire').addEventListener('pointerdown',e=>{e.preventDefault();fire()});
 [['#b-rl',1],['#b-rr',-1]].forEach(([id,d])=>{const b=$(id);
   b.addEventListener('pointerdown',e=>{e.preventDefault();camRot=d;b.classList.add('on');try{b.setPointerCapture(e.pointerId)}catch(_){}});
   const up=()=>{camRot=0;b.classList.remove('on')};b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up)});
-addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();keys[k]=true;if(e.key===' '){input.jump=true;e.preventDefault()}if(k==='e'&&!paused&&near)act();if(k==='f')fire()});
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();keys[k]=true;if(e.key===' '){input.jump=true;e.preventDefault()}if(k==='e'&&!paused){if(sureFn)sure();else if(near)act()}if(k==='f')fire()});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
 
@@ -933,7 +1039,6 @@ function respawn(){sfx.splash();const c=checkpoint||(WORLD?WORLD.spawn:SPAWN);P.
 function updatePlayer(dt){
   let jx=input.jx,jy=input.jy;
   if(keys['a']||keys['arrowleft'])jx=-1;if(keys['d']||keys['arrowright'])jx=1;if(keys['w']||keys['arrowup'])jy=-1;if(keys['s']||keys['arrowdown'])jy=1;
-  if(keys['q'])camRot=1;else if(keys['r'])camRot=-1;
   if(paused||(ANIM&&ANIM.lock)){jx=jy=0;input.jump=false}
   const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
   let mx=fx*(-jy)+rx*jx,mz=fz*(-jy)+rz*jx,m=Math.hypot(mx,mz);if(m>1){mx/=m;mz/=m;m=1}
@@ -942,7 +1047,8 @@ function updatePlayer(dt){
   for(const p of PLATS){if(!p.active||!p.solid||P.y>=p.top-.05)continue;let [a,b]=local(p,P.x,P.z);const ea=p.ha+.42-Math.abs(a),eb=p.hb+.42-Math.abs(b);
     if(ea>0&&eb>0){if(ea<eb)a+=Math.sign(a||1)*ea;else b+=Math.sign(b||1)*eb;P.x=p.cx+a*p.ux+b*p.vx;P.z=p.cz+a*p.uz+b*p.vz}}
   if(m>.08)rotY=lerpA(rotY,Math.atan2(mx,mz),Math.min(1,dt*12));
-  if(camRot)yaw+=camRot*dt*2.3;else if(camId===null&&!paused&&m>.1&&-jy>.3&&camMode==='follow')yaw=lerpA(yaw,rotY+Math.PI,Math.min(1,dt*1.4*m));
+  const rot=camRot||(keys['q']?1:keys['r']?-1:0);
+  if(rot)yaw+=rot*dt*2.3;else if(camId===null&&!paused&&m>.1&&-jy>.3&&camMode==='follow')yaw=lerpA(yaw,rotY+Math.PI,Math.min(1,dt*1.4*m));
   if(input.jump&&onGround){vy=hasPower('pulo')?11.5:8.6;onGround=false;sfx.jump()}input.jump=false;
   const prevY=P.y;vy-=24*dt;P.y+=vy*dt;const g=groundAt(P.x,P.z,prevY);
   if(P.y<=g.h){P.y=g.h;vy=0;onGround=true;standing=g.on}else{onGround=false;standing=null}
@@ -961,7 +1067,9 @@ function updatePet(dt){if(!PET)return;const bx=P.x-Math.sin(rotY)*1.6+Math.cos(r
   PET.position.y=(PET.userData.fly?1.3+Math.sin(T*3)*.25:Math.abs(Math.sin(T*10))*(d>.3?.18:0))+(isFinite(gy)?gy:P.y);
   PET.userData.wings.forEach((w,i)=>w.rotation.z=Math.sin(T*10)*.5*(i?1:-1))}
 const tmpV=new THREE.Vector3(),tmpC=new THREE.Vector3();
-function updateCam(dt){let ty=yaw,dist=10,py=pitch,ly=1.7;if(camMode==='front'){ty=rotY;dist=6.5;py=.12;ly=.2}else if(camMode==='cele'){ty=rotY;dist=8.5;py=.12;ly=1.9}
+/* camLook is the height the camera aims at: raised when a question has a board, so the board shows below the mission panel */
+let camLook=1.7;
+function updateCam(dt){let ty=yaw,dist=10,py=pitch,ly=camLook;if(camMode==='front'){ty=rotY;dist=6.5;py=.12;ly=.2}else if(camMode==='cele'){ty=rotY;dist=8.5;py=.12;ly=1.9}
   tmpC.set(P.x+Math.sin(ty)*Math.cos(py)*dist,Math.max(P.y,-1)+1.8+Math.sin(py)*dist,P.z+Math.cos(ty)*Math.cos(py)*dist);
   camera.position.lerp(tmpC,1-Math.pow(.0005,dt));camera.lookAt(P.x,Math.max(P.y,-1)+ly,P.z)}
 
@@ -970,9 +1078,9 @@ const fadeEl=$('#fade');
 function travel(fn,label){if(fadeEl.classList.contains('on'))return;sfx.portal();endAnim(true);fadeEl.textContent=label||'';fadeEl.classList.add('on');paused=true;
   setTimeout(()=>{fn();camera.position.set(P.x+Math.sin(yaw)*10,P.y+5,P.z+Math.cos(yaw)*10);setTimeout(()=>{fadeEl.classList.remove('on');if($('#ov').hidden)paused=false},120)},380)}
 function setSky(c){scene.background.set(c);scene.fog.color.set(c)}
-function enterWorld(st){quit3D(true);travel(()=>{WORLD=st;checkpoint=null;P.set(st.spawn.x,0,st.spawn.z);vy=0;yaw=-Math.PI/2;rotY=Math.PI/2;setSky(st.sky);
+function enterWorld(st){flushFin();quit3D(true);travel(()=>{WORLD=st;checkpoint=null;P.set(st.spawn.x,0,st.spawn.z);vy=0;yaw=-Math.PI/2;rotY=Math.PI/2;setSky(st.sky);
     $('#where').textContent=`${st.world} · ${st.name}`;portalCD=1.2;setSong(st.id);toast(`Bem-vindo ${({contas:'ao',formas:'ao',dinheiro:'ao'})[st.id]||'à'} <b>${st.name}</b>! Fale com ${withArt(st.npc.name)} ❗`,4000,true)},`🌀 ${st.name}`)}
-function leaveWorld(){const st=WORLD;quit3D(true);travel(()=>{WORLD=null;checkpoint=null;const p=st?st.portal:{x:0,z:12};const ux=-p.x/31,uz=-p.z/31;
+function leaveWorld(){const st=WORLD;flushFin();quit3D(true);travel(()=>{WORLD=null;checkpoint=null;const p=st?st.portal:{x:0,z:12};const ux=-p.x/31,uz=-p.z/31;
     P.set(p.x+ux*4,0,p.z+uz*4);vy=0;yaw=Math.atan2(P.x-(P.x+ux),P.z-(P.z+uz));rotY=Math.atan2(ux,uz);setSky(HUB_SKY);$('#where').textContent='Cidade dos Números';portalCD=1.2;setSong('hub')},'🏙️ Cidade dos Números')}
 function updatePortals(dt){portalCD-=dt;PORTALS.forEach(p=>{p.disc.rotation.z+=dt*1.5});if(portalCD>0||paused)return;
   for(const p of PORTALS){if(Math.hypot(P.x-p.x,P.z-p.z)<1.3&&P.y<3){portalCD=2;p.action();return}}}
@@ -991,33 +1099,40 @@ function talk(st){const s=stat(st.id);
   $$('.mode').forEach(b=>b.onclick=()=>{sfx.tap();closeSheet();quit3D(true);startMode(st,st.modes[+b.dataset.i])});
   const intro=st.intro+' '+st.modes.map(m=>m.n).join(', ou ')+'.';
   $('#d-no').onclick=()=>{sfx.tap();closeSheet()};$('#d-spk').onclick=()=>speak(intro,null,true);speak(intro)}
-function startMode(st,m){const lvl=stat(st.id).level;
-  if(m.k==='act')startAct(st);else if(m.k==='obby')startObby(st);else if(m.k==='order')startOrder(st);else if(m.k==='shapes')startShapes(st);
+function startMode(st,m){flushFin();const lvl=stat(st.id).level;
+  if(m.k==='act')startAct(st,m.gen);else if(m.k==='obby')startObby(st);else if(m.k==='order')startOrder(st);else if(m.k==='shapes')startShapes(st);
   else if(m.k==='shoot')startShoot(st,m.gen);else if(m.k==='floor')startFloor(st,m.gen);else if(m.k==='share')startShare(st,m.gen);else if(m.k==='build')startBuild(st,m.gen);else if(m.k==='simon')startSimon(st);
   if(CH){CH.mode=m;CH.level=lvl}}
 function friendTalk(f){if(f.cool>0){openSheet(`<div class="quiz"><p><b>${f.name}:</b> Valeu pela ajuda! Volte daqui a pouquinho que eu tenho outra charada. 😄</p><button class="btn go" id="q-x">Tchau!</button></div>`);$('#q-x').onclick=()=>closeSheet();return}
   const L=Math.max(stat('contas').level,stat('n10').level),q=genArith(L),thing=pick([['figurinhas','a'],['balas','a'],['carrinhos','o'],['bolinhas de gude','a'],['adesivos','o']]);
-  const text=q.op==='+'?`Eu tinha <b>${q.a}</b> ${thing[0]} e ganhei mais <b>${q.b}</b>. Com quant${thing[1]}s eu fiquei?`:`Eu tinha <b>${q.a}</b> ${thing[0]} e dei <b>${q.b}</b> para minha irmã. Quant${thing[1]}s sobraram?`;let tries=0;
+  const other=pick(FRIENDS.map(x=>x.name).filter(n=>n!==f.name)),kind=q.op==='+'?'juntar':pick(['tirar','comparar','completar']);
+  const text=kind==='juntar'?`Eu tinha <b>${q.a}</b> ${thing[0]} e ganhei mais <b>${q.b}</b>. Com quant${thing[1]}s eu fiquei?`:kind==='tirar'?`Eu tinha <b>${q.a}</b> ${thing[0]} e dei <b>${q.b}</b> para minha irmã. Quant${thing[1]}s sobraram?`
+    :kind==='comparar'?`Eu tenho <b>${q.a}</b> ${thing[0]} e ${withArt(other)} tem <b>${q.b}</b>. Quant${thing[1]}s eu tenho <b>a mais</b>?`:`Eu tenho <b>${q.b}</b> ${thing[0]}. Quero ter <b>${q.a}</b>. Quant${thing[1]}s <b>faltam</b>?`;
+  const tip={juntar:'Dica: junte as duas quantidades.',tirar:'Dica: tire e conte o que sobrou.',comparar:'Dica: tire a quantidade menor da maior.',completar:`Dica: conte a partir do ${q.b} até chegar no ${q.a}.`}[kind];let tries=0;
   openSheet(`<div class="quiz"><span class="dlg-name" style="--c:#2E8BF0">${f.name}</span><p>${text}</p><div class="btns">${q.opts.map(v=>`<button class="btn big" data-v="${v}">${v}</button>`).join('')}</div><div class="fb" id="q-fb"></div><button class="btn icon" id="q-spk" aria-label="Ouvir">🗣️</button></div>`);
   $('#q-spk').onclick=()=>speak(plain(text),null,true);speak(plain(text));
   $$('.quiz .btn.big').forEach(b=>b.onclick=()=>{if(+b.dataset.v===q.ans){sfx.ok();confetti(14);playAnim('cheer');speak('Isso! Valeu!');f.cool=45;addCoins(2);
       $('#sheet').innerHTML=`<div class="quiz"><p><b>${f.name}:</b> Isso! ${q.a} ${q.op} ${q.b} = ${q.ans}. Valeu! Toma <b>2 🪙</b>.</p><button class="btn go" id="q-x">De nada!</button></div>`;$('#q-x').onclick=()=>closeSheet()}
-    else{tries++;sfx.bad();shake(b);b.disabled=true;$('#q-fb').textContent=tries>=2?`Era ${q.ans}: ${q.a} ${q.op} ${q.b} = ${q.ans}.`:q.op==='+'?'Dica: junte as duas quantidades.':'Dica: tire e conte o que sobrou.';if(tries>=2){f.cool=20;$$('.quiz .btn.big').forEach(x=>x.disabled=true)}}})}
+    else{tries++;sfx.bad();shake(b);b.disabled=true;$('#q-fb').textContent=tries>=2?`Era ${q.ans}: ${q.a} ${q.op} ${q.b} = ${q.ans}.`:tip;if(tries>=2){f.cool=20;$$('.quiz .btn.big').forEach(x=>x.disabled=true)}}})}
 
 /* ================= SCORING + TROPHIES ================= */
-function record(id,first){const s=stat(id);s.total++;if(first)s.first++;save()}
-function checkTrophies(st,lvl,stars){const s=stat(st.id),old=S.trophies[st.id]||0;let t=Math.max(old,1);if(s.level>=2)t=Math.max(t,2);if(lvl===3&&stars===3)t=3;
+function checkTrophies(st,lvl,stars){const s=stat(st.id),old=S.trophies[st.id]||0;let t=old;if(stars>=1){t=Math.max(t,1);if(s.level>=2)t=Math.max(t,2);if(lvl===3&&stars===3)t=3}
   let gained=0;if(t>old){S.trophies[st.id]=t;gained=t;S.coins+=[0,5,10,25][t]}
   let champ=false;if(!S.champ&&STATIONS.every(x=>S.trophies[x.id]===3)){S.champ=true;S.coins+=100;champ=true}
   save();updateHall();hud();return {gained,champ}}
-function finishChallenge(st,first,n,coins,lvl,mode){
-  const s=stat(st.id),pct=n?first/n:0,stars=pct>=.85?3:pct>=.6?2:1;
-  S.stars+=stars;s.stars=(s.stars||0)+stars;s.rounds++;S.coins+=5;coins+=5;
-  let msg='';if(pct>=.8&&s.level<3){s.level++;msg=`🚀 Subiu para o nível ${s.level}!`}else if(pct<.4&&s.level>1){s.level--;msg=`Vamos treinar mais no nível ${s.level}.`}
-  const tr=checkTrophies(st,lvl||1,stars);save();hud();updateSign(st);sfx.win();confetti(tr.gained||tr.champ?80:40);
-  const aw=tr.champ?{k:'champ',t:'🏆 TAÇA DOS CAMPEÕES!',d:'Você ganhou a taça de ouro em TODAS as estações! +100 🪙'}:tr.gained===3?{k:'copa',t:`🏆 TAÇA DE OURO: ${st.name}!`,d:'Você completou o nível 3 com 3 estrelas! +25 🪙'}:tr.gained===2?{k:'silver',t:'🥈 Medalha de Prata!',d:'Você chegou ao nível 2! +10 🪙'}:tr.gained===1?{k:'bronze',t:'🥉 Medalha de Bronze!',d:'Primeira rodada completa! +5 🪙'}:null;
-  openSheet(`<div class="result"><h2>${stars===3?'Incrível!':stars===2?'Muito bom!':'Você conseguiu!'}</h2><div class="bigstars">${[1,2,3].map(k=>`<span class="${k<=stars?'':'off'}">⭐</span>`).join('')}</div>
-    <p>${mode?mode.n:st.name}: acertou <b>${first} de ${n}</b> de primeira.</p><p>Ganhou <b>${coins} 🪙</b> (com o bônus de 5) e <b>${stars} ⭐</b>.</p>${msg?`<div class="pillmsg">${msg}</div>`:''}
+/* Stars follow first-try answers: 3 = all right (long rounds of 6 or more allow one miss), 2 = 60%, 1 = 30%. Running out of hearts caps it at 1. */
+function starsFor(first,n,lost){if(!n)return 0;const p=first/n,s=first>=n-(n>=6?1:0)?3:p>=.6?2:p>=.3?1:0;return lost?Math.min(s,1):s}
+function finishChallenge(st,first,n,coins,lvl,mode,lost,silent){
+  const s=stat(st.id),pct=n?first/n:0,stars=starsFor(first,n,lost),bonus=Math.round(5*pct);
+  S.stars+=stars;s.stars=(s.stars||0)+stars;s.rounds++;S.coins+=bonus;coins+=bonus;
+  let msg='';if(pct>=.8&&!lost&&s.level<3){s.level++;msg=`🚀 Subiu para o nível ${s.level}!`}else if(pct<.4&&s.level>1){s.level--;msg=`Vamos treinar mais no nível ${s.level}.`}
+  const tr=checkTrophies(st,lvl||1,stars);save();hud();updateSign(st);
+  if(silent){toast(`Rodada guardada: <b>${first} de ${n}</b> de primeira, ${stars} ⭐`,3200);return}
+  const owed=Object.keys(S.sk).filter(k=>k.startsWith(st.id+'.')&&S.sk[k].w>0).sort((a,b)=>S.sk[b].d-S.sk[a].d).slice(0,2).map(skillName);
+  sfx.win();confetti(tr.gained||tr.champ?80:stars?40:12);
+  const aw=tr.champ?{k:'champ',t:'🏆 TAÇA DOS CAMPEÕES!',d:'Você ganhou a taça de ouro em TODAS as estações! +100 🪙'}:tr.gained===3?{k:'copa',t:`🏆 TAÇA DE OURO: ${st.name}!`,d:'Você completou o nível 3 com 3 estrelas! +25 🪙'}:tr.gained===2?{k:'silver',t:'🥈 Medalha de Prata!',d:'Você chegou ao nível 2! +10 🪙'}:tr.gained===1?{k:'bronze',t:'🥉 Medalha de Bronze!',d:'Primeira rodada com estrela! +5 🪙'}:null;
+  openSheet(`<div class="result"><h2>${stars===3?'Incrível!':stars===2?'Muito bom!':stars===1?'Você conseguiu!':'Vamos treinar mais!'}</h2><div class="bigstars">${[1,2,3].map(k=>`<span class="${k<=stars?'':'off'}">⭐</span>`).join('')}</div>
+    <p>${mode?mode.n:st.name}: acertou <b>${first} de ${n}</b> de primeira.</p><p>Ganhou <b>${coins} 🪙</b>${bonus?` (com o bônus de ${bonus})`:''} e <b>${stars} ⭐</b>.</p>${msg?`<div class="pillmsg">${msg}</div>`:''}${owed.length?`<p class="small">Vai aparecer de novo para treinar: ${owed.join(' · ')}</p>`:''}
     ${aw?`<div class="award"><canvas id="aw-cv" width="320" height="320"></canvas><b>${aw.t}</b><span>${aw.d}</span><small>Veja na Sala de Troféus da cidade!</small></div>`:''}
     <div class="btns"><button class="btn go" id="r-again">▶ De novo</button><button class="btn gold" id="r-go">🏃 Explorar</button></div></div>`);
   if(aw){const c=$('#aw-cv');if(c)drawCupArt(c,aw.k==='champ'?'champions':aw.k);if(aw.k==='copa'||aw.k==='champ')speak(aw.t)}
@@ -1031,23 +1146,33 @@ $('#m-spk').onclick=()=>{const d=document.createElement('div');d.innerHTML=$('#m
 function sayQ(text,tip,cb){speak(plain(text)+(tip?'. '+plain(tip):''),cb)}
 $('#m-quit').onclick=()=>{sfx.tap();quit3D(false)};
 function quit3D(silent){if(!CH)return;
-  if(CH.type==='order')CH.cubes.forEach(c=>scene.remove(c.m));
+  if(CH.type==='order')CH.cubes.forEach(c=>drop(c.m));
   if(CH.type==='obby')resetObby();
-  clearArena();checkpoint=null;$('#b-fire').hidden=true;
+  clearArena();checkpoint=null;$('#b-fire').hidden=true;hideSure();camLook=1.7;
   CH=null;mis.hidden=true;if(!silent)toast('Desafio encerrado. Fale com o personagem para jogar de novo!')}
-function done3D(lost){const c=CH;clearArena();CH=null;mis.hidden=true;checkpoint=null;$('#b-fire').hidden=true;
-  if(lost){playAnim('sad');setTimeout(()=>finishChallenge(c.st,c.first,c.n,c.coins,c.level,c.mode),1900)}
-  else{playAnim('win');toast(`<b>Fim da rodada!</b> 🎉`,2400);setTimeout(()=>finishChallenge(c.st,c.first,c.n,c.coins,c.level,c.mode),2700)}}
-function teleport(x,z,lookX,lookZ){P.set(x,0,z);vy=0;PL.g.position.copy(P);if(lookX!=null){yaw=Math.atan2(x-lookX,z-lookZ);rotY=Math.atan2(lookX-x,lookZ-z)}
+/* The result sheet opens a moment after the round ends. If the player starts something else first, the round is still scored (quietly). */
+let pendFin=null;
+function flushFin(){if(!pendFin)return;const p=pendFin;clearTimeout(p.t);p.fn(true)}
+function done3D(lost){const c=CH;clearArena();CH=null;mis.hidden=true;checkpoint=null;$('#b-fire').hidden=true;hideSure();camLook=1.7;
+  const fn=silent=>{pendFin=null;finishChallenge(c.st,c.first,c.n,c.coins,c.level,c.mode,lost,silent===true)};
+  if(lost)playAnim('sad');else{playAnim('win');toast(`<b>Fim da rodada!</b> 🎉`,2400)}
+  pendFin={fn,t:setTimeout(fn,lost?1900:2700)}}
+const sureB=$('#b-sure');let sureFn=null;
+function showSure(label,fn){sureFn=fn;if(sureB.hidden||sureB.textContent!==label){sureB.textContent=label;sureB.hidden=false}}
+function hideSure(){sureFn=null;if(!sureB.hidden)sureB.hidden=true}
+function sure(){if(!sureFn||paused)return;sfx.tap();const f=sureFn;hideSure();f()}
+sureB.onclick=sure;
+function teleport(x,z,lookX,lookZ){P.set(x,0,z);vy=0;pitch=.38;camLook=1.7;PL.g.position.copy(P);if(lookX!=null){yaw=Math.atan2(x-lookX,z-lookZ);rotY=Math.atan2(lookX-x,lookZ-z)}
   camera.position.set(P.x+Math.sin(yaw)*10,P.y+5,P.z+Math.cos(yaw)*10)}
 function later(fn,ms){const c=CH;setTimeout(()=>{if(CH===c)fn()},ms)}
 const isNear=(p,r)=>Math.hypot(P.x-p.x,P.z-p.z)<r;
 function edge(key,inside,fn){if(inside&&!CH.lastPad[key])fn();CH.lastPad[key]=inside}
 function beginArena(st){const G=new THREE.Group();G.position.set(st.c.x,0,st.c.z);G.rotation.y=-st.ang;scene.add(G);CHX={st,texs:[],colls:[],plats:[],sprites:[],objs:[]};CH.G=G;CH.lastPad={};return G}
-function clearArena(){if(!CH)return;if(CH.G){scene.remove(CH.G);CH.G=null}
-  if(CHX){CHX.sprites.forEach(s=>scene.remove(s));CHX.objs.forEach(o=>scene.remove(o));CHX.texs.forEach(t=>t.dispose());
+function clearArena(){if(!CH)return;if(CH.G){drop(CH.G);CH.G=null}
+  if(CHX){CHX.sprites.forEach(drop);CHX.objs.forEach(drop);CHX.texs.forEach(t=>t.dispose());
     CHX.plats.forEach(p=>{const i=PLATS.indexOf(p);if(i>=0)PLATS.splice(i,1)});CHX.colls.forEach(c=>{const i=COLL.indexOf(c);if(i>=0)COLL.splice(i,1)});CHX={st:CHX.st,texs:[],colls:[],plats:[],sprites:[],objs:[]}}
-  (CH.shots||[]).forEach(s=>scene.remove(s.m));CH.shots=[];showProg(null);dropTool();standing=null}
+  (CH.shots||[]).forEach(s=>drop(s.m));CH.shots=[];showProg(null);dropTool();standing=null}
+function addMark(t,ok){if(!CH||!CH.G||t.mark===ok)return;drop(t.markS);const m=new THREE.Sprite(new THREE.SpriteMaterial({map:markTex(ok),depthTest:false}));m.scale.set(1.5,1.5,1);m.position.set(t.A,4.7,t.B);m.renderOrder=5;CH.G.add(m);t.mark=ok;t.markS=m}
 function addPic(G,draw,A,y,B,s){const sp=sprite(texOf(draw),s,s);sp.position.set(A,y,B);G.add(sp);return sp}
 function platAt(st,A,B,ha,hb,top,solid,tgt,mg){const w=L2W(st,A,B),p={cx:w.x,cz:w.z,ux:st.u.x,uz:st.u.z,vx:st.v.x,vz:st.v.z,ha,hb,top,solid,active:true,tgt,mg};PLATS.push(p);CHX.plats.push(p);return p}
 function padSprite(G,text,A,B,col){G.add(mesh(new THREE.CylinderGeometry(1.3,1.3,.1,28),col,A,.05,B));const s=sprite(texOf(g=>{g.fillStyle=col;rr(g,8,70,240,116,30);g.fill();g.lineWidth=8;g.strokeStyle=INK;g.stroke();bigText(g,text,128,130,220,52,'#fff')}),2.4,2.4);s.position.set(A,1.9,B);G.add(s)}
@@ -1056,14 +1181,14 @@ function spawnPickups(defs,area,pre){const st=CHX.st,out=[],spots=[];defs.forEac
 function updatePickups(items,held,dt,max){items.forEach(o=>{if(o.state==='ground'){o.ph+=dt;o.sp.position.y=1+Math.sin(o.ph*2)*.15}});held.forEach((o,k)=>o.sp.position.set(P.x,P.y+3.1+k*.7,P.z));
   if(CH.locked)return;for(const o of items){if(o.state==='ground'&&held.length<(max||12)&&Math.hypot(P.x-o.x,P.z-o.z)<1.15&&P.y<2.5){o.state='held';o.sp.scale.set(1,1,1);held.push(o);sfx.pop()}}}
 function dropToGround(o,a){const p=L2W(CH.st,a[0]+Math.random()*(a[1]-a[0]),a[2]+Math.random()*(a[3]-a[2]));o.x=p.x;o.z=p.z;o.state='ground';o.sp.visible=true;o.sp.scale.set(o.s,o.s,1);o.sp.position.set(o.x,1,o.z)}
-function okRound(gain,msg,ms,next){CH.locked=true;const first=CH.tries===0;record(CH.st.id,first);if(first)CH.first++;const g=gain==null?(first?2:1):gain;CH.coins+=g;addCoins(g);sfx.ok();confetti(first?18:8);playAnim('cheer');
+function okRound(gain,msg,ms,next){CH.locked=true;const first=CH.tries===0;record(CH.st.id,first,CH.skill);if(first)CH.first++;const g=gain==null?(first?2:1):gain;CH.coins+=g;addCoins(g);sfx.ok();confetti(first?18:8);playAnim('cheer');
   const cheer=pick(CHEERS),t=ms||(msg?4200:2600);toast(`<b>${cheer}</b> +${g} 🪙${msg?'<br>'+msg:''}`,t);speak(cheer+(msg?' '+plain(msg):''));later(next,t+200)}
-function failRound(msg,ms,next){CH.locked=true;record(CH.st.id,false);sfx.bad();playAnim('sad');const t=ms||5200;toast(msg,t,true);later(next,t+200)}
+function failRound(msg,ms,next){CH.locked=true;record(CH.st.id,false,CH.skill);sfx.bad();playAnim('sad');const t=ms||5200;toast(msg,t,true);later(next,t+200)}
 function hintBad(msg,anim){sfx.bad();playAnim(anim||'sad');toast('💡 '+msg,4800,true)}
 
 /* ---- ACTIVITY ARENA: jump / circle / paint / carry ---- */
 const VTAG={jump:'⬆ PULAR',circle:'⭕ CIRCULAR',paint:'🖌️ PINTAR',carry:'🧺 LEVAR'};
-const progMat=new THREE.MeshBasicMaterial({color:'#E53935',side:THREE.DoubleSide});let prog=null;
+const progMat=shared(new THREE.MeshBasicMaterial({color:'#E53935',side:THREE.DoubleSide}));let prog=null;
 function showProg(t,start,acc){if(prog){scene.remove(prog);prog.geometry.dispose();prog=null}if(!t||Math.abs(acc)<.05)return;
   const th0=-start,s=Math.min(th0,th0-acc);prog=new THREE.Mesh(new THREE.RingGeometry(t.R-.32,t.R+.32,64,1,s,Math.abs(acc)),progMat);prog.rotation.x=-Math.PI/2;prog.position.set(t.x,.1,t.z);scene.add(prog)}
 function layoutPos(q){const n=q.opts.length,ps=[];
@@ -1098,16 +1223,19 @@ function buildCarry(G){const st=CH.st,q=CH.q,box=q.box==='caixa',BA=-.5,BB=-6.2,
   for(let k=0;k<(q.pre||0);k++){const it=q.items[0],sp=sprite(texOf(it.pic||pEmo(it.e)),1.4,1.4);scene.add(sp);CHX.sprites.push(sp);const o={sp,v:it.v,state:'basket',pre:true,s:1.4};CH.items.push(o);CH.basket.items.push(o)}
   placeBasket()}
 function placeBasket(){const b=CH.basket;b.items.forEach((o,k)=>{const a=k*2.4,r=k===0?0:.75,lay=Math.floor(k/7);o.sp.position.set(b.x+Math.cos(a)*r,1.4+lay*.55+(k%7?0:.1),b.z+Math.sin(a)*r);o.sp.scale.set(1.3,1.3,1)})}
-function startAct(st){CH={type:'act',st,n:5,idx:0,first:0,coins:0};loadActQ()}
-function loadActQ(){const st=CH.st;clearArena();CH.q=st.gen(stat(st.id).level);buildAct();const w=L2W(st,-3,-2.8),f=L2W(st,5,0);teleport(w.x,w.z,f.x,f.z);
+function startAct(st,gen){CH={type:'act',st,gen,n:5,idx:0,first:0,coins:0};loadActQ()}
+function loadActQ(){const st=CH.st;clearArena();CH.q=CH.gen(stat(st.id).level);CH.skill=lastSkill;buildAct();const w=L2W(st,-3,-2.8),f=L2W(st,5,0);teleport(w.x,w.z,f.x,f.z);pitch=CH.q.board?.3:.52;camLook=CH.q.board?4:1.7;
   const q=CH.q,tip=q.verb==='circle'?'Corra em volta dele até fechar o círculo vermelho.':q.verb==='jump'?'Pule (⬆) e caia em cima da resposta.':q.verb==='paint'?`Pegue tinta no balde 🪣 e pise no quadrado${q.multi?'. Depois pise no PRONTO ✓':''}.`:`Encoste para pegar. Chegue perto ${q.box==='caixa'?'da caixa':'do cesto'} para soltar. Depois pise no PRONTO ✓.`;
   setMission(`<span class="vt">${VTAG[q.verb]}</span>${CH.idx+1}/${CH.n} · ${q.text}<small>${tip}</small>`);sayQ(q.text,CH.idx===0?tip:'')}
 function nextAct(){if(!CH||CH.type!=='act')return;CH.idx++;if(CH.idx>=CH.n)return done3D();loadActQ()}
-function actOK(ts){const q=CH.q;ts.forEach(t=>t.mat.color.set('#22B35E'));okRound(null,q.explain,null,nextAct)}
-function actReveal(){const q=CH.q;if(q.verb!=='carry'){const sol=q.multi?q.sol:[q.ans];CH.targets.forEach(t=>{if(t.locked)return;if(sol.includes(t.i))t.mat.color.set('#22B35E');else if(q.multi)t.mat.color.set(t.base)})}
-  failRound(`${q.verb==='carry'?'Quase!':'A resposta certa ficou <b>verde</b>.'} ${q.explain||q.hint||''}`,null,nextAct)}
+function actOK(ts){const q=CH.q;ts.forEach(t=>{t.mat.color.set('#22B35E');addMark(t,true)});okRound(null,q.explain,null,nextAct)}
+function actReveal(){const q=CH.q,box=q.box==='caixa';if(q.verb==='carry')revealCarry();else{const sol=q.multi?q.sol:[q.ans];CH.targets.forEach(t=>{if(t.locked)return;if(sol.includes(t.i)){t.mat.color.set('#22B35E');addMark(t,true)}else if(q.multi){t.mat.color.set(t.base);if(t.painted)addMark(t,false)}})}
+  failRound(`${q.verb==='carry'?`Quase! Olhe ${box?'a caixa':'o cesto'}: agora está certo.`:'A resposta certa ficou <b>verde</b>, com ✓.'} ${q.explain||q.hint||''}`,null,nextAct)}
+/* worked example: after the second miss the basket is refilled with a right answer, so the child sees it done */
+function revealCarry(){const b=CH.basket,q=CH.q,back=[2,6,-3,3];[...b.items.filter(o=>!o.pre),...CH.held].forEach(o=>dropToGround(o,back));b.items=b.items.filter(o=>o.pre);CH.held=[];
+  q.solIdx.forEach(i=>{const o=CH.items[i];if(o){o.state='basket';b.items.push(o)}});placeBasket()}
 function actPick(t){const q=CH.q;if(CH.locked||t.dead)return;if(t.i===q.ans)return actOK([t]);
-  CH.tries++;t.dead=true;t.mat.color.set('#FF8A80');if(CH.tries>=2)return actReveal();hintBad(q.hint||'Tente outro!')}
+  CH.tries++;t.dead=true;t.mat.color.set('#FF8A80');addMark(t,false);if(CH.tries>=2)return actReveal();hintBad(q.hint||'Tente outro!')}
 function actCheck(){const q=CH.q;if(CH.locked)return;const sel=q.verb==='carry'?CH.basket.items.map(o=>o.v):CH.targets.filter(t=>t.painted).map(t=>t.i);
   if(q.check(sel))return actOK(q.verb==='carry'?[]:CH.targets.filter(t=>t.painted));
   CH.tries++;if(CH.tries>=2)return actReveal();hintBad(`${q.count?q.count(sel)+' ':''}${q.hint}`)}
@@ -1133,7 +1261,7 @@ function updateAct(dt){const q=CH.q;if(!q)return;
 
 /* ---- 🎯 SHOOTER ---- */
 function startShoot(st,gen){CH={type:'shoot',st,gen,n:5,idx:0,first:0,coins:0};$('#b-fire').hidden=false;loadShootQ()}
-function loadShootQ(){clearArena();beginArena(CH.st);giveTool('blaster');const q=CH.gen(stat(CH.st.id).level);Object.assign(CH,{q,tries:0,locked:false,left:q.items.filter(i=>i.ok).length,balloons:[],shots:[],cool:0});
+function loadShootQ(){clearArena();beginArena(CH.st);giveTool('blaster');const q=CH.gen(stat(CH.st.id).level);Object.assign(CH,{q,skill:lastSkill,tries:0,locked:false,left:q.items.filter(i=>i.ok).length,balloons:[],shots:[],cool:0});
   const cols=['#E8413A','#2E8BF0','#2DB34A','#8B4CF0','#FF8A1F','#FF5FA2'],spots=[];
   q.items.forEach(it=>{let A,B,g=0;do{A=4+Math.random()*10;B=-9+Math.random()*18;g++}while(g<200&&spots.some(s=>Math.hypot(s[0]-A,s[1]-B)<3.2));spots.push([A,B]);
     const sp=sprite(texOf(pBalloon(pick(cols),it)),2.7,2.7),p=L2W(CH.st,A,B),h=2.8+Math.random()*3;sp.position.set(p.x,h,p.z);scene.add(sp);CHX.sprites.push(sp);CH.balloons.push({sp,it,x:p.x,z:p.z,h,ph:Math.random()*6,alive:true,pop:0})});
@@ -1149,17 +1277,17 @@ function updateShoot(dt){CH.cool-=dt;
   CH.balloons.forEach(b=>{if(b.alive){b.ph+=dt;b.sp.position.set(b.x+Math.sin(b.ph*.7)*.6,b.h+Math.sin(b.ph*1.3)*.35,b.z+Math.cos(b.ph*.5)*.6)}
     else if(b.pop<1){b.pop+=dt*4;const s=2.7*(1+b.pop*.8);b.sp.scale.set(s,s,1);b.sp.material.transparent=true;b.sp.material.opacity=Math.max(0,1-b.pop);if(b.pop>=1)b.sp.visible=false}});
   CH.shots=CH.shots.filter(s=>{s.life-=dt;
-    if(s.t&&s.t.alive){const tp=s.t.sp.position,v=tmpV.set(tp.x-s.m.position.x,tp.y-s.m.position.y,tp.z-s.m.position.z),d=v.length();if(d<.7){scene.remove(s.m);hitBalloon(s.t);return false}v.multiplyScalar(Math.min(d,30*dt)/d);s.m.position.add(v)}
+    if(s.t&&s.t.alive){const tp=s.t.sp.position,v=tmpV.set(tp.x-s.m.position.x,tp.y-s.m.position.y,tp.z-s.m.position.z),d=v.length();if(d<.7){drop(s.m);hitBalloon(s.t);return false}v.multiplyScalar(Math.min(d,30*dt)/d);s.m.position.add(v)}
     else{s.m.position.x+=s.dx*30*dt;s.m.position.z+=s.dz*30*dt}
-    if(s.life<=0){scene.remove(s.m);return false}return true})}
+    if(s.life<=0){drop(s.m);return false}return true})}
 function hitBalloon(b){if(!b.alive||CH.locked)return;b.alive=false;sfx.pop();
-  if(b.it.ok){CH.left--;CH.coins++;addCoins(1);if(CH.left<=0){CH.coins--;S.coins--;okRound(null,CH.q.explain,null,nextShoot)}else{toast(`💥 Isso! +1 🪙 Faltam ${CH.left}.`,1600);shootMission()}}
+  if(b.it.ok){CH.left--;const clean=CH.tries===0;if(CH.left<=0)okRound(null,CH.q.explain,null,nextShoot);else{if(clean){CH.coins++;addCoins(1)}toast(`💥 Isso!${clean?' +1 🪙':''} Faltam ${CH.left}.`,1600);shootMission()}}
   else{CH.tries++;toast(b.it.label?`Ops! ${b.it.label} não dá ${CH.q.T}.`:`Ops! Esse era ${['esfera','pirâmide'].includes(b.it.name)?'uma':'um'} ${b.it.name.toUpperCase()}.`,4200,true);sfx.bad();playAnim('sad')}}
 function nextShoot(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadShootQ()}
 
 /* ---- 🌋 FLOOR IS LAVA ---- */
 function startFloor(st,gen){CH={type:'floor',st,gen,n:6,idx:0,first:0,coins:0,hearts:3};clearArena();beginArena(st);buildPit();checkpoint=L2W(st,-.6,0);loadFloorQ(true)}
-function drawTile(t,label,bg){const g=t.canvas.getContext('2d');g.fillStyle=bg;g.fillRect(0,0,128,128);g.lineWidth=8;g.strokeStyle=INK;g.strokeRect(4,4,120,120);g.save();g.translate(64,64);g.rotate(Math.PI/2);bigText(g,label,0,4,110,64);g.restore();t.tex.needsUpdate=true}
+function drawTile(t,label,bg,ok){const g=t.canvas.getContext('2d');g.fillStyle=bg;g.fillRect(0,0,128,128);g.lineWidth=8;g.strokeStyle=INK;g.strokeRect(4,4,120,120);g.save();g.translate(64,64);g.rotate(Math.PI/2);bigText(g,label,0,4,110,64);if(ok!=null)g.drawImage(markTex(ok).image,-58,-58,40,40);g.restore();t.tex.needsUpdate=true}
 function buildPit(){const st=CH.st,G=CH.G;
   const lava=new THREE.Mesh(new THREE.PlaneGeometry(12.8,12.6),new THREE.MeshBasicMaterial({color:'#FF5A1F'}));lava.rotation.x=-Math.PI/2;lava.position.set(6.7,.07,0);G.add(lava);CH.lava=lava;
   const rim=new THREE.Mesh(new THREE.PlaneGeometry(13.6,13.4),new THREE.MeshBasicMaterial({color:'#5B2A12'}));rim.rotation.x=-Math.PI/2;rim.position.set(6.7,.05,0);G.add(rim);
@@ -1167,31 +1295,33 @@ function buildPit(){const st=CH.st,G=CH.G;
   CH.tiles=[];[3,6.7,10.4].forEach(A=>[-3.7,0,3.7].forEach(B=>{const canvas=cv(128,128,()=>{}),t=tex(canvas);CHX.texs.push(t);const side=new THREE.MeshLambertMaterial({color:'#8E5A3C'});
     const m=mesh(BOX(3,.6,3),[side,side,new THREE.MeshLambertMaterial({map:t}),side,side,side],A,.3,B);G.add(m);const p=platAt(st,A,B,1.5,1.5,.6,false,null,.3);CH.tiles.push({p,m,canvas,tex:t,A,B})}));
   CH.lavaR=[.3,13.1,-6.3,6.3]}
-function loadFloorQ(first){const q=CH.gen(stat(CH.st.id).level);Object.assign(CH,{q,phase:'read',time:[22,18,15][stat(CH.st.id).level-1],tries:0,locked:false,won:false});
+function loadFloorQ(first){const q=CH.gen(stat(CH.st.id).level);Object.assign(CH,{q,skill:lastSkill,phase:'read',time:[22,18,15][stat(CH.st.id).level-1],tries:0,locked:false,won:false});
   CH.tiles.forEach((t,i)=>{t.ok=q.ok[i];t.p.active=true;t.m.position.y=.3;t.m.visible=true;t.falling=false;drawTile(t,q.labels[i],'#FFFFFF')});
-  if(first){const f=L2W(CH.st,8,0);teleport(checkpoint.x,checkpoint.z,f.x,f.z);toast('Pule nos blocos. Quando o tempo acabar, só o bloco certo fica em pé!',5000)}
+  if(first){const f=L2W(CH.st,8,0);teleport(checkpoint.x,checkpoint.z,f.x,f.z);toast('Pule nos blocos. Quando o tempo acabar, só o bloco certo fica em pé! Já sabe a resposta? Toque em <b>Já sei!</b>',6000)}
   floorMission();sayQ(q.text,first?'Quando o tempo acabar, só o bloco certo fica em pé.':'',()=>{if(CH&&CH.q===q&&CH.phase==='read'){CH.phase='play';floorMission()}})}
 function floorMission(){setMission(`<span class="vt">🌋 SOBREVIVER</span>${CH.idx+1}/${CH.n} · ${CH.q.text}<small>${CH.phase==='read'?'🗣️ Leia com calma... o tempo já vai começar':'⏱ '+Math.ceil(Math.max(0,CH.time))+'s'} · ${'❤️'.repeat(Math.max(0,CH.hearts))}${'🖤'.repeat(3-Math.max(0,CH.hearts))}</small>`)}
 function updateFloor(dt){const [a,b]=localAB(CH.st,P.x,P.z),r=CH.lavaR;
   CH.tiles.forEach(t=>{if(t.falling){t.m.position.y-=dt*4;if(t.m.position.y<-1.2){t.falling=false;t.m.visible=false}}});
   if(CH.lava)CH.lava.material.color.setHSL(.04+Math.sin(T*3)*.012,1,.5+Math.sin(T*4)*.05);
   if(P.y<.3&&onGround&&a>r[0]&&a<r[1]&&b>r[2]&&b<r[3]&&CH.phase!=='burn'&&!(ANIM&&ANIM.type==='burn')){burnFloor();return}
+  if(CH.phase==='play'&&!CH.locked&&onGround&&standing&&CH.tiles.some(t=>t.p===standing))showSure('✓ Já sei! É este',()=>{CH.time=0});else hideSure();
   if(CH.phase==='play'){const prev=Math.ceil(CH.time);CH.time-=dt;if(Math.ceil(CH.time)!==prev){floorMission();if(CH.time<=3&&CH.time>0)sfx.tick()}if(CH.time<=0)resolveFloor()}}
-function resolveFloor(){CH.phase='resolve';const on=standing&&CH.tiles.find(t=>t.p===standing);
-  CH.tiles.forEach((t,i)=>{if(!t.ok){t.p.active=false;t.falling=true;drawTile(t,CH.q.labels[i],'#FF8A80')}else drawTile(t,CH.q.labels[i],'#7CE3A0')});
+function resolveFloor(){CH.phase='resolve';hideSure();const on=standing&&CH.tiles.find(t=>t.p===standing);
+  CH.tiles.forEach((t,i)=>{if(!t.ok){t.p.active=false;t.falling=true;drawTile(t,CH.q.labels[i],'#FF8A80',false)}else drawTile(t,CH.q.labels[i],'#7CE3A0',true)});
   if(on&&on.ok){CH.won=true;okRound(2,`Você sobreviveu! ${CH.q.explain||''}`,null,nextFloor)}
   else if(!on){playAnim('sad');loseHeart('Você precisa estar EM CIMA de um número quando o tempo acabar!',false)}}
-function burnFloor(){const prev=CH.phase,c=CH;CH.phase='burn';
+/* stepping on the lava while still choosing is a slip of the feet, not of the maths: back to the start, no heart lost */
+function burnFloor(){const prev=CH.phase,c=CH;CH.phase='burn';hideSure();
   playAnim('burn',()=>{if(CH!==c)return;P.set(checkpoint.x,.4,checkpoint.z);vy=0});
-  if(prev==='play'||prev==='read'){loseHeart('Ai, ai, queimou! 🔥 Cuidado onde pisa.',true,prev)}else if(CH.won){CH.phase='resolve'}else loseHeart(`Esse número não era a resposta. ${CH.q.explain||''}`,false)}
-function loseHeart(msg,cont,back){CH.hearts--;if(!cont){CH.locked=true;record(CH.st.id,false)}sfx.bad();floorMission();
+  if(prev==='play'||prev==='read'){sfx.bad();toast('Ai, ai, queimou! 🔥 Volte e pule só nos blocos.',3200);CH.phase=prev}else if(CH.won){CH.phase='resolve'}else loseHeart(`Esse número não era a resposta. ${CH.q.explain||''}`,false)}
+function loseHeart(msg,cont,back){CH.hearts--;if(!cont){CH.locked=true;record(CH.st.id,false,CH.skill)}sfx.bad();floorMission();
   if(CH.hearts<=0){CH.locked=true;CH.phase='over';toast(`${msg}<br>Acabaram os corações! 💔`,4000,true);later(()=>{CH.n=CH.idx+1;done3D(true)},4200);return}
   toast(msg,4200,true);if(cont){CH.phase=back||'play';floorMission()}else later(nextFloor,4400)}
 function nextFloor(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadFloorQ(false)}
 
 /* ---- 🤝 HELP FRIENDS ---- */
 function startShare(st,gen){CH={type:'share',st,gen,n:4,idx:0,first:0,coins:0};loadShareQ()}
-function loadShareQ(){clearArena();const st=CH.st,G=beginArena(st),q=CH.gen(stat(st.id).level);Object.assign(CH,{q,tries:0,locked:false,held:[],pads:{}});
+function loadShareQ(){clearArena();const st=CH.st,G=beginArena(st),q=CH.gen(stat(st.id).level);Object.assign(CH,{q,skill:lastSkill,tries:0,locked:false,held:[],pads:{}});
   const f=q.friends.length,sp=f===2?7:f===3?5.6:4.6;
   CH.friends=q.friends.map((fr,i)=>{const B=(i-(f-1)/2)*sp,ch=makeChar(randomLook(i)),w=L2W(st,10.5,B);ch.g.position.set(w.x,0,w.z);ch.g.rotation.y=-Math.PI/2;scene.add(ch.g);CHX.objs.push(ch.g);addColl(10.5,B,.7);
     G.add(mesh(new THREE.CylinderGeometry(1.25,1.25,.1,28),'#FFFFFF',8,.05,B,false));const ring=new THREE.Mesh(new THREE.RingGeometry(1.3,1.5,40),new THREE.MeshBasicMaterial({color:st.color}));ring.rotation.x=-Math.PI/2;ring.position.set(8,.08,B);G.add(ring);
@@ -1207,15 +1337,17 @@ function updateShare(dt){updatePickups(CH.items,CH.held,dt,12);CH.friends.forEac
   edge('dev',isNear(CH.pads.dev,1.4),()=>{CH.friends.forEach(fr=>{fr.items.forEach(o=>dropToGround(o,CH.area));fr.items=[]});sfx.tap();toast('Tudo voltou para o chão.',1500)});
   edge('pronto',isNear(CH.pads.pronto,1.4),()=>{if(CH.held.length){toast('Entregue o que está na sua cabeça primeiro!',1800);return}
     const arrs=CH.friends.map(fr=>fr.items.map(o=>o.v));if(CH.q.check(arrs))return okRound(null,CH.q.explain,null,nextShare);
-    CH.tries++;if(CH.tries>=2)return failRound(`${CH.q.count(arrs)} ${CH.q.explain}`,null,nextShare);hintBad(`${CH.q.count(arrs)} ${CH.q.hint}`)})}
+    CH.tries++;if(CH.tries>=2){revealShare();return failRound(`Olhe como fica certo. ${CH.q.explain}`,null,nextShare)}hintBad(`${CH.q.count(arrs)} ${CH.q.hint}`)})}
+function revealShare(){CH.items.forEach(o=>{if(o.state!=='ground')dropToGround(o,CH.area)});CH.held=[];CH.friends.forEach(fr=>fr.items=[]);
+  CH.q.sol.forEach((ix,i)=>{const fr=CH.friends[i];ix.forEach(j=>{const o=CH.items[j];if(o){o.state='friend';fr.items.push(o)}});placeFriend(fr)})}
 function nextShare(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadShareQ()}
 
 /* ---- 🏗️ BUILD STAIRS ---- */
 function startBuild(st,gen){CH={type:'build',st,gen,n:4,idx:0,first:0,coins:0};loadBuildQ()}
 function stepsMesh(G,A0,B,n,col){for(let k=1;k<=n;k++)G.add(mesh(BOX(1.25,k*.7,2.2),col,A0+(k-1)*1.25,k*.35,B))}
-function loadBuildQ(){clearArena();const st=CH.st,G=beginArena(st),q=CH.gen(stat(st.id).level);Object.assign(CH,{q,tries:0,locked:false,held:[],steps:[],chest:null,pads:{}});
+function loadBuildQ(){clearArena();const st=CH.st,G=beginArena(st),q=CH.gen(stat(st.id).level);Object.assign(CH,{q,skill:lastSkill,tries:0,locked:false,held:[],steps:[],chest:null,pads:{}});
   G.add(mesh(BOX(14,.06,3),'#FFE9A8',8,.03,-2,false));
-  q.refs.forEach((r,k)=>{const B=3.2+k*3.4;stepsMesh(G,2.2,B,r.steps,k?'#2E8BF0':'#FF5FA2');const s=sprite(texOf(g=>bigText(g,`Escada da ${r.name}`,128,128,240,44,INK)),3,3);s.position.set(.4,2.4,B);G.add(s);for(let j=1;j<=r.steps;j++)platAt(st,2.2+(j-1)*1.25,B,.625,1.1,j*.7,true,null,.1)});
+  q.refs.forEach((r,k)=>{const B=3.2+k*3.4;stepsMesh(G,2.2,B,r.steps,k?'#2E8BF0':'#FF5FA2');const s=sprite(texOf(g=>bigText(g,`Escada d${withArt(r.name)}`,128,128,240,44,INK)),3,3);s.position.set(.4,2.4,B);G.add(s);for(let j=1;j<=r.steps;j++)platAt(st,2.2+(j-1)*1.25,B,.625,1.1,j*.7,true,null,.1)});
   padSprite(G,'COLOCAR ⬇',.4,-2,'#FF8A1F');CH.pads.put=L2W(st,.4,-2);
   CH.area=[-1.5,6.5,-13,-6.4];CH.items=spawnPickups(range(1,q.supply).map(()=>({pic:pBlock,v:1,s:1.5})),CH.area);
   padSprite(G,'PRONTO ✓',-3.6,2.2,'#22B35E');padSprite(G,'TIRAR ➖',-4.4,-5,'#E8413A');CH.pads.pronto=L2W(st,-3.6,2.2);CH.pads.tirar=L2W(st,-4.4,-5);
@@ -1223,15 +1355,15 @@ function loadBuildQ(){clearArena();const st=CH.st,G=beginArena(st),q=CH.gen(stat
   const tip='Pegue blocos 🟧, pise no COLOCAR ⬇ para montar. Depois pise no PRONTO ✓.';
   setMission(`<span class="vt">🏗️ CONSTRUIR</span>${CH.idx+1}/${CH.n} · ${q.text}<small>${tip}</small>`);sayQ(q.text,CH.idx===0?tip:'')}
 function addStep(){const st=CH.st,k=CH.steps.length+1,h=k*.7,A=2.2+(k-1)*1.25,B=-2,m=mesh(BOX(1.25,h,2.6),pick(['#E8413A','#2E8BF0','#FFC83D','#2DB34A','#8B4CF0']),A,h/2,B);CH.G.add(m);CH.steps.push({m,p:platAt(st,A,B,.625,1.3,h,true,null,.1)})}
-function removeStep(){const s=CH.steps.pop();if(!s)return false;CH.G.remove(s.m);const i=PLATS.indexOf(s.p);if(i>=0)PLATS.splice(i,1);return true}
+function removeStep(){const s=CH.steps.pop();if(!s)return false;drop(s.m);const i=PLATS.indexOf(s.p);if(i>=0)PLATS.splice(i,1);return true}
 function updateBuild(dt){updatePickups(CH.items,CH.held,dt,10);
-  if(CH.chest){CH.chest.m.rotation.y+=dt*2;CH.chestT-=dt;if(isNear(CH.chest,1.4)&&Math.abs(P.y-CH.chest.y)<1.2){scene.remove(CH.chest.m);CH.chest=null;addCoins(3);CH.coins+=3;sfx.win();confetti(30);playAnim('cheer');toast('🎁 Você pegou o baú! +3 🪙',2600,true);later(nextBuild,2800)}
-    else if(CH.chestT<=0){scene.remove(CH.chest.m);CH.chest=null;nextBuild()}return}
+  if(CH.chest){CH.chest.m.rotation.y+=dt*2;CH.chestT-=dt;if(isNear(CH.chest,1.4)&&Math.abs(P.y-CH.chest.y)<1.2){CH.chest.m.visible=false;CH.chest=null;addCoins(3);CH.coins+=3;sfx.win();confetti(30);playAnim('cheer');toast('🎁 Você pegou o baú! +3 🪙',2600,true);later(nextBuild,2800)}
+    else if(CH.chestT<=0){CH.chest.m.visible=false;CH.chest=null;nextBuild()}return}
   if(CH.locked)return;
   edge('put',isNear(CH.pads.put,1.4),()=>{if(!CH.held.length)return;CH.held.forEach(o=>{o.state='used';o.sp.visible=false;if(CH.steps.length<12)addStep()});CH.held=[];sfx.coin()});
   edge('tirar',isNear(CH.pads.tirar,1.4),()=>{if(removeStep()){const o=CH.items.find(o=>o.state==='used');if(o)dropToGround(o,CH.area);sfx.tap();toast('Tirou um degrau.',1200)}});
   edge('pronto',isNear(CH.pads.pronto,1.4),()=>{if(CH.held.length){toast('Coloque os blocos que estão na cabeça primeiro!',1800);return}const n=CH.steps.length;
-    if(CH.q.check(n)){CH.locked=true;const first=CH.tries===0;record(CH.st.id,first);if(first)CH.first++;const g=first?2:1;CH.coins+=g;addCoins(g);sfx.ok();confetti(16);
+    if(CH.q.check(n)){CH.locked=true;const first=CH.tries===0;record(CH.st.id,first,CH.skill);if(first)CH.first++;const g=first?2:1;CH.coins+=g;addCoins(g);sfx.ok();confetti(16);
       const k=n,A=2.2+(k-1)*1.25,w=L2W(CH.st,A,-2),cm=new THREE.Group();cm.add(mesh(BOX(.9,.6,.7),'#8B5A2B',0,.3,0),mesh(BOX(.95,.25,.75),'#FFC83D',0,.68,0));cm.position.set(w.x,k*.7,w.z);scene.add(cm);CHX.objs.push(cm);
       CH.chest={m:cm,x:w.x,z:w.z,y:k*.7};CH.chestT=40;playAnim('cheer');toast(`<b>${pick(CHEERS)}</b> +${g} 🪙 Agora SUBA a escada e pegue o baú! 🎁`,4500,true);return}
     CH.tries++;if(CH.tries>=2)return failRound(`Sua escada tem ${n} degraus. ${CH.q.explain}`,null,nextBuild);hintBad(`Sua escada tem ${n} degraus. ${CH.q.hint}`)})}
@@ -1258,27 +1390,27 @@ function startSimon(st){CH={type:'simon',st,n:8,idx:0,first:0,coins:0,hearts:3};
   const ms=sprite(texOf(g=>bigText(g,'MESA',128,128,220,60,INK)),2.2,2.2);ms.position.set(2,4.6,-6);G.add(ms);
   [[6.5,-.6],[8.4,2.2],[5.2,2.8]].forEach(([A,B])=>{G.add(mesh(BOX(1.6,.9,1.6),'#2E8BF0',A,.45,B));const p=platAt(st,A,B,.8,.8,.9,true,null,.1);p.bloco=true});
   const w=L2W(st,-3,0),f=L2W(st,6,0);teleport(w.x,w.z,f.x,f.z);CH.last=null;loadSimonQ()}
-function loadSimonQ(){const L=stat(CH.st.id).level,pool=SIMON.filter(c=>c.lv<=L&&c!==CH.last);const c=pick(pool);CH.last=c;Object.assign(CH,{q:c,time:[16,13,11][L-1],phase:'read',locked:false,tries:0});
+function loadSimonQ(){const L=stat(CH.st.id).level,pool=SIMON.filter(c=>c.lv<=L&&c!==CH.last);const c=pick(pool);CH.last=c;Object.assign(CH,{q:c,skill:'vocab.'+(({embaixo:'cima',longe:'perto',fora:'dentro'})[c.k]||c.k),time:[16,13,11][L-1],phase:'read',locked:false,tries:0});
   simonMission();speak('O mestre mandou: '+plain(c.t),()=>{if(CH&&CH.q===c&&CH.phase==='read'){CH.phase='play';simonMission()}})}
 function simonMission(){setMission(`<span class="vt">🗣️ O MESTRE MANDOU</span>${CH.idx+1}/${CH.n} · ${CH.q.t}!<small>${CH.phase==='read'?'🗣️ Escute o mestre...':'⏱ '+Math.ceil(Math.max(0,CH.time))+'s'} · ${'❤️'.repeat(Math.max(0,CH.hearts))}${'🖤'.repeat(3-Math.max(0,CH.hearts))}</small>`)}
-function updateSimon(dt){if(CH.phase!=='play')return;const prev=Math.ceil(CH.time);CH.time-=dt;if(Math.ceil(CH.time)!==prev){simonMission();if(CH.time<=3&&CH.time>0)sfx.tick()}
-  if(CH.time>0)return;CH.phase='done';
+function updateSimon(dt){if(CH.phase!=='play'){hideSure();return}showSure('✓ Cheguei!',()=>{CH.time=0});const prev=Math.ceil(CH.time);CH.time-=dt;if(Math.ceil(CH.time)!==prev){simonMission();if(CH.time<=3&&CH.time>0)sfx.tick()}
+  if(CH.time>0)return;CH.phase='done';hideSure();
   if(CH.q.ok())okRound(2,'Você fez certinho!',null,nextSimon);
-  else{CH.hearts--;CH.locked=true;record(CH.st.id,false);sfx.bad();playAnim('sad');simonMission();
+  else{CH.hearts--;CH.locked=true;record(CH.st.id,false,CH.skill);sfx.bad();playAnim('sad');simonMission();
     if(CH.hearts<=0){toast(`Não era aí! ${CH.q.h}<br>Acabaram os corações! 💔`,4200,true);later(()=>{CH.n=CH.idx+1;done3D(true)},4400)}else{toast(`Não era aí! ${CH.q.h}`,4200,true);later(nextSimon,4400)}}}
 function nextSimon(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadSimonQ()}
 
 /* ---- obby / order / shapes (classic modes) ---- */
 function resetObby(){OBBY.rows.forEach((row,k)=>{row.forEach(p=>{p.active=true;p.used=false;p.correct=false;p.val=null;p.mesh.position.y=-.5;p.mesh.visible=true;p.falling=false;platLabel(p,'?','#FFFFFF')});drawBoard(k,'? + ?',false)})}
 function startObby(st){const L=stat(st.id).level;resetObby();CH={type:'obby',st,row:0,n:5,first:0,coins:0,tries:0,qs:[]};
-  OBBY.rows.forEach((row,k)=>{const q=genArith(L);CH.qs.push(q);row.forEach((p,j)=>{p.val=q.opts[j];p.correct=q.opts[j]===q.ans;platLabel(p,q.opts[j],'#FFFFFF')});drawBoard(k,`${q.a} ${q.op} ${q.b} = ?`,false)});
-  checkpoint={x:OX+62.5,z:0};teleport(OX+62.5,0,OX+80,0);obbyMission();toast('Pule (⬆) na plataforma com a resposta certa!',4500)}
+  OBBY.rows.forEach((row,k)=>{const q=genArith(L);CH.qs.push(q);row.forEach((p,j)=>{p.val=q.opts[j];p.correct=q.opts[j]===q.ans;platLabel(p,q.opts[j],'#FFFFFF')});drawBoard(k,`${q.a} ${q.op} ${q.b} = ?`,false,q)});
+  checkpoint={x:OX+62.5,z:0};teleport(OX+62.5,0,OX+80,0);camLook=3.4;obbyMission();toast('Pule (⬆) na plataforma com a resposta certa!',4500)}
 function obbyMission(){const q=CH.qs[CH.row];setMission(`<span class="vt">⬆ PULAR</span>Conta ${CH.row+1} de 5: pule na resposta de <b>${q.a} ${q.op} ${q.b}</b>`);speak(`Pule na resposta de ${q.a} ${q.op} ${q.b}`)}
 function updateObby(){if(!onGround||!standing||standing.row==null||standing.used||standing.row!==CH.row)return;const p=standing,q=CH.qs[CH.row];p.used=true;
-  if(p.correct){const first=CH.tries===0,gain=first?2:1;record(CH.st.id,first);if(first)CH.first++;CH.coins+=gain;addCoins(gain);
-    platLabel(p,p.val,'#7CE3A0');drawBoard(CH.row,`${q.a} ${q.op} ${q.b} = ${q.ans}`,true);sfx.ok();confetti(14);checkpoint=OBBY.checkpoints[CH.row];CH.row++;CH.tries=0;
+  if(p.correct){const first=CH.tries===0,gain=first?2:1;if(CH.tries<2)record(CH.st.id,first,q.skill);if(first)CH.first++;CH.coins+=gain;addCoins(gain);
+    platLabel(p,p.val,'#7CE3A0',true);drawBoard(CH.row,`${q.a} ${q.op} ${q.b} = ${q.ans}`,true,q);sfx.ok();confetti(14);checkpoint=OBBY.checkpoints[CH.row];CH.row++;CH.tries=0;
     playAnim('cheer');if(CH.row>=5){setMission('🏆 Você chegou à taça!');done3D()}else{toast(`${pick(CHEERS)} +${gain} 🪙`,2000);setTimeout(()=>{if(CH&&CH.type==='obby')obbyMission()},900)}}
-  else{CH.tries++;if(CH.tries===2)record(CH.st.id,false);p.active=false;p.falling=true;platLabel(p,p.val,'#FF8A80');sfx.bad();toast(`Ops! ${q.a} ${q.op} ${q.b} não dá ${p.val}. Tente outra plataforma!`,4500,true)}}
+  else{CH.tries++;if(CH.tries===2)record(CH.st.id,false,q.skill);p.active=false;p.falling=true;platLabel(p,p.val,'#FF8A80',false);sfx.bad();toast(`Ops! ${q.a} ${q.op} ${q.b} não dá ${p.val}. Tente outra plataforma!`,4500,true)}}
 const numTexCache={};
 function numTex(n,col){const k=n+col;return numTexCache[k]||(numTexCache[k]=tex(cv(128,128,g=>{g.fillStyle=col;g.fillRect(0,0,128,128);g.lineWidth=10;g.strokeStyle=INK;g.strokeRect(5,5,118,118);
   fitText(g,String(n),104,78);g.textAlign='center';g.textBaseline='middle';g.lineWidth=8;g.strokeText(String(n),64,70);g.fillStyle='#fff';g.fillText(String(n),64,70)})))}
@@ -1290,7 +1422,7 @@ function startOrder(st){const L=stat(st.id).level;let seq,step=1;
   const nums=shuffle([...seq,...extra]),cubes=[],c={x:st.c.x+st.u.x*3,z:st.c.z+st.u.z*3},cols=['#E8413A','#2E8BF0','#2DB34A','#8B4CF0','#FF8A1F'];
   nums.forEach(n=>{let x,z,g=0;do{const a=Math.random()*Math.PI*2,r=Math.random()*10+1;x=c.x+Math.cos(a)*r;z=c.z+Math.sin(a)*r;g++}while(g<200&&(Math.hypot(x-st.npcPos.x,z-st.npcPos.z)<3||cubes.some(q=>Math.hypot(q.x-x,q.z-z)<2.6)));
     const m=new THREE.Mesh(BOX(1.3,1.3,1.3),new THREE.MeshLambertMaterial({map:numTex(n,pick(cols))}));m.position.set(x,1.2,z);m.castShadow=true;scene.add(m);cubes.push({n,x,z,m,taken:false,ph:Math.random()*6})});
-  CH={type:'order',st,seq,idx:0,n:seq.length,first:0,coins:0,tries:0,cubes,last:null,L,step,desc:seq[1]<seq[0]};orderMission();toast('Corra até os cubos e encoste neles!',2400)}
+  CH={type:'order',st,seq,idx:0,n:seq.length,first:0,coins:0,tries:0,cubes,last:null,L,step,desc:seq[1]<seq[0]};CH.skill='ordem.'+(step>1?'salto':CH.desc?'seqdec':'seq');orderMission();toast('Corra até os cubos e encoste neles!',2400)}
 function orderMission(){const c=CH,nx=c.seq[c.idx],prev=c.seq[c.idx-1];let t;
   if(c.L===1)t=`Pegue o número <b>${nx}</b>`;else if(c.idx===0)t=`Comece pelo <b>${nx}</b>!`;else if(c.desc)t=`Qual número vem <b>ANTES</b> do ${prev}?`;
   else if(c.step>1)t=`Conte de ${c.step} em ${c.step}: o que vem depois do <b>${prev}</b>?`;else t=`Qual número vem <b>DEPOIS</b> do ${prev}?`;
@@ -1298,9 +1430,9 @@ function orderMission(){const c=CH,nx=c.seq[c.idx],prev=c.seq[c.idx-1];let t;
 function updateOrder(dt){const c=CH;let touching=null;
   c.cubes.forEach(q=>{if(q.taken){q.m.scale.multiplyScalar(Math.max(0,1-dt*8));q.m.position.y+=dt*6;return}q.ph+=dt;q.m.position.y=1.2+Math.sin(q.ph*2)*.2;q.m.rotation.y+=dt;if(Math.hypot(P.x-q.x,P.z-q.z)<1.35&&P.y<2.6)touching=q});
   if(!touching){if(c.last&&Math.hypot(P.x-c.last.x,P.z-c.last.z)>2.2)c.last=null;return}if(touching===c.last)return;
-  if(touching.n===c.seq[c.idx]){touching.taken=true;const first=c.tries===0,gain=first?2:1;record(c.st.id,first);if(first)c.first++;c.coins+=gain;addCoins(gain);sfx.coin();playAnim('cheer');c.tries=0;c.idx++;
-    if(c.idx>=c.n){const cs=c.cubes;setTimeout(()=>cs.forEach(q=>scene.remove(q.m)),600);setMission('🏁 Todos os números na ordem!');done3D()}else orderMission()}
-  else{c.last=touching;c.tries++;if(c.tries===2)record(c.st.id,false);sfx.dizzy();playAnim('dizzy');toast(`Esse é o <b>${touching.n}</b>. ${c.L===1?`Procure o ${c.seq[c.idx]}!`:'Pense de novo e procure outro!'}`,4200,true);
+  if(touching.n===c.seq[c.idx]){touching.taken=true;const first=c.tries===0,gain=first?2:1;if(c.tries<2)record(c.st.id,first,c.skill);if(first)c.first++;c.coins+=gain;addCoins(gain);sfx.coin();playAnim('cheer');c.tries=0;c.idx++;
+    if(c.idx>=c.n){const cs=c.cubes;setTimeout(()=>cs.forEach(q=>drop(q.m)),600);setMission('🏁 Todos os números na ordem!');done3D()}else orderMission()}
+  else{c.last=touching;c.tries++;if(c.tries===2)record(c.st.id,false,c.skill);sfx.dizzy();playAnim('dizzy');toast(`Esse é o <b>${touching.n}</b>. ${c.L===1?`Procure o ${c.seq[c.idx]}!`:'Pense de novo e procure outro!'}`,4200,true);
     const dx=P.x-touching.x,dz=P.z-touching.z,d=Math.hypot(dx,dz)||1;P.x+=dx/d*1.2;P.z+=dz/d*1.2;vy=5}}
 function startShapes(st){const L=stat(st.id).level,qs=[];let prev=null;for(let i=0;i<6;i++){const q=genShapeQ(L,prev);prev=q.n;qs.push(q)}
   CH={type:'shapes',st,qs,idx:0,n:6,first:0,coins:0,tries:0,last:null};shapesMission();toast('Corra até a forma certa!',3500)}
@@ -1308,9 +1440,9 @@ function shapesMission(){setMission(`<span class="vt">🏃 ENCOSTAR</span>${CH.i
 function updateShapes(){const c=CH;let t=null;
   for(const s of SHAPES){const d=Math.hypot(P.x-s.x,P.z-s.z);if(s.flat?(d<1.25&&onGround&&P.y<.5):(d<s.r+.95)){t=s;break}}
   if(!t){c.last=null;return}if(t===c.last)return;c.last=t;const q=c.qs[c.idx],I=SHAPE_INFO[t.n];
-  if(t.n===q.n){const first=c.tries===0,gain=first?2:1;record(c.st.id,first);if(first)c.first++;c.coins+=gain;addCoins(gain);sfx.ok();confetti(10);c.tries=0;
+  if(t.n===q.n){const first=c.tries===0,gain=first?2:1;if(c.tries<2)record(c.st.id,first,q.skill);if(first)c.first++;c.coins+=gain;addCoins(gain);sfx.ok();confetti(10);c.tries=0;
     playAnim('cheer');toast(`Isso! ${I.g==='a'?'Essa é a':'Esse é o'} <b>${t.n.toUpperCase()}</b> +${gain} 🪙`,2400);t.pulse=1;c.idx++;if(c.idx>=c.n)done3D();else setTimeout(()=>{if(CH===c)shapesMission()},1200)}
-  else{c.tries++;if(c.tries===2)record(c.st.id,false);sfx.bad();playAnim('sad');toast(`${I.g==='a'?'Essa é a':'Esse é o'} <b>${t.n.toUpperCase()}</b>. Procure outra forma!`,4200,true)}}
+  else{c.tries++;if(c.tries===2)record(c.st.id,false,q.skill);sfx.bad();playAnim('sad');toast(`${I.g==='a'?'Essa é a':'Esse é o'} <b>${t.n.toUpperCase()}</b>. Procure outra forma!`,4200,true)}}
 function update3D(dt){if(!CH||paused)return;const t=CH.type;
   if(t==='obby')updateObby();else if(t==='order')updateOrder(dt);else if(t==='shapes')updateShapes();else if(t==='act')updateAct(dt);
   else if(t==='shoot')updateShoot(dt);else if(t==='floor')updateFloor(dt);else if(t==='share')updateShare(dt);else if(t==='build')updateBuild(dt);else if(t==='simon')updateSimon(dt)}
@@ -1354,10 +1486,18 @@ function buyQuiz(t){const have=S.coins,left=have-t.p,opts=optNums(left,[left+10,
 function openMenu(){
   openSheet(`<div class="menu"><div class="shop-h" style="padding:0"><span class="h2">Menu</span><button class="xbtn" id="mn-x" aria-label="Fechar">✕</button></div><b>Ir pelo portal até:</b>
     <div class="travel">${STATIONS.map(s=>`<button data-id="${s.id}" style="--c:${s.color}">${s.name}<small>${s.sub} · ★ ${stat(s.id).stars||0} ${['','🥉','🥈','🏆'][S.trophies[s.id]||0]}</small></button>`).join('')}<button data-id="__city" style="--c:#5B6475">Cidade dos Números<small>Loja e Sala de Troféus</small></button></div>
-    <div class="btns" style="justify-content:flex-start"><button class="btn gold" id="mn-shop">🛍️ Loja</button><button class="btn" id="mn-help">❓ Como jogar</button><button class="btn" id="mn-par">👨 Área dos pais</button></div></div>`);
+    <div class="btns" style="justify-content:flex-start"><button class="btn gold" id="mn-shop">🛍️ Loja</button><button class="btn" id="mn-pl">👥 Jogadores</button><button class="btn" id="mn-caps">🔠 ${S.caps?'Letras normais':'LETRAS MAIÚSCULAS'}</button><button class="btn" id="mn-help">❓ Como jogar</button><button class="btn" id="mn-par">👨 Área dos pais</button></div></div>`);
+  $('#mn-pl').onclick=()=>{sfx.tap();openPlayers()};
+  $('#mn-caps').onclick=()=>{sfx.tap();S.caps=!S.caps;save();document.body.classList.toggle('caps',S.caps);layoutTop();openMenu()};
   $('#mn-x').onclick=()=>closeSheet();
   $$('.travel button').forEach(b=>b.onclick=()=>{sfx.tap();closeSheet();const id=b.dataset.id;if(id==='__city'){if(WORLD)leaveWorld();else teleport(0,4,0,-8);return}enterWorld(STM[id])});
   $('#mn-shop').onclick=()=>{sfx.tap();closeSheet();if(WORLD)leaveWorld();setTimeout(()=>{teleport(0,-4,0,-8);openShop()},WORLD?900:0)};$('#mn-help').onclick=()=>{sfx.tap();openTut()};$('#mn-par').onclick=()=>{sfx.tap();parentGate()}}
+function openPlayers(){const list=PF.ids.map(id=>{const d=id===PF.cur?S:normalize(readSave(id));return {id,name:d.name||'Jogador novo',stars:d.stars}});
+  openSheet(`<div class="menu"><div class="shop-h" style="padding:0"><span class="h2">👥 Quem vai jogar?</span><button class="xbtn" id="pl-x" aria-label="Fechar">✕</button></div>
+    <div class="players">${list.map(p=>`<button data-id="${p.id}" class="${p.id===PF.cur?'on':''}">${esc(p.name)}<small>⭐ ${p.stars}${p.id===PF.cur?' · jogando agora':''}</small></button>`).join('')}${PF.ids.length<MAXP?'<button data-id="new">➕ Novo jogador<small>Começa do zero</small></button>':''}</div>
+    <div class="small">Cada jogador tem suas moedas, seus troféus e seu progresso.</div></div>`);
+  $('#pl-x').onclick=()=>closeSheet();
+  $$('.players button').forEach(b=>b.onclick=()=>{sfx.tap();const v=b.dataset.id;if(v!=='new'&&+v===PF.cur)return closeSheet();flushFin();save();if(v==='new'){PF.cur=PF.next++;PF.ids.push(PF.cur)}else PF.cur=+v;savePF();location.reload()})}
 function openTut(){openSheet(`<div class="pad"><div class="h2">Bem-vindo à Cidade dos Números!</div><div class="tut">
     <span class="i">🕹️</span><span>Arraste no lado <b>esquerdo</b> da tela para andar. Botão <b>⬆</b> pula.</span>
     <span class="i">⟲⟳</span><span>Segure <b>⟲ ⟳</b> ou arraste no lado <b>direito</b> para girar a câmera.</span>
@@ -1365,7 +1505,8 @@ function openTut(){openSheet(`<div class="pad"><div class="h2">Bem-vindo à Cida
     <span class="i">🎮</span><span>Tem obby, tiro ao balão, chão de lava, construção, ajudar amigos, "o mestre mandou" e muito mais!</span>
     <span class="i">🪙</span><span>Ganhe moedas acertando. Na <b>Loja</b>, faça a conta do troco para comprar.</span>
     <span class="i">🏆</span><span>Ganhe medalhas e taças! Elas ficam na <b>Sala de Troféus</b>.</span>
-    <span class="i">🎸🗣️</span><span>No topo da tela: <b>🎸</b> liga ou desliga a música, e <b>🗣️</b> liga ou desliga a voz que lê as perguntas.</span></div>
+    <span class="i">🎸🗣️</span><span>No topo da tela: <b>🎸</b> liga ou desliga a música, e <b>🗣️</b> liga ou desliga a voz que lê as perguntas.</span>
+    <span class="i">☰</span><span>No <b>Menu</b> dá para trocar de jogador e deixar tudo em <b>LETRAS MAIÚSCULAS</b>.</span></div>
     ${S.name?'':'<form id="t-name" class="field" style="justify-content:center;margin-bottom:14px"><label for="t-in" style="font-family:var(--fb);font-size:20px">Qual é o seu nome?</label><input id="t-in" maxlength="14" autocomplete="off" placeholder="Seu nome"></form>'}
     <div class="btns"><button class="btn go" id="t-ok">Bora! ▶</button></div></div>`);
   const go=()=>{const i=$('#t-in');if(i){S.name=i.value.trim()||'Jogador';buildPlayer()}S.tut=true;save();hud();sfx.ok();closeSheet()};
@@ -1373,35 +1514,61 @@ function openTut(){openSheet(`<div class="pad"><div class="h2">Bem-vindo à Cida
 function parentGate(){const a=rnd(6,9),b=rnd(6,9);
   openSheet(`<form class="pad" id="gate"><div class="h2">Só para adultos</div><p style="font-family:var(--fb);font-size:20px">Quanto é ${a} × ${b}?</p><div class="field"><input id="g-in" type="number" inputmode="numeric" autocomplete="off" aria-label="Resposta"><button class="btn gold">Entrar</button><button type="button" class="btn" id="g-x">Voltar</button></div></form>`);
   $('#g-x').onclick=()=>closeSheet();$('#gate').onsubmit=e=>{e.preventDefault();if(+$('#g-in').value===a*b)parents();else{shake($('#gate'));$('#g-in').value=''}}}
-function parents(){const rows=STATIONS.map(s=>{const t=stat(s.id);return {s,t,p:t.total?Math.round(100*t.first/t.total):null}}),weak=rows.filter(r=>r.t.total>=5).sort((x,y)=>x.p-y.p)[0];let arm=false;
-  openSheet(`<div class="pad"><div class="shop-h" style="padding:0 0 8px"><span class="h2">Progresso de ${S.name}</span><button class="xbtn" id="p-x" aria-label="Fechar">✕</button></div>
-    <div class="tbl"><table><thead><tr><th>Capítulo</th><th>Estação</th><th>Nível</th><th>Rodadas</th><th>De primeira</th><th>Troféu</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.s.sub}</td><td>${r.s.name}</td><td>${r.t.level}/3</td><td>${r.t.rounds}</td><td>${r.p==null?'—':`${r.t.first}/${r.t.total} (${r.p}%)`}</td><td>${['—','🥉','🥈','🏆'][S.trophies[r.s.id]||0]}</td></tr>`).join('')}</tbody></table></div>
-    <p style="font-family:var(--fb);font-size:17px;line-height:1.45">${weak&&weak.p<75?`Onde ele mais erra: <b>${weak.s.sub}</b>. Vale fazer junto, com objetos de verdade.`:'Ainda não há dados suficientes para apontar uma dificuldade.'} O nível sobe com 80% de acertos de primeira e desce abaixo de 40%. A taça de ouro da estação sai ao fazer 3 estrelas no nível 3. A Taça dos Campeões sai com as 8 taças.</p>
-    <form id="nm" class="field"><input id="nm-in" maxlength="14" value="${S.name.replace(/"/g,'')}" aria-label="Nome do jogador"><button class="btn gold">Salvar nome</button></form>
-    <div class="btns" style="justify-content:flex-start;margin-top:14px"><button class="btn" id="p-rs" style="background:var(--badbg)">Apagar progresso deste aparelho</button></div></div>`);
+function parents(){const nm=esc(S.name||'Jogador'),pc=(f,n)=>n?`${f}/${n} (${Math.round(100*f/n)}%)`:'—',rows=STATIONS.map(s=>({s,t:stat(s.id)}));let arm=false,armDel=false,armIm=false;
+  const sk=Object.keys(S.sk).map(id=>({id,k:S.sk[id],st:STM[id.split('.')[0]]})).filter(x=>x.st&&x.k.n>0).sort((a,b)=>a.k.r-b.k.r||b.k.n-a.k.n);
+  const state=k=>k.n<3?['#C9CED6','Começando']:k.r>=.8&&!k.w?['#22B35E','Dominou']:k.r<.5?['#E53935','Precisa de ajuda']:['#FFC83D','Treinando'];
+  const weak=sk.filter(x=>x.k.n>=3&&x.k.r<.5).slice(0,3),wks=[3,2,1,0].map(o=>weekKey(o)),any=wks.some(w=>S.wk[w]);
+  openSheet(`<div class="pad"><div class="shop-h" style="padding:0 0 8px"><span class="h2">Progresso de ${nm}</span><button class="xbtn" id="p-x" aria-label="Fechar">✕</button></div>
+    <p style="font-family:var(--fb);font-size:17px;line-height:1.45;margin:0">${weak.length?`Onde ${nm} mais precisa de ajuda agora: <b>${weak.map(x=>esc(skillName(x.id))).join('</b>, <b>')}</b>. Vale fazer junto, com objetos de verdade.`:sk.length?'Nenhuma habilidade em dificuldade no momento.':'Ainda não há respostas registradas.'}</p>
+    <div class="sec">Por estação</div>
+    <div class="tbl"><table><thead><tr><th>Capítulo</th><th>Estação</th><th>Nível</th><th>Rodadas</th><th>De primeira</th><th>Troféu</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.s.sub}</td><td>${r.s.name}</td><td>${r.t.level}/3</td><td>${r.t.rounds}</td><td>${pc(r.t.first,r.t.total)}</td><td>${['—','🥉','🥈','🏆'][S.trophies[r.s.id]||0]}</td></tr>`).join('')}</tbody></table></div>
+    <div class="sec">Semana a semana (acertos de primeira)</div>
+    ${any?`<div class="tbl"><table><thead><tr><th>Estação</th>${wks.map((w,i)=>`<th>${i===3?'Esta semana':'Sem. de '+w.slice(8)+'/'+w.slice(5,7)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><td>${r.s.name}</td>${wks.map(w=>{const a=(S.wk[w]||{})[r.s.id];return `<td>${a?pc(a[0],a[1]):'—'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div>`:'<div class="small">Sem respostas nas últimas 4 semanas.</div>'}
+    <div class="sec">Por habilidade</div>
+    ${sk.length?`<div class="tbl"><table><thead><tr><th>Habilidade</th><th>Estação</th><th>De primeira</th><th>Situação</th></tr></thead><tbody>${sk.map(x=>{const [c,l]=state(x.k);return `<tr><td>${esc(skillName(x.id))}</td><td>${x.st.name}</td><td>${pc(x.k.f,x.k.n)}</td><td><span class="dot" style="background:${c}"></span>${l}${x.k.w?' · volta nas próximas rodadas':''}</td></tr>`}).join('')}</tbody></table></div>`:'<div class="small">Aparece aqui depois das primeiras respostas.</div>'}
+    <p class="small" style="line-height:1.45">A situação pesa mais as respostas recentes. O que a criança erra volta nas rodadas seguintes, até acertar duas vezes de primeira. O nível sobe com 80% de acertos de primeira e desce abaixo de 40%. Estrelas: 3 com tudo certo de primeira (rodadas de 6 ou mais perguntas aceitam um erro), 2 com 60% e 1 com 30%. As moedas de bônus acompanham os acertos de primeira. A taça de ouro da estação sai com 3 estrelas no nível 3, e a Taça dos Campeões, com as 8 taças.</p>
+    <div class="sec">Ajustes</div>
+    <form id="nm" class="field"><input id="nm-in" maxlength="14" value="${esc(S.name)}" aria-label="Nome do jogador"><button class="btn gold">Salvar nome</button></form>
+    <div class="field" style="margin-top:10px"><label for="p-br" style="font-family:var(--fb);font-size:17px">Aviso de pausa:</label><select id="p-br">${[0,15,20,30,45].map(m=>`<option value="${m}"${S.breakMin===m?' selected':''}>${m?`a cada ${m} minutos`:'desligado'}</option>`).join('')}</select></div>
+    <div class="sec">Cópia de segurança</div>
+    <div class="small" style="margin-bottom:8px">O progresso fica só neste aparelho. Salve uma cópia para não perder, ou para levar a outro aparelho.</div>
+    <div class="btns" style="justify-content:flex-start"><button class="btn" id="p-ex">💾 Salvar cópia</button><button class="btn" id="p-im">📂 Restaurar cópia</button><input type="file" id="p-file" accept="application/json,.json" hidden></div>
+    <div class="btns" style="justify-content:flex-start;margin-top:18px"><button class="btn" id="p-rs" style="background:var(--badbg)">Apagar progresso deste jogador</button>${PF.ids.length>1?'<button class="btn" id="p-del" style="background:var(--badbg)">Remover este jogador</button>':''}</div></div>`);
   $('#p-x').onclick=()=>closeSheet();
-  $('#nm').onsubmit=e=>{e.preventDefault();const v=$('#nm-in').value.trim();if(v){S.name=v;save();hud();buildPlayer();toast('Nome salvo!')}};
-  $('#p-rs').onclick=()=>{if(!arm){arm=true;$('#p-rs').textContent='Toque de novo para confirmar';return}const nm=S.name;S=JSON.parse(JSON.stringify(DEF));S.name=nm;S.tut=true;save();hud();buildPlayer();STATIONS.forEach(updateSign);updateHall();closeSheet();toast('Progresso apagado.')}}
+  $('#nm').onsubmit=e=>{e.preventDefault();const v=$('#nm-in').value.trim();if(v){S.name=v.slice(0,14);save();hud();buildPlayer();toast('Nome salvo!')}};
+  $('#p-br').onchange=e=>{S.breakMin=+e.target.value;playT=0;save();toast(S.breakMin?`Aviso de pausa a cada ${S.breakMin} minutos.`:'Aviso de pausa desligado.')};
+  $('#p-ex').onclick=()=>{try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({app:'ilha-dos-numeros',v:1,when:new Date().toISOString(),save:S})],{type:'application/json'}));
+      a.download=`ilha-dos-numeros-${(S.name||'jogador').replace(/[^\wÀ-ɏ-]+/g,'_')}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);toast('Cópia salva na pasta de downloads.')}catch(e){toast('Não consegui salvar a cópia neste aparelho.')}};
+  $('#p-im').onclick=()=>{if(!armIm){armIm=true;$('#p-im').textContent='Toque de novo: substitui este jogador';return}$('#p-file').click()};
+  $('#p-file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onerror=()=>toast('Não consegui ler o arquivo.');
+    r.onload=()=>{try{const d=JSON.parse(r.result);if(!isObj(d)||d.app!=='ilha-dos-numeros'||!isObj(d.save)||!isObj(d.save.st))throw 0;S=normalize(d.save);S.tut=true;save();location.reload()}catch(_){toast('Esse arquivo não é uma cópia do jogo.')}};r.readAsText(f)};
+  $('#p-rs').onclick=()=>{if(!arm){arm=true;$('#p-rs').textContent='Toque de novo para confirmar';return}S=normalize({name:S.name,tut:true,sound:S.sound,music:S.music,voice:S.voice,caps:S.caps,breakMin:S.breakMin});save();hud();buildPlayer();STATIONS.forEach(updateSign);updateHall();closeSheet();toast('Progresso apagado.')};
+  if($('#p-del'))$('#p-del').onclick=()=>{if(!armDel){armDel=true;$('#p-del').textContent='Toque de novo para remover';return}try{localStorage.removeItem(KEY)}catch(e){}PF.ids=PF.ids.filter(i=>i!==PF.cur);PF.cur=PF.ids[0];savePF();location.reload()}}
+/* optional reminder to take a break (set in the parents area); it waits for the current challenge to end */
+let playT=0;
+function breakCheck(dt){if(!S.breakMin)return;playT+=dt;if(playT<S.breakMin*60||CH||paused||pendFin)return;playT=0;
+  openSheet(`<div class="result"><h2>Hora da pausa! 🧃</h2><p>Você já jogou ${S.breakMin} minutos. Que tal beber água, esticar o corpo e descansar os olhos?</p><div class="btns"><button class="btn go" id="br-ok">Voltei! ▶</button></div></div>`);
+  $('#br-ok').onclick=()=>{sfx.tap();closeSheet()};speak('Hora da pausa! Que tal beber água e descansar os olhos?')}
 $('#b-menu').onclick=()=>{sfx.tap();openMenu()};
 $('#b-sound').onclick=()=>{S.sound=!S.sound;save();hud();sfx.tap();toast(S.sound?'Efeitos de som ligados 🔊':'Efeitos de som desligados',1500)};
 $('#b-music').onclick=()=>{S.music=!S.music;save();hud();ensureAudio();musicOn(S.music);toast(S.music?'Música ligada 🎸':'Música desligada',1500)};
 $('#b-voice').onclick=()=>{S.voice=!S.voice;save();hud();if(!S.voice)try{speechSynthesis.cancel()}catch(e){}toast(S.voice?'A voz vai ler as perguntas 🗣️':'Voz desligada',1800,S.voice)};
 
 /* ================= LOOP ================= */
-function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}
+function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();layoutTop()}
 addEventListener('resize',resize);
 let last=performance.now();
 function tick(now){requestAnimationFrame(tick);const dt=Math.min(.05,(now-last)/1000);last=now;
-  updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();renderer.render(scene,camera)}
+  updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();breakCheck(dt);renderer.render(scene,camera)}
 function boot(){resize();buildPlayer();hud();STATIONS.forEach(updateSign);updateHall();camera.position.set(P.x,P.y+5,P.z+10);requestAnimationFrame(tick);if(!S.tut)openTut()}
-window.__ilhaDebug={get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
+window.__ilhaDebug={renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
   step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
 const fontsReady=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('400 20px Andika')]):Promise.resolve();
 Promise.race([fontsReady,new Promise(r=>setTimeout(r,1800))]).then(()=>{OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));boot()}).catch(boot);
 })();
 </script>
 <script>
-if("serviceWorker" in navigator&&location.protocol==="https:"){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
+if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="127.0.0.1"||location.hostname==="localhost")){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
 </script>
 </body>
 </html>
