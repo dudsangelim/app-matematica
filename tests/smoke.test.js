@@ -663,10 +663,17 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       go(wrong.x, wrong.z); run(60); out.wrongMat = [C.hearts, C.locked];
       do q = G(2); while (!q.trick || q.steps[0].k !== 'jump'); D.simonLoad(q); C.phase = 'play'; go(clear.x, clear.z); const h0 = C.hearts; for (let i = 0; i < q.steps[0].n; i++) { D.jump(); run(60); } out.obeyedTrick = [h0 - C.hearts, C.locked, /mestre/i.test(q.text)];
       do q = G(2); while (!q.trick); D.simonLoad(q); C.phase = 'play'; const f0 = C.first, h1 = C.hearts; run(60 * 7); out.ignoredTrick = [C.first - f0, h1 - C.hearts];
+      /* already standing on a circle when the order comes: it is neither obeying a trick nor stepping on the wrong one */
+      const col = c => { let o; do o = G(2); while (!o.trick || o.steps[0].k !== 'color'); o.steps[0].c = c; return o; }, other = C.mats.find(m => m !== right && m !== wrong);
+      go(right.x, right.z); q = col(right.k); D.simonLoad(q); C.phase = 'play'; const f1 = C.first, h3 = C.hearts; run(60 * 7); out.trickOnMat = [C.first - f1, h3 - C.hearts];
+      q = col(right.k); D.simonLoad(q); C.phase = 'play'; const h4 = C.hearts; run(30); go(clear.x, clear.z); go(right.x, right.z); run(40); out.trickReentered = [h4 - C.hearts, C.locked];
+      do q = G(1); while (q.steps[0].k !== 'color'); q.steps[0].c = other.k; go(wrong.x, wrong.z); D.simonLoad(q); C.phase = 'play'; const h5 = C.hearts; run(120); out.stoodOnOther = [h5 - C.hearts, C.locked];
+      go(clear.x, clear.z); go(wrong.x, wrong.z); run(60); out.steppedOnOther = [h5 - C.hearts, C.locked];
+      do q = G(1); while (q.steps[0].k !== 'color'); q.steps[0].c = right.k; go(right.x, right.z); D.simonLoad(q); C.phase = 'play'; const f2 = C.first; run(40); out.alreadyOnRight = C.first - f2;
       do q = G(1); while (q.steps[0].k !== 'hide'); D.simonLoad(q); C.phase = 'play'; const open = D.L2W(st, 4, 0), h2 = C.hearts; go(open.x, open.z); run(60 * 8); out.seen = h2 - C.hearts;
       return out;
     });
-    eq(r, { early: [0, 3, false], afterJumps: 1, wrongMat: [2, true], obeyedTrick: [1, true, false], ignoredTrick: [1, 0], seen: 1 }, 'master game rules');
+    eq(r, { early: [0, 3, false], afterJumps: 1, wrongMat: [2, true], obeyedTrick: [1, true, false], ignoredTrick: [1, 0], trickOnMat: [1, 0], trickReentered: [1, true], stoodOnOther: [0, false], steppedOnOther: [1, true], alreadyOnRight: 1, seen: 1 }, 'master game rules');
     await page.waitForTimeout(500); await page.evaluate(() => { __ilhaDebug.timeScale = 1; __ilhaDebug.flushFin(); __ilhaDebug.closeSheet(); if (__ilhaDebug.CH) document.querySelector('#m-quit').click(); });
   });
 

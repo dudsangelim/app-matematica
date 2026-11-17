@@ -1729,7 +1729,10 @@ function simonStep(s,dt){const C=CH,st=C.st;let btn=null;
   const v=s.s;v.t+=dt;let res=null;
   if(s.k==='go'){v.n=s.ok()?v.n+dt:0;if(v.n>.35)res='ok'}
   else if(s.k==='jump'){const c=jumpCount-v.j0;if(c!==v.c){v.c=c;if(c>0){toast(`<b>${c}</b>`,900);sfx.tick()}}s.live=`(${Math.min(c,s.n)}/${s.n})`;if(c>=s.n&&onGround)res='ok'}
-  else if(s.k==='color'){const m=onGround?C.mats.find(m=>Math.hypot(P.x-m.x,P.z-m.z)<1.25):null;if(m!==v.m){v.m=m;v.n=0}if(m){v.n+=dt;if(m.k===s.c){if(v.n>.25)res='ok'}else if(v.n>.6){s.why=`Esse círculo é o ${m.n}.`;res='bad'}}}
+  else if(s.k==='color'){/* the circle the player was already on when the step began is not an action: it only counts once left and stepped on again
+       (unless it is the very circle a real order asks for) - so standing still never obeys a trick, nor is it "the wrong circle" */
+    const at=C.mats.find(m=>Math.hypot(P.x-m.x,P.z-m.z)<1.25)||null;if(v.m0===undefined)v.m0=at;if(at!==v.m0)v.m0=null;
+    const m=onGround&&!(at&&at===v.m0&&(C.q.trick||at.k!==s.c))?at:null;if(m!==v.m){v.m=m;v.n=0}if(m){v.n+=dt;if(m.k===s.c){if(v.n>.25)res='ok'}else if(v.n>.6){s.why=`Esse círculo é o ${m.n}.`;res='bad'}}}
   else if(s.k==='ring'){s.live=`(${v.n}/${s.n})`;if(isNear(C.bell,2.9))btn=['🔔 Tocar o sino',()=>{v.n++;swingT=.32;tone(1568,.5,'sine',.09);tone(2093,.7,'sine',.05,.02);simonMission()}];if(v.n>=s.n)res='ok'}
   else if(s.k==='around'){const o=L2W(st,s.o.p[0],s.o.p[1]),d=Math.hypot(P.x-o.x,P.z-o.z),a=Math.atan2(P.z-o.z,P.x-o.x);
     if(d>s.o.r0&&d<s.o.r0+6){if(v.la==null){v.la=a;v.a0=a}let da=a-v.la;da=((da+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;v.acc+=da;v.la=a;if(Math.abs(v.acc-(v.dr||0))>.1){v.dr=v.acc;showProg({x:o.x,z:o.z,R:s.o.r0+1.5},v.a0,v.acc)}if(Math.abs(v.acc)>=Math.PI*2*.93){showProg(null);res='ok'}}
