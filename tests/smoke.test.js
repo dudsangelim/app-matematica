@@ -187,6 +187,47 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     assert(share.n > 600 * .32, `the missed skill was picked ${share.n} of 600 times (a fair share of 4 types would be 150)`);
   });
 
+  await test('walking stick: it never stays held after the finger is gone', async () => {
+    await page.evaluate(() => { const D = __ilhaDebug; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); });
+    const fire = (sel, type, id, x, y) => page.evaluate(([sel, type, id, x, y]) => document.querySelector(sel).dispatchEvent(new PointerEvent(type, { pointerId: id, clientX: x, clientY: y, isPrimary: true, pointerType: 'touch', bubbles: true, button: 0, buttons: 1 })), [sel, type, id, x, y]);
+    const held = () => page.evaluate(() => Math.hypot(__ilhaDebug.input.jx, __ilhaDebug.input.jy) > .5);
+    const push = async id => { await fire('#touch', 'pointerdown', id, 120, 600); await fire('#touch', 'pointermove', id, 120, 540); assert(await held(), 'the stick did not respond to finger ' + id); };
+    await push(11); await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    assert(!(await held()), 'still walking after the page lost focus');
+    await push(12); await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+    assert(!(await held()), 'still walking after the page was hidden');
+    await push(13); await fire('#b-jump', 'pointerup', 13, 900, 700);
+    assert(!(await held()), 'still walking after the release reached another element');
+    await push(14); await fire('#touch', 'pointerdown', 15, 130, 610);
+    assert(!(await held()), 'a new first finger did not take over a stick whose release was lost');
+    await fire('#touch', 'pointermove', 15, 190, 610); assert(await held(), 'the new finger does not drive the stick');
+    await fire('#touch', 'pointerup', 15, 190, 610); assert(!(await held()), 'still walking after the new finger was lifted');
+    await push(16); await page.evaluate(() => window.dispatchEvent(new TouchEvent('touchend', { touches: [], bubbles: true })));
+    assert(!(await held()), 'still walking although no finger is on the screen');
+  });
+
+  await test('keyboard: held keys are dropped when the page loses focus or a modifier is released', async () => {
+    const walking = () => page.evaluate(() => !!(__ilhaDebug.keys.w || __ilhaDebug.keys.d));
+    await page.keyboard.down('w'); assert(await walking(), 'W was not registered');
+    await page.evaluate(() => window.dispatchEvent(new Event('blur'))); assert(!(await walking()), 'W still held after blur');
+    await page.keyboard.up('w'); await page.keyboard.down('d'); await page.keyboard.down('Meta'); await page.keyboard.up('Meta');
+    assert(!(await walking()), 'D still held after a modifier key was released'); await page.keyboard.up('d');
+  });
+
+  await test('picture quality: every level renders, and "Visual leve" is remembered', async () => {
+    const p = await open(900, 700); const before = errors.length;
+    const seen = await p.evaluate(async () => { const D = __ilhaDebug, out = []; D.autoQual = false;
+      for (const q of [3, 2, 1, 0, 3]) { D.setQuality(q); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); const dome = D.scene.children.find(o => o.renderOrder === 10); out.push([D.QUAL, dome.visible, D.renderer.shadowMap.enabled && D.scene.children.some(o => o.isDirectionalLight && o.castShadow)]); }
+      return out; });
+    eq(seen, [[3, true, true], [2, true, true], [1, false, true], [0, false, false], [3, true, true]], 'level, gradient sky, shadows');
+    assert(errors.length === before, errors.slice(before).join(' | '));
+    await p.click('#b-menu'); await p.click('#mn-gfx');
+    eq(await p.evaluate(() => [__ilhaDebug.S().lite, __ilhaDebug.QUAL]), [true, 0], 'after choosing the light look');
+    await p.reload(); await p.waitForFunction(() => window.__ilhaDebug);
+    eq(await p.evaluate(() => __ilhaDebug.QUAL), 0, 'level after reopening the game');
+    await p.context().close();
+  });
+
   await test('camera keys Q and R stop turning the camera when released', async () => {
     await page.evaluate(() => __ilhaDebug.closeSheet());
     await page.keyboard.down('q'); await page.waitForTimeout(150); await page.keyboard.up('q'); await page.waitForTimeout(150);

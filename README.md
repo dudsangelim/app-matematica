@@ -30,6 +30,7 @@ A criança controla um boneco de blocos numa **cidade central**. Os **portais** 
 - **Loja** com conta de troco na hora de comprar: chapéus, roupas, bichinhos e poderes.
 - **Troféus**: medalhas de bronze e prata, uma taça de ouro por estação e a Taça dos Campeões, todos expostos na Sala de Troféus.
 - **Área dos pais**, protegida por uma conta: desempenho por estação, **semana a semana** e **por habilidade**, aviso de pausa opcional e **cópia de segurança** do progresso (salvar e restaurar um arquivo).
+- **Visual**: céu em degradê com sol, mar com ondas, sombras nítidas, flores, arbustos e pedras, e cabelo no boneco (aba Cabelo da Loja). O jogo mede a velocidade do aparelho e **reduz o visual sozinho** se ficar lento; no Menu ☰ dá para escolher **Visual leve**.
 - **Vários jogadores** no mesmo aparelho (Menu ☰ → Jogadores), cada um com seu progresso.
 - Opção de **LETRAS MAIÚSCULAS** em todo o jogo (Menu ☰), para quem ainda lê em letra bastão.
 
