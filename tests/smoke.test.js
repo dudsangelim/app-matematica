@@ -134,7 +134,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       D.P.set(t.x, 3, t.z); for (let i = 0; i < 90 && !D.CH.locked; i++) D.step(1 / 60);
       return { verb: D.CH.q.verb, locked: D.CH.locked, dTotal: S.st.n100.total - total, dFirst: S.st.n100.first - first, dCoins: S.coins - coins, skill, dSkill: S.sk[skill] ? S.sk[skill].n - n0 : 0, week: Object.keys(S.wk).length };
     });
-    eq([r.verb, r.locked, r.dTotal, r.dFirst, r.dCoins, r.dSkill], ['jump', true, 1, 1, 2, 1], 'verb, locked, total, first, coins, skill count');
+    eq([r.verb, r.locked, r.dTotal, r.dFirst, r.dCoins, r.dSkill], ['jump', true, 1, 1, 1, 1], 'verb, locked, total, first, coins (1 for a first-try answer), skill count');
     assert(/^n100\./.test(r.skill) && r.week >= 1, 'skill id or weekly history missing');
   });
 
@@ -356,7 +356,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     const ctx = await browser.newContext({ viewport: { width: 800, height: 600 } }); const p = await ctx.newPage(); p.on('pageerror', e => errors.push(e.message));
     await p.addInitScript(() => { if (!localStorage.getItem('ilha-numeros-3d-v1')) localStorage.setItem('ilha-numeros-3d-v1', JSON.stringify({ name: 'Antigo', coins: 12, stars: 4, sound: true, music: true, voice: false, tut: true, look: { skin: 's1', shirt: 'azul', pants: 'jeans', hat: 'bone', pet: 'nenhum' }, owned: ['hat:bone'], st: { contas: { level: 2, rounds: 3, first: 9, total: 14, stars: 6 } }, trophies: { contas: 2, formas: 3 }, champ: false })); });
     await p.goto(base); await p.waitForFunction(() => window.__ilhaDebug);
-    eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.name, S.coins, S.st.contas.level, S.trophies.contas, S.trophies.formas, typeof S.sk, document.querySelector('#ov').hidden]; }), ['Antigo', 12, 2, 2, 4, 'object', true], 'old save (its gold cup, stored as 3, becomes 4)');
+    eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.name, S.coins, S.st.contas.level, S.trophies.contas, S.trophies.formas, typeof S.sk, S.edit, S.celes, S.cele, document.querySelector('#ov').hidden]; }), ['Antigo', 12, 2, 2, 4, 'object', true, 2, '', true], 'old save (its gold cup, stored as 3, becomes 4; the shop pass starts available; one celebration for each station with a medal)');
     await p.click('#b-menu'); await p.click('#mn-par');
     const [a, b] = await p.evaluate(() => document.querySelector('#gate p').textContent.match(/\d+/g).map(Number));
     await p.fill('#g-in', String(a * b)); await p.click('#gate .btn.gold'); await p.waitForSelector('#p-ex');
@@ -385,7 +385,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     });
     await page.waitForSelector('.result h2', { timeout: 6000 });
     const after = await page.evaluate(() => { const S = __ilhaDebug.S(); return { title: document.querySelector('.result h2').textContent, coins: S.coins, stars: S.stars, trophy: S.trophies.formas || 0 }; });
-    eq([after.title, after.coins - before.coins, after.stars - before.stars, after.trophy], ['Vamos treinar mais!', 1, 0, 0], 'title, coins (1 for the late right answer), stars, trophy');
+    eq([after.title, after.coins - before.coins, after.stars - before.stars, after.trophy], ['Vamos treinar mais!', 0, 0, 0], 'title, coins (none for a late right answer), stars, trophy');
     await page.evaluate(() => __ilhaDebug.closeSheet());
   });
 
@@ -471,7 +471,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
           const spot = { dentro: [11, 7], embaixo: [2, -6], perto: [10, -5.5], longe: [-4, 11.5], entre: [2, 8] }, live = () => D.CH === C && C.q === q && C.si === idx && !C.locked;
           if (q.trick) { run(60 * 7); }
           else if (s.k === 'go' || s.k === 'bring' || (s.k === 'carry' && C.hold)) { if (s.pk === 'cima') { const pl = D.PLATS.find(p => p.bloco); go(pl.cx, pl.cz, 1.3); } else { const w = L(spot[s.pk][0], spot[s.pk][1]); go(w.x, w.z); } run(40); }
-          else if (s.k === 'jump') { for (let i = 0; i < s.n; i++) { D.jump(); run(60); } }
+          else if (s.k === 'jump') { run(2); for (let i = 0; i < s.n && live(); i++) { D.jump(); run(60); } }
           else if (s.k === 'color') { const m = C.mats.find(m => m.k === s.c); go(m.x, m.z); run(30); }
           else if (s.k === 'ring') { go(C.bell.x + 1.2, C.bell.z); for (let i = 0; i < s.n; i++) { run(3); press(); } run(3); }
           else if (s.k === 'around') { const o = L(s.o.p[0], s.o.p[1]), R = s.o.r0 + 1.6; for (let k = 0; k <= 46 && live(); k++) { const a = k / 40 * 2 * Math.PI; D.P.set(o.x + Math.cos(a) * R, 0, o.z + Math.sin(a) * R); D.step(1 / 60); } }
@@ -499,7 +499,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       await pg.waitForTimeout(25);
     }
     return pg.evaluate(id => { const S = __ilhaDebug.S(), h = document.querySelector('.result h2'); if (!h) return { error: 'the round never reached the result sheet', type: __ilhaDebug.CH && __ilhaDebug.CH.type, skill: __ilhaDebug.CH && __ilhaDebug.CH.skill, tries: __ilhaDebug.CH && __ilhaDebug.CH.tries };
-      const out = { missed: [...(window.__missed || [])], stars: document.querySelectorAll('.bigstars span:not(.off)').length, line: document.querySelector('.result p').textContent, level: S.st[id].level, trophy: S.trophies[id] || 0 }; __ilhaDebug.closeSheet(); return out; }, id);
+      const out = { missed: [...(window.__missed || [])], won: document.querySelectorAll('.result p')[1].textContent, stars: document.querySelectorAll('.bigstars span:not(.off)').length, line: document.querySelector('.result p').textContent, level: S.st[id].level, trophy: S.trophies[id] || 0 }; __ilhaDebug.closeSheet(); return out; }, id);
   }
 
   await test('a round played without mistakes earns 3 stars in every game mode, at every level', async () => {
@@ -509,7 +509,8 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       const isAct = await p.evaluate(([id, mi]) => __ilhaDebug.STM[id].modes[mi].k === 'act', [id, mi]);
       for (const level of [1, 2, 3]) for (let rep = 0; rep < (isAct ? 3 : 1); rep++) {
         const r = await perfectRound(p, id, mi, level);
-        if (r.error || r.stars !== 3 || !/acertou (\d+) de \1 /.test(r.line)) bad.push(`${id} mode ${mi} level ${level}: ${JSON.stringify(r)}`);
+        const n = +(/acertou (\d+) de/.exec(r.line || '') || [])[1], won = /Ganhou (\d+) 🪙 \(com o bônus de 3\)/.exec(r.won || '');
+        if (r.error || r.stars !== 3 || !/acertou (\d+) de \1 /.test(r.line) || !won || +won[1] < n + 3 || +won[1] > 2 * n + 3) bad.push(`${id} mode ${mi} level ${level}: ${JSON.stringify(r)}`);
       }
     }
     assert(!bad.length, bad.join('\n'));
@@ -584,7 +585,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       for (let k = 2; k < 5; k++) pass(C.qs[k].ans); C.v = 8; D.P.x = C.endX - .3; run(6);
       return { kartKept, far, waitsForStart: Math.abs(stays - (C.x0 + 8)) < .01, afterWrong, afterRight, records: S.st.contas.total - t0, ended: !D.CH, home: Math.hypot(D.P.x - st.c.x, D.P.z - st.c.z) < 20 };
     });
-    eq(r, { kartKept: true, far: true, waitsForStart: true, afterWrong: [1, 0, 0], afterRight: [2, 1, 2], records: 5, ended: true, home: true }, 'kart race');
+    eq(r, { kartKept: true, far: true, waitsForStart: true, afterWrong: [1, 0, 0], afterRight: [2, 1, 1], records: 5, ended: true, home: true }, 'kart race');
     await page.waitForSelector('.result h2', { timeout: 6000 });
     eq(await page.evaluate(() => document.querySelector('.result p').textContent), 'Kart das Contas: acertou 4 de 5 de primeira.', 'result line');
     await page.evaluate(() => { __ilhaDebug.timeScale = 1; __ilhaDebug.closeSheet(); });
@@ -592,13 +593,13 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
 
   await test('shop: a football shirt can be bought and worn, and its shorts come with it', async () => {
     const p = await open(1024, 768);
-    await p.evaluate(() => { const D = __ilhaDebug; D.S().coins = 40; D.P.set(0, 0, -5); for (let i = 0; i < 3; i++) D.step(1 / 60); });
+    await p.evaluate(() => { const D = __ilhaDebug; D.S().coins = 100; D.P.set(0, 0, -5); for (let i = 0; i < 3; i++) D.step(1 / 60); });
     await p.waitForSelector('#b-act:not([hidden])'); await p.click('#b-act', { force: true }); await p.click('.tab[data-t="kit"]');
     eq(await p.evaluate(() => [document.querySelectorAll('.item').length, document.querySelectorAll('.item img.jr').length]), [27, 27], 'shirts on offer, each with its picture');
-    await p.click('.item[data-k="bra"]'); await p.waitForSelector('.quiz .btn.big'); await p.click('.quiz .btn.big[data-v="10"]');
+    await p.click('.item[data-k="bra"]'); await p.waitForSelector('.quiz .btn.big'); await p.click('.quiz .btn.big[data-v="20"]');
     const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(); let chest = null; D.scene.traverse(o => { if (o.isMesh && Array.isArray(o.material) && o.material[5] && o.material[5].map && !o.userData.head) chest = o; });
       return { coins: S.coins, shirt: S.look.shirt, owned: S.owned.includes('kit:bra'), chest: !!chest, using: document.querySelector('.item[data-k="bra"]').classList.contains('eq') }; });
-    eq(r, { coins: 10, shirt: 'bra', owned: true, chest: true, using: true }, 'after buying the Brasil shirt for 30 with 40 coins');
+    eq(r, { coins: 20, shirt: 'bra', owned: true, chest: true, using: true }, 'after buying the Brasil shirt for 80 with 100 coins');
     await p.context().close();
   });
 
@@ -636,6 +637,135 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     assert(r.gaps <= 1.6 && r.side >= 1.8 && r.far >= 15, `hop ${r.gaps}, space between answers ${r.side}, distance between rows ${r.far}`);
     eq([r.walked, r.ended, r.backAtStart], [[[true, true, true], 1], true, true], 'walked the hop to each of the three answer platforms without falling; round ended; portal took the player back');
     await page.waitForSelector('.result h2', { timeout: 6000 }); await page.evaluate(() => { __ilhaDebug.timeScale = 1; __ilhaDebug.closeSheet(); });
+  });
+
+  await test('shop: one change per round - wearing or buying spends it, and a round with a star gives it back (only one, never more)', async () => {
+    const p = await open(1024, 768);
+    await p.evaluate(() => { const D = __ilhaDebug, S = D.S(); S.coins = 90; S.owned.push('hat:bone'); D.P.set(0, 0, -5); for (let i = 0; i < 3; i++) D.step(1 / 60); });
+    await p.waitForSelector('#b-act:not([hidden])'); await p.click('#b-act', { force: true }); await p.waitForSelector('#s-pass');
+    const st = () => p.evaluate(() => { const S = __ilhaDebug.S(), ps = document.querySelector('#s-pass'); return [S.edit, S.look.hat, S.look.shirt, S.coins, ps ? ps.className : null, !!document.querySelector('.quiz')]; });
+    eq(await st(), [true, 'nenhum', 'azul', 90, 'pass on', false], 'at first');
+    await p.click('.item[data-k="bone"]'); await p.click('#w-back'); eq(await st(), [true, 'nenhum', 'azul', 90, 'pass on', false], 'backing out of a change keeps the pass');
+    await p.click('.item[data-k="bone"]'); await p.click('#w-ok'); eq(await st(), [false, 'bone', 'azul', 90, 'pass off', false], 'wearing an owned cap spends the pass');
+    await p.click('.item[data-k="nenhum"]'); await p.click('.tab[data-t="shirt"]'); await p.click('.item[data-k="vermelho"]');
+    eq(await st(), [false, 'bone', 'azul', 90, 'pass off', false], 'with the pass spent, nothing can be changed or bought');
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), st = D.STM.formas, out = []; D.closeSheet();
+      D.finishChallenge(st, 0, 5, 0, 1, null, false, true); out.push(S.edit); D.finishChallenge(st, 3, 5, 3, 1, null, false, true); out.push(S.edit); D.finishChallenge(st, 5, 5, 5, 1, null, false, true); out.push(S.edit); S.coins = 60; return out; });
+    eq(r, [false, true, true], 'pass after a round with no star, a round with stars, and one more round');
+    await p.evaluate(() => { const D = __ilhaDebug; D.P.set(0, 0, -5); for (let i = 0; i < 3; i++) D.step(1 / 60); });
+    await p.waitForSelector('#b-act:not([hidden])'); await p.click('#b-act', { force: true }); await p.click('.tab[data-t="shirt"]'); await p.click('.item[data-k="vermelho"]');
+    await p.waitForSelector('.quiz .btn.big'); const coins = await p.evaluate(() => __ilhaDebug.S().coins); await p.click(`.quiz .btn.big[data-v="${coins - 30}"]`);
+    eq(await st(), [false, 'bone', 'vermelho', coins - 30, 'pass off', false], 'buying a shirt spends the pass too');
+    await p.click('.item[data-k="azul"]'); eq((await st()).slice(0, 3), [false, 'bone', 'vermelho'], 'and the old shirt cannot be put back until another round is played');
+    await p.context().close();
+  });
+
+  await test('shop: buying takes the right answer to a sum, in one try and among 5 options; a wrong answer buys nothing and spends the change', async () => {
+    const p = await open(1024, 768);
+    const shop = async (coins, tab) => { await p.evaluate(c => { const D = __ilhaDebug, S = D.S(); S.coins = c; S.edit = true; D.closeSheet(); D.P.set(0, 0, -5); for (let i = 0; i < 3; i++) D.step(1 / 60); }, coins);
+      await p.waitForSelector('#b-act:not([hidden])'); await p.click('#b-act', { force: true }); await p.click(`.tab[data-t="${tab}"]`); };
+    const quiz = () => p.evaluate(() => { const o = [...document.querySelectorAll('.quiz .btn.big')].map(b => +b.dataset.v), sum = document.querySelector('.quiz .sum'); let ans = null;
+      if (sum) { const m = /(\d+) ([+−]) (\d+)/.exec(sum.textContent); ans = m[2] === '+' ? +m[1] + +m[3] : +m[1] - +m[3]; }
+      return { n: o.length, distinct: new Set(o).size, change: /sobrar/.test(document.querySelector('.quiz').textContent), ans, has: ans == null ? o.includes(40) : o.includes(ans), neg: o.some(v => v < 0), sum: sum ? sum.textContent : '' }; });
+    const state = () => p.evaluate(() => { const S = __ilhaDebug.S(); return [S.coins, S.owned.filter(x => x.startsWith('shirt:')).join(), S.look.shirt, S.edit, !!document.querySelector('.quiz')]; });
+    await shop(70, 'shirt'); await p.click('.item[data-k="vermelho"]'); await p.waitForSelector('.quiz .btn.big');
+    const q1 = await quiz(); eq([q1.n, q1.distinct, q1.change, q1.has, q1.neg], [5, 5, true, true, false], 'the change, with five options');
+    await p.click('.quiz .btn.big:not([data-v="40"])'); await p.waitForSelector('#q-x');
+    assert(/70 − 30 = 40/.test(await p.evaluate(() => document.querySelector('.quiz').textContent)), 'the sum is shown after a miss');
+    await p.click('#q-x'); await p.click('.item[data-k="vermelho"]');
+    eq(await state(), [70, '', 'azul', false, false], 'a wrong answer buys nothing and spends the change, so there is no second guess');
+    await shop(70, 'shirt'); await p.click('.item[data-k="vermelho"]'); await p.waitForSelector('.quiz .btn.big'); await p.click('.quiz .btn.big[data-v="40"]');
+    eq(await state(), [40, 'shirt:vermelho', 'vermelho', false, false], 'the right answer buys the shirt');
+    /* with more than 100 coins the change would be a three-digit subtraction, so it is a sum from the child's level - and backing out does not draw another */
+    await shop(150, 'shirt'); await p.click('.item[data-k="verde"]'); await p.waitForSelector('.quiz .btn.big');
+    const q3 = await quiz(); eq([q3.n, q3.distinct, q3.change, q3.has], [5, 5, false, true], 'question with 150 coins');
+    await p.click('#q-back'); await p.click('.item[data-k="laranja"]'); await p.waitForSelector('.quiz .btn.big');
+    const q4 = await quiz(); eq(q4.sum, q3.sum, 'the same sum after backing out and picking another shirt');
+    await p.click(`.quiz .btn.big[data-v="${q4.ans}"]`); eq(await state(), [120, 'shirt:vermelho,shirt:laranja', 'laranja', false, false], 'bought with the right answer');
+    /* every question the shop can ask has five different options with the answer among them */
+    const bad = await p.evaluate(() => { const S = __ilhaDebug.S(), bad = [];
+      for (let c = 20; c <= 320; c += 7) for (const [tab, k] of [['pants', 'cinza'], ['shirt', 'laranja'], ['kit', 'arg'], ['pet', 'dragao']]) { const t = __ilhaDebug.CAT[tab].find(x => x.k === k); if (c < t.p) continue; S.coins = c;
+        const Q = __ilhaDebug.buyQ(t); if (Q.opts.length !== 5 || new Set(Q.opts).size !== 5 || !Q.opts.includes(Q.ans) || Q.opts.some(v => v < 0) || (Q.change && Q.ans !== c - t.p) || Q.change !== (c <= 100)) bad.push([c, k, Q.opts, Q.ans]); }
+      return bad.slice(0, 4); });
+    eq(bad, [], 'malformed shop questions');
+    await p.context().close();
+  });
+
+  await test('shop: skin colour is always free to change, and trousers cannot be picked under a football kit', async () => {
+    const p = await open(1024, 768);
+    await p.evaluate(() => { const D = __ilhaDebug, S = D.S(); S.coins = 90; S.edit = false; S.owned.push('kit:bra', 'pants:cinza'); S.look.shirt = 'bra'; D.buildPlayer(); D.P.set(0, 0, -5); for (let i = 0; i < 3; i++) D.step(1 / 60); });
+    await p.waitForSelector('#b-act:not([hidden])'); await p.click('#b-act', { force: true }); await p.click('.tab[data-t="skin"]');
+    await p.click('.item[data-k="s4"]'); eq(await p.evaluate(() => [__ilhaDebug.S().look.skin, __ilhaDebug.S().edit, document.querySelector('#s-pass').className]), ['s4', false, 'pass on'], 'skin changed with the change already spent');
+    await p.evaluate(() => { __ilhaDebug.S().edit = true; }); await p.click('.item[data-k="s1"]'); eq(await p.evaluate(() => [__ilhaDebug.S().look.skin, __ilhaDebug.S().edit]), ['s1', true], 'and changing skin does not spend it');
+    await p.click('.tab[data-t="pants"]'); await p.click('.item[data-k="cinza"]'); await p.click('.item[data-k="verde"]');
+    eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.look.pants, S.edit, S.coins, !!document.querySelector('.quiz'), /calção/.test(document.querySelector('#toast').textContent)]; }), ['jeans', true, 90, false, true], 'trousers under a kit: nothing is spent, and the reason is shown');
+    await p.context().close();
+  });
+
+  await test('hair: 22 cuts on offer, each with its picture; a cut is built from its own boxes, loses its top under a hat, and the name stays above it', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), hair = D.CAT.hair, n = k => { S.look.hair = k; D.buildPlayer(); return D.PL.head.children.length; };
+      const out = { cuts: hair.length, shapes: new Set(hair.map(h => h.sh)).size, known: hair.every(h => D.HAIR_SHAPES[h.sh] && h.cs.length && h.c === h.cs[0]), plain: n('castanho'), moicano: n('moicano'), black: n('black'), trancas: n('trancas') };
+      S.look.hat = 'bone'; out.moicanoHat = n('moicano'); S.look.hat = 'nenhum'; n('castanho'); out.tagPlain = D.PL.ns.position.y; n('fogo'); out.tagFire = D.PL.ns.position.y; out.top = D.PL.top;
+      S.coins = 0; S.look.hair = 'castanho'; D.buildPlayer(); D.P.set(0, 0, -5); for (let i = 0; i < 3; i++) D.step(1 / 60); return out; });
+    eq([r.cuts, r.shapes, r.known], [22, 16, true], 'cuts, different shapes, all well formed');
+    assert(r.moicano !== r.plain && r.black !== r.plain && r.trancas > r.plain + 8 && r.moicanoHat < r.moicano, `boxes on the head: ${JSON.stringify(r)}`);
+    assert(r.tagPlain < 3.45 && r.tagFire > r.top + .3 && r.top > 3.7, `name tag: ${JSON.stringify(r)}`);
+    await p.waitForSelector('#b-act:not([hidden])'); await p.click('#b-act', { force: true }); await p.click('.tab[data-t="hair"]');
+    const pics = await p.evaluate(() => [...document.querySelectorAll('.item img.jr')].map(i => i.src));
+    eq([pics.length, pics.every(s => s.startsWith('data:image/png')), new Set(pics).size], [22, true, 22], 'pictures in the shop');
+    await p.context().close();
+  });
+
+  await test('football: the Portugal shirt has the 7 on the back, the others keep the 10', async () => {
+    const r = await page.evaluate(() => { const D = __ilhaDebug, S = D.S(), kits = D.CAT.kit, old = S.look.shirt; S.look.shirt = 'por'; D.buildPlayer(); let back = null; D.PL.g.traverse(o => { if (o.isMesh && Array.isArray(o.material) && o.material[5] && o.material[5].map && !o.userData.head) back = o.material[5].map.image; });
+      const px = back ? [...back.getContext('2d').getImageData(0, 0, back.width, back.height).data] : [], gold = px.filter((v, i) => i % 4 === 1 && v > 180 && px[i - 1] > 220 && px[i + 1] < 80).length; S.look.shirt = old; D.buildPlayer();
+      return { seven: kits.filter(k => k.no === '7').map(k => k.k), other: kits.filter(k => k.no && k.no !== '7').length, gold }; });
+    eq([r.seven, r.other], [['por'], 0], 'who wears the 7');
+    assert(r.gold > 60, `the number is drawn on the back of the shirt (${r.gold} gold pixels)`);
+  });
+
+  await test('celebrations: every new medal unlocks the next one and chooses it; a locked one cannot be picked; each plays to the end and leaves the pose clean', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), out = {}; out.start = [S.celes, S.cele];
+      D.finishChallenge(D.STM.formas, 5, 5, 5, 1, null, false, true); out.gold = [S.celes, S.cele]; D.finishChallenge(D.STM.formas, 5, 5, 5, 1, null, false, true); out.same = [S.celes, S.cele];
+      D.finishChallenge(D.STM.contas, 1, 5, 1, 1, null, false, true); out.bronze = [S.celes, S.cele]; D.finishChallenge(D.STM.ordem, 0, 5, 0, 1, null, false, true); out.none = [S.celes, S.cele]; return out; });
+    eq(r, { start: [0, ''], gold: [1, 'siu'], same: [1, 'siu'], bronze: [2, 'ceu'], none: [2, 'ceu'] }, 'unlocking');
+    await p.click('#b-menu'); await p.click('#mn-cele');
+    eq(await p.evaluate(() => [document.querySelectorAll('.item').length, document.querySelectorAll('.item.poor').length, document.querySelector('.item.eq').dataset.k]), [11, 8, 'ceu'], 'list: all, locked, chosen');
+    await p.click('.item[data-k="mascara"]'); eq(await p.evaluate(() => __ilhaDebug.S().cele), 'ceu', 'a locked celebration is not chosen');
+    await p.click('.item[data-k="siu"]'); eq(await p.evaluate(() => [__ilhaDebug.S().cele, __ilhaDebug.ANIM && __ilhaDebug.ANIM.type, __ilhaDebug.ANIM && __ilhaDebug.ANIM.ce.k, __ilhaDebug.camMode]), ['siu', 'cele', 'siu', 'front'], 'choosing shows it, with the character in view above the list');
+    const run = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), bad = []; D.closeSheet();
+      for (const c of D.CELES) { D.playAnim('cele', null, c.k); let moved = false; for (let i = 0; i < (c.d + .3) * 30; i++) { D.step(1 / 30); const L = D.PL; if (D.ANIM && (L.armL.rotation.z || L.legL.rotation.z || L.legL.rotation.x || L.g.rotation.x || L.g.position.y !== D.P.y)) moved = true; }
+        const L = D.PL; if (D.ANIM || !moved || L.armL.rotation.z || L.armR.rotation.z || L.legL.rotation.z || L.legR.rotation.z || L.g.rotation.x || L.g.rotation.z || L.head.rotation.x || D.camMode !== 'follow') bad.push(c.k); }
+      S.cele = 'siu'; D.playAnim('win'); const chosen = [D.ANIM.type, D.ANIM.ce.k]; S.cele = ''; D.playAnim('win'); const plain = D.ANIM.type; S.cele = 'mascara'; D.playAnim('win'); const locked = D.ANIM.type; S.cele = 'siu';
+      for (let i = 0; i < 120; i++) D.step(1 / 30); return { bad, chosen, plain, locked }; });
+    eq(run, { bad: [], chosen: ['cele', 'siu'], plain: 'win', locked: 'win' }, 'playing the celebrations');
+    const btn = await p.evaluate(() => { const D = __ilhaDebug, b = document.querySelector('#b-cele'), st = D.STM.formas, out = [b.hidden]; b.click(); out.push(D.ANIM && D.ANIM.type); for (let i = 0; i < 130; i++) D.step(1 / 30);
+      D.startMode(st, st.modes[0]); D.step(1 / 60); out.push(b.hidden); document.querySelector('#m-quit').click(); D.step(1 / 60); out.push(b.hidden); return out; });
+    eq(btn, [false, 'cele', true, false], 'the celebrate button: there while exploring, plays the chosen one, hidden during a challenge');
+    await p.context().close();
+  });
+
+  await test('voices: every character speaks with a pitch and a pace of their own, and the host of each game reads its questions', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, said = []; Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: u => said.push(Math.round(u.pitch * 100) / 100 + '/' + Math.round(u.rate * 100) / 100), cancel() {}, getVoices: () => [] } });
+      const say = who => { said.length = 0; D.speak('oi', null, true, who); return said[0]; }, names = Object.keys(D.VOICES), each = names.map(n => say(n)), out = { names: names.length, distinct: new Set(each).size, narrator: say(null) };
+      out.clash = each.includes(out.narrator); out.none = say(undefined);
+      const vila = D.STM.vocab; D.startMode(vila, vila.modes[1]); out.master = say(undefined); document.querySelector('#m-quit').click(); D.startMode(vila, vila.modes[0]); out.host = say(undefined) === say(vila.npc.name); document.querySelector('#m-quit').click();
+      const v = D.VOICES; out.zeLow = v['Seu Zé'].p < .7 && v.Mestre.p < .8 && v.Lia.p > 1.4 && Object.values(v).every(x => x.p >= .6 && x.p <= 1.5 && x.r >= .8 && x.r <= 1.05); return out; });
+    eq(r, { names: 13, distinct: 13, narrator: '1/0.9', clash: false, none: '1/0.9', master: '0.7/0.8', host: true, zeLow: true }, 'voices');
+    await p.context().close();
+  });
+
+  await test('sound: the ambience runs, the music button goes rock, calm, off, and every celebration has its sound', async () => {
+    const p = await open(1024, 768);
+    const states = []; for (let i = 0; i < 3; i++) { await p.click('#b-music'); states.push(await p.evaluate(() => { const S = __ilhaDebug.S(), b = document.querySelector('#b-music'); return [S.music, S.musStyle, b.textContent, b.classList.contains('off')].join(); })); if (i === 0) await p.waitForTimeout(700); }
+    eq(states, ['true,calma,🎹,false', 'false,calma,🎹,true', 'true,rock,🎸,false'], 'music button');
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), snd = Object.keys(D.celeSnd).sort(), keys = D.CELES.map(c => c.k).sort(); let threw = ''; try { for (const k of snd) D.celeSnd[k](); S.sound = false; for (const k of snd) D.celeSnd[k](); S.sound = true; } catch (e) { threw = String(e); }
+      return { amb: D.amb, same: JSON.stringify(snd) === JSON.stringify(keys), threw }; });
+    eq(r, { amb: true, same: true, threw: '' }, 'ambience and celebration sounds');
+    await p.context().close();
   });
 
   await test('master game: at least 10 kinds of step, orders of 1, 2 and 3 steps by level, and the odd trick', async () => {

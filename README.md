@@ -22,7 +22,8 @@ A criança controla um boneco de blocos numa **cidade central**. Os **portais** 
 - **Medalhas**: cada rodada vale 🥇 ouro (tudo certo de primeira), 🥈 prata (metade ou mais) ou 🥉 bronze (rodada terminada). A estação guarda a melhor, e ouro no nível 3 vale a **taça 🏆**.
 - Os níveis 1 a 3 se ajustam sozinhos aos acertos da criança.
 - Cada resposta é registrada por **habilidade** (por exemplo, "calcular o troco"). O que a criança erra **volta nas rodadas seguintes**, até ela acertar duas vezes de primeira.
-- **Estrelas e moedas de bônus acompanham os acertos de primeira**: 3 estrelas com tudo certo (rodadas de 6 ou mais perguntas aceitam um erro), 2 com 60% e 1 com 30%.
+- **Estrelas e moedas acompanham os acertos de primeira**: 3 estrelas com tudo certo, 2 com a metade ou mais e 1 com pelo menos um acerto.
+- **Moedas são poucas de propósito**: cada resposta certa de primeira vale 1 moeda (acertar depois não vale moeda), a rodada dá um bônus de 3 moedas com tudo certo ou de 1 com a metade, e a primeira vez de cada medalha dá um prêmio pequeno. Uma rodada perfeita rende de 7 a 12 moedas; uma camisa custa 30 e uma camisa de futebol, 80.
 - Depois de dois erros, o jogo **mostra a resposta pronta** (inclusive no cesto e na divisão entre amigos). Certo e errado têm sempre um **✓ ou ✗**, não só a cor.
 - No Obby, até 20, a placa mostra a conta também em **bolinhas** para contar. As plataformas têm espaço entre si, placas em pé com cada resposta, uma fileira revelada por vez e um portal no fim que leva de volta ao começo.
 - No Estoura-Balão há uma **mira** no meio da tela: o tiro vai no balão que estiver embaixo dela.
@@ -31,9 +32,14 @@ A criança controla um boneco de blocos numa **cidade central**. Os **portais** 
 - O **painel de instruções** de cada jogo pode ser encolhido (toque nele ou no ▴) para ver o cenário inteiro; encolhido, ele abre sozinho por alguns segundos a cada pergunta nova.
 - No Chão de Lava, o botão **"Já sei!"** dispensa a espera do cronômetro, e encostar na lava antes da hora não tira coração.
 - **Narração** das perguntas em português, com mais tempo para ler antes do cronômetro começar.
-- **Música de rock leve** gerada no próprio jogo, uma para cada mundo.
+- **Música** gerada no próprio jogo, uma para cada mundo, em dois estilos: rock leve 🎸 ou calma 🎹 (o botão da música alterna rock, calma e desligada).
+- **Som ambiente**: mar e brisa o tempo todo e passarinhos de vez em quando, com uma mistura diferente em cada mundo (segue o botão de efeitos 🔊).
+- **Cada personagem tem a sua voz**: os oito anfitriões, os três amigos, o Mestre e o lojista falam com tom e ritmo próprios, e o anfitrião de cada jogo é quem lê as perguntas. Onde o aparelho tem mais de uma voz em português, eles também usam vozes diferentes.
 - **Animações** do boneco: queimado na lava, frustrado, comemorando, dança da vitória, molhado e tonto.
-- **Loja** com conta de troco na hora de comprar: chapéus, roupas, bichinhos, poderes e **camisas de futebol** de seleções e clubes (só cores e padrão, sem escudos nem marcas).
+- **Comemorações de gol**: cada medalha nova (ou taça) libera mais uma, até dez, cada uma com o seu som: Siuuu! (Cristiano Ronaldo), dedos para o céu (Messi), braços cruzados (Mbappé), meditação (Haaland), sambinha (Vinícius Júnior), dancinha do hang loose (Neymar), braços abertos (Bellingham), pose da árvore (Salah), "que frio!" (Cole Palmer) e máscara (Gyökeres). A escolhida (Menu ☰ → Comemorações) aparece no fim de cada rodada e no botão 🎉 (ou tecla C).
+- **Loja**: chapéus, roupas, bichinhos, poderes, **22 cortes de cabelo** (moicano, black power, tranças, topete, cacheado, arco-íris, cabelo de fogo...) e **camisas de futebol** de seleções e clubes (só cores e padrão, sem escudos nem marcas; a de Portugal leva o 7, as outras o 10).
+  - **Uma troca por vez**: comprar uma coisa ou vestir algo que já tem gasta a troca. Ela só volta depois de um joguinho terminado com pelo menos 1 estrela, e não acumula (jogar 10 rodadas dá a mesma única troca). A cor da pele é a exceção: é de graça e pode ser trocada sempre.
+  - **Para comprar é preciso acertar uma conta**, numa tentativa só e entre 5 opções. Enquanto as moedas cabem em 100, a conta é o troco ("quantas moedas vão sobrar?"); com mais moedas, é uma conta do nível da criança. Errou, a compra não sai e a troca é gasta: para tentar de novo, só depois de outro joguinho (assim chutar não adianta).
 - **Troféus**: a melhor medalha de cada estação, a taça de ouro e a Taça dos Campeões ficam expostas na Sala de Troféus.
 - **Área dos pais**, protegida por uma conta: desempenho por estação, **semana a semana** e **por habilidade**, aviso de pausa opcional e **cópia de segurança** do progresso (salvar e restaurar um arquivo).
 - **Visual**: céu em degradê com sol, mar com ondas, sombras nítidas, flores, arbustos e pedras, e cabelo no boneco (aba Cabelo da Loja). O jogo mede a velocidade do aparelho e **reduz o visual sozinho** se ficar lento; no Menu ☰ dá para escolher **Visual leve**.
