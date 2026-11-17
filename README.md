@@ -32,9 +32,12 @@ A criança controla um boneco de blocos numa **cidade central**. Os **portais** 
 - O **painel de instruções** de cada jogo pode ser encolhido (toque nele ou no ▴) para ver o cenário inteiro; encolhido, ele abre sozinho por alguns segundos a cada pergunta nova.
 - No Chão de Lava, o botão **"Já sei!"** dispensa a espera do cronômetro, e encostar na lava antes da hora não tira coração.
 - **Narração** das perguntas em português, com mais tempo para ler antes do cronômetro começar.
-- **Música de rock leve** gerada no próprio jogo, uma para cada mundo.
+- **Música** gerada no próprio jogo, uma para cada mundo, em dois estilos: rock leve 🎸 ou calma 🎹 (o botão da música alterna rock, calma e desligada).
+- **Som ambiente**: mar e brisa o tempo todo e passarinhos de vez em quando, com uma mistura diferente em cada mundo (segue o botão de efeitos 🔊).
+- **Cada personagem tem a sua voz**: os oito anfitriões, os três amigos, o Mestre e o lojista falam com tom e ritmo próprios, e o anfitrião de cada jogo é quem lê as perguntas. Onde o aparelho tem mais de uma voz em português, eles também usam vozes diferentes.
 - **Animações** do boneco: queimado na lava, frustrado, comemorando, dança da vitória, molhado e tonto.
-- **Loja**: chapéus, roupas, bichinhos, poderes e **camisas de futebol** de seleções e clubes (só cores e padrão, sem escudos nem marcas).
+- **Comemorações de gol**: cada medalha nova (ou taça) libera mais uma, até dez, cada uma com o seu som: Siuuu! (Cristiano Ronaldo), dedos para o céu (Messi), braços cruzados (Mbappé), meditação (Haaland), sambinha (Vinícius Júnior), dancinha do hang loose (Neymar), braços abertos (Bellingham), pose da árvore (Salah), "que frio!" (Cole Palmer) e máscara (Gyökeres). A escolhida (Menu ☰ → Comemorações) aparece no fim de cada rodada e no botão 🎉 (ou tecla C).
+- **Loja**: chapéus, roupas, bichinhos, poderes, **22 cortes de cabelo** (moicano, black power, tranças, topete, cacheado, arco-íris, cabelo de fogo...) e **camisas de futebol** de seleções e clubes (só cores e padrão, sem escudos nem marcas; a de Portugal leva o 7, as outras o 10).
   - **Uma troca por vez**: comprar uma coisa ou vestir algo que já tem gasta a troca. Ela só volta depois de um joguinho terminado com pelo menos 1 estrela, e não acumula (jogar 10 rodadas dá a mesma única troca). A cor da pele é a exceção: é de graça e pode ser trocada sempre.
   - **Para comprar é preciso acertar uma conta**, numa tentativa só e entre 5 opções. Enquanto as moedas cabem em 100, a conta é o troco ("quantas moedas vão sobrar?"); com mais moedas, é uma conta do nível da criança. Errou, a compra não sai e a troca é gasta: para tentar de novo, só depois de outro joguinho (assim chutar não adianta).
 - **Troféus**: a melhor medalha de cada estação, a taça de ouro e a Taça dos Campeões ficam expostas na Sala de Troféus.

@@ -356,7 +356,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     const ctx = await browser.newContext({ viewport: { width: 800, height: 600 } }); const p = await ctx.newPage(); p.on('pageerror', e => errors.push(e.message));
     await p.addInitScript(() => { if (!localStorage.getItem('ilha-numeros-3d-v1')) localStorage.setItem('ilha-numeros-3d-v1', JSON.stringify({ name: 'Antigo', coins: 12, stars: 4, sound: true, music: true, voice: false, tut: true, look: { skin: 's1', shirt: 'azul', pants: 'jeans', hat: 'bone', pet: 'nenhum' }, owned: ['hat:bone'], st: { contas: { level: 2, rounds: 3, first: 9, total: 14, stars: 6 } }, trophies: { contas: 2, formas: 3 }, champ: false })); });
     await p.goto(base); await p.waitForFunction(() => window.__ilhaDebug);
-    eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.name, S.coins, S.st.contas.level, S.trophies.contas, S.trophies.formas, typeof S.sk, S.edit, document.querySelector('#ov').hidden]; }), ['Antigo', 12, 2, 2, 4, 'object', true, true], 'old save (its gold cup, stored as 3, becomes 4; the shop pass starts available)');
+    eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.name, S.coins, S.st.contas.level, S.trophies.contas, S.trophies.formas, typeof S.sk, S.edit, S.celes, S.cele, document.querySelector('#ov').hidden]; }), ['Antigo', 12, 2, 2, 4, 'object', true, 2, '', true], 'old save (its gold cup, stored as 3, becomes 4; the shop pass starts available; one celebration for each station with a medal)');
     await p.click('#b-menu'); await p.click('#mn-par');
     const [a, b] = await p.evaluate(() => document.querySelector('#gate p').textContent.match(/\d+/g).map(Number));
     await p.fill('#g-in', String(a * b)); await p.click('#gate .btn.gold'); await p.waitForSelector('#p-ex');
@@ -699,6 +699,72 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.evaluate(() => { __ilhaDebug.S().edit = true; }); await p.click('.item[data-k="s1"]'); eq(await p.evaluate(() => [__ilhaDebug.S().look.skin, __ilhaDebug.S().edit]), ['s1', true], 'and changing skin does not spend it');
     await p.click('.tab[data-t="pants"]'); await p.click('.item[data-k="cinza"]'); await p.click('.item[data-k="verde"]');
     eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.look.pants, S.edit, S.coins, !!document.querySelector('.quiz'), /calção/.test(document.querySelector('#toast').textContent)]; }), ['jeans', true, 90, false, true], 'trousers under a kit: nothing is spent, and the reason is shown');
+    await p.context().close();
+  });
+
+  await test('hair: 22 cuts on offer, each with its picture; a cut is built from its own boxes, loses its top under a hat, and the name stays above it', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), hair = D.CAT.hair, n = k => { S.look.hair = k; D.buildPlayer(); return D.PL.head.children.length; };
+      const out = { cuts: hair.length, shapes: new Set(hair.map(h => h.sh)).size, known: hair.every(h => D.HAIR_SHAPES[h.sh] && h.cs.length && h.c === h.cs[0]), plain: n('castanho'), moicano: n('moicano'), black: n('black'), trancas: n('trancas') };
+      S.look.hat = 'bone'; out.moicanoHat = n('moicano'); S.look.hat = 'nenhum'; n('castanho'); out.tagPlain = D.PL.ns.position.y; n('fogo'); out.tagFire = D.PL.ns.position.y; out.top = D.PL.top;
+      S.coins = 0; S.look.hair = 'castanho'; D.buildPlayer(); D.P.set(0, 0, -5); for (let i = 0; i < 3; i++) D.step(1 / 60); return out; });
+    eq([r.cuts, r.shapes, r.known], [22, 16, true], 'cuts, different shapes, all well formed');
+    assert(r.moicano !== r.plain && r.black !== r.plain && r.trancas > r.plain + 8 && r.moicanoHat < r.moicano, `boxes on the head: ${JSON.stringify(r)}`);
+    assert(r.tagPlain < 3.45 && r.tagFire > r.top + .3 && r.top > 3.7, `name tag: ${JSON.stringify(r)}`);
+    await p.waitForSelector('#b-act:not([hidden])'); await p.click('#b-act', { force: true }); await p.click('.tab[data-t="hair"]');
+    const pics = await p.evaluate(() => [...document.querySelectorAll('.item img.jr')].map(i => i.src));
+    eq([pics.length, pics.every(s => s.startsWith('data:image/png')), new Set(pics).size], [22, true, 22], 'pictures in the shop');
+    await p.context().close();
+  });
+
+  await test('football: the Portugal shirt has the 7 on the back, the others keep the 10', async () => {
+    const r = await page.evaluate(() => { const D = __ilhaDebug, S = D.S(), kits = D.CAT.kit, old = S.look.shirt; S.look.shirt = 'por'; D.buildPlayer(); let back = null; D.PL.g.traverse(o => { if (o.isMesh && Array.isArray(o.material) && o.material[5] && o.material[5].map && !o.userData.head) back = o.material[5].map.image; });
+      const px = back ? [...back.getContext('2d').getImageData(0, 0, back.width, back.height).data] : [], gold = px.filter((v, i) => i % 4 === 1 && v > 180 && px[i - 1] > 220 && px[i + 1] < 80).length; S.look.shirt = old; D.buildPlayer();
+      return { seven: kits.filter(k => k.no === '7').map(k => k.k), other: kits.filter(k => k.no && k.no !== '7').length, gold }; });
+    eq([r.seven, r.other], [['por'], 0], 'who wears the 7');
+    assert(r.gold > 60, `the number is drawn on the back of the shirt (${r.gold} gold pixels)`);
+  });
+
+  await test('celebrations: every new medal unlocks the next one and chooses it; a locked one cannot be picked; each plays to the end and leaves the pose clean', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), out = {}; out.start = [S.celes, S.cele];
+      D.finishChallenge(D.STM.formas, 5, 5, 5, 1, null, false, true); out.gold = [S.celes, S.cele]; D.finishChallenge(D.STM.formas, 5, 5, 5, 1, null, false, true); out.same = [S.celes, S.cele];
+      D.finishChallenge(D.STM.contas, 1, 5, 1, 1, null, false, true); out.bronze = [S.celes, S.cele]; D.finishChallenge(D.STM.ordem, 0, 5, 0, 1, null, false, true); out.none = [S.celes, S.cele]; return out; });
+    eq(r, { start: [0, ''], gold: [1, 'siu'], same: [1, 'siu'], bronze: [2, 'ceu'], none: [2, 'ceu'] }, 'unlocking');
+    await p.click('#b-menu'); await p.click('#mn-cele');
+    eq(await p.evaluate(() => [document.querySelectorAll('.item').length, document.querySelectorAll('.item.poor').length, document.querySelector('.item.eq').dataset.k]), [11, 8, 'ceu'], 'list: all, locked, chosen');
+    await p.click('.item[data-k="mascara"]'); eq(await p.evaluate(() => __ilhaDebug.S().cele), 'ceu', 'a locked celebration is not chosen');
+    await p.click('.item[data-k="siu"]'); eq(await p.evaluate(() => [__ilhaDebug.S().cele, __ilhaDebug.ANIM && __ilhaDebug.ANIM.type, __ilhaDebug.ANIM && __ilhaDebug.ANIM.ce.k, __ilhaDebug.camMode]), ['siu', 'cele', 'siu', 'front'], 'choosing shows it, with the character in view above the list');
+    const run = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), bad = []; D.closeSheet();
+      for (const c of D.CELES) { D.playAnim('cele', null, c.k); let moved = false; for (let i = 0; i < (c.d + .3) * 30; i++) { D.step(1 / 30); const L = D.PL; if (D.ANIM && (L.armL.rotation.z || L.legL.rotation.z || L.legL.rotation.x || L.g.rotation.x || L.g.position.y !== D.P.y)) moved = true; }
+        const L = D.PL; if (D.ANIM || !moved || L.armL.rotation.z || L.armR.rotation.z || L.legL.rotation.z || L.legR.rotation.z || L.g.rotation.x || L.g.rotation.z || L.head.rotation.x || D.camMode !== 'follow') bad.push(c.k); }
+      S.cele = 'siu'; D.playAnim('win'); const chosen = [D.ANIM.type, D.ANIM.ce.k]; S.cele = ''; D.playAnim('win'); const plain = D.ANIM.type; S.cele = 'mascara'; D.playAnim('win'); const locked = D.ANIM.type; S.cele = 'siu';
+      for (let i = 0; i < 120; i++) D.step(1 / 30); return { bad, chosen, plain, locked }; });
+    eq(run, { bad: [], chosen: ['cele', 'siu'], plain: 'win', locked: 'win' }, 'playing the celebrations');
+    const btn = await p.evaluate(() => { const D = __ilhaDebug, b = document.querySelector('#b-cele'), st = D.STM.formas, out = [b.hidden]; b.click(); out.push(D.ANIM && D.ANIM.type); for (let i = 0; i < 130; i++) D.step(1 / 30);
+      D.startMode(st, st.modes[0]); D.step(1 / 60); out.push(b.hidden); document.querySelector('#m-quit').click(); D.step(1 / 60); out.push(b.hidden); return out; });
+    eq(btn, [false, 'cele', true, false], 'the celebrate button: there while exploring, plays the chosen one, hidden during a challenge');
+    await p.context().close();
+  });
+
+  await test('voices: every character speaks with a pitch and a pace of their own, and the host of each game reads its questions', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, said = []; Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: u => said.push(Math.round(u.pitch * 100) / 100 + '/' + Math.round(u.rate * 100) / 100), cancel() {}, getVoices: () => [] } });
+      const say = who => { said.length = 0; D.speak('oi', null, true, who); return said[0]; }, names = Object.keys(D.VOICES), each = names.map(n => say(n)), out = { names: names.length, distinct: new Set(each).size, narrator: say(null) };
+      out.clash = each.includes(out.narrator); out.none = say(undefined);
+      const vila = D.STM.vocab; D.startMode(vila, vila.modes[1]); out.master = say(undefined); document.querySelector('#m-quit').click(); D.startMode(vila, vila.modes[0]); out.host = say(undefined) === say(vila.npc.name); document.querySelector('#m-quit').click();
+      const v = D.VOICES; out.zeLow = v['Seu Zé'].p < .7 && v.Mestre.p < .8 && v.Lia.p > 1.4 && Object.values(v).every(x => x.p >= .6 && x.p <= 1.5 && x.r >= .8 && x.r <= 1.05); return out; });
+    eq(r, { names: 13, distinct: 13, narrator: '1/0.9', clash: false, none: '1/0.9', master: '0.7/0.8', host: true, zeLow: true }, 'voices');
+    await p.context().close();
+  });
+
+  await test('sound: the ambience runs, the music button goes rock, calm, off, and every celebration has its sound', async () => {
+    const p = await open(1024, 768);
+    const states = []; for (let i = 0; i < 3; i++) { await p.click('#b-music'); states.push(await p.evaluate(() => { const S = __ilhaDebug.S(), b = document.querySelector('#b-music'); return [S.music, S.musStyle, b.textContent, b.classList.contains('off')].join(); })); if (i === 0) await p.waitForTimeout(700); }
+    eq(states, ['true,calma,🎹,false', 'false,calma,🎹,true', 'true,rock,🎸,false'], 'music button');
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), snd = Object.keys(D.celeSnd).sort(), keys = D.CELES.map(c => c.k).sort(); let threw = ''; try { for (const k of snd) D.celeSnd[k](); S.sound = false; for (const k of snd) D.celeSnd[k](); S.sound = true; } catch (e) { threw = String(e); }
+      return { amb: D.amb, same: JSON.stringify(snd) === JSON.stringify(keys), threw }; });
+    eq(r, { amb: true, same: true, threw: '' }, 'ambience and celebration sounds');
     await p.context().close();
   });
 
