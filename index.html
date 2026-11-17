@@ -100,6 +100,7 @@ input{user-select:text;-webkit-user-select:text}
 #knob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px;border-radius:50%;background:rgba(255,255,255,.9);border:3px solid var(--ink)}
 #toast{position:fixed;z-index:8;left:50%;transform:translateX(-50%);bottom:calc(230px + env(safe-area-inset-bottom,0px));background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;font-weight:600;font-size:19px;max-width:calc(100% - 40px);text-align:center;line-height:1.3}
 #toast b{color:var(--gold)}
+#toast.up{z-index:12;bottom:auto;top:calc(var(--hudh,56px) + 14px + env(safe-area-inset-top,0px))}
 #fade{position:fixed;inset:0;z-index:20;background:#0B1020;opacity:0;pointer-events:none;transition:opacity .35s;display:grid;place-items:center;color:#fff;font-size:30px;font-weight:700}
 #fade.on{opacity:1}
 #ov{position:fixed;inset:0;z-index:10;background:rgba(10,16,30,.5);display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:calc(10px + env(safe-area-inset-top,0px)) calc(10px + env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) calc(10px + env(safe-area-inset-left,0px))}
@@ -139,6 +140,11 @@ input{user-select:text;-webkit-user-select:text}
 .award span{text-align:center}
 .shop-h{display:flex;align-items:center;gap:10px;padding:12px 14px 6px}
 .shop-h .h2{margin:0;flex:1}
+.pass{margin:2px 14px 8px;padding:8px 12px;border:3px solid var(--ink);border-radius:12px;font-family:var(--fb);font-size:17px;line-height:1.3;background:var(--okbg)}
+.pass.off{background:var(--badbg)}
+.items.shut .item:not(.eq){opacity:.55}
+.quiz .sum{font-size:34px;font-family:var(--fd,inherit);letter-spacing:1px}
+.quiz p.small{font-size:17px;color:var(--muted)}
 .tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 14px 10px}
 .tab{flex:none;border:3px solid var(--ink);border-radius:10px;background:#fff;padding:7px 12px;font-weight:600;font-size:16px}
 .tab.on{background:var(--gold)}
@@ -181,7 +187,8 @@ th{font-family:var(--fd);font-size:13px;color:var(--muted);text-transform:upperc
 .players small{display:block;font-weight:500;font-size:13px;color:var(--muted)}
 select{font-size:17px;padding:8px;border:3px solid var(--ink);border-radius:10px;background:#fff}
 @media (max-width:520px){#where{display:none}.chip{font-size:15px;padding:6px 8px}.hbtn{width:42px;height:42px;font-size:20px}}
-@media (max-height:520px){#toast{bottom:calc(112px + env(safe-area-inset-bottom,0px));max-width:56%;font-size:16px;padding:8px 14px}#mission{font-size:16px;border-width:3px;box-shadow:0 3px 0 var(--ink)}#mission small{font-size:12px}}
+@media (max-height:520px){#toast{bottom:calc(112px + env(safe-area-inset-bottom,0px));max-width:56%;font-size:16px;padding:8px 14px}#mission{font-size:16px;border-width:3px;box-shadow:0 3px 0 var(--ink)}#mission small{font-size:12px}
+  .quiz{padding:10px 12px;gap:7px}.quiz p{font-size:18px;line-height:1.25}.quiz p.small{font-size:15px}.quiz .h2{font-size:21px;margin:0}.quiz .btn.big{font-size:22px;min-width:74px;padding:8px 12px}.quiz .sum{font-size:28px}}
 @media (prefers-reduced-motion:reduce){.cf{display:none}.shake,#b-act,.chip.bump{animation:none}#fade{transition:none}}
 </style>
 </head>
@@ -244,7 +251,7 @@ if(!PF.ids.includes(PF.cur))PF.cur=PF.ids[0];
 const keyOf=id=>id?KEY0+'-p'+id:KEY0,KEY=keyOf(PF.cur);
 function savePF(){try{localStorage.setItem(PKEY,JSON.stringify(PF))}catch(e){}}
 function readSave(id){try{return JSON.parse(localStorage.getItem(keyOf(id)))}catch(e){return null}}
-const DEF={name:'',coins:0,stars:0,sound:true,music:true,voice:true,caps:false,breakMin:0,tut:false,look:{skin:'s2',hair:'castanho',shirt:'azul',pants:'jeans',hat:'nenhum',pet:'nenhum'},lite:false,misMin:false,owned:[],st:{},trophies:{},champ:false,sk:{},wk:{}};
+const DEF={name:'',coins:0,stars:0,sound:true,music:true,voice:true,caps:false,breakMin:0,tut:false,look:{skin:'s2',hair:'castanho',shirt:'azul',pants:'jeans',hat:'nenhum',pet:'nenhum'},lite:false,misMin:false,edit:true,owned:[],st:{},trophies:{},champ:false,sk:{},wk:{}};
 const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 function normalize(raw){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),isObj(raw)?raw:{}),oldTiers=isObj(raw)&&!(raw.v>=2);s.v=2;s.look=Object.assign({},DEF.look,isObj(s.look)?s.look:{});
   ['st','trophies','sk','wk'].forEach(k=>{if(!isObj(s[k]))s[k]={}});if(!Array.isArray(s.owned))s.owned=[];s.name=String(s.name||'').slice(0,14);s.coins=Math.max(0,Math.round(+s.coins)||0);s.stars=Math.max(0,Math.round(+s.stars)||0);s.breakMin=[0,15,20,30,45].includes(+s.breakMin)?+s.breakMin:0;
@@ -252,7 +259,7 @@ function normalize(raw){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),is
   Object.keys(s.st).forEach(k=>{const t=s.st[k];if(!isObj(t))return delete s.st[k];num(t,['rounds','first','total','stars']);t.level=Math.min(3,Math.max(1,Math.round(+t.level)||1))});
   Object.keys(s.sk).forEach(k=>{const t=s.sk[k];if(!isObj(t))return delete s.sk[k];num(t,['n','f','r','w','d']);t.r=Math.min(1,t.r)});
   Object.keys(s.wk).forEach(k=>{const w=s.wk[k];if(!/^\d{4}-\d\d-\d\d$/.test(k)||!isObj(w))return delete s.wk[k];Object.keys(w).forEach(i=>{if(!Array.isArray(w[i]))delete w[i];else w[i]=[+w[i][0]||0,+w[i][1]||0]})});
-  Object.keys(s.trophies).forEach(k=>{let t=Math.min(4,Math.max(0,Math.round(+s.trophies[k])||0));if(oldTiers&&t===3)t=4;s.trophies[k]=t});s.owned=s.owned.filter(x=>typeof x==='string');return s}
+  Object.keys(s.trophies).forEach(k=>{let t=Math.min(4,Math.max(0,Math.round(+s.trophies[k])||0));if(oldTiers&&t===3)t=4;s.trophies[k]=t});s.owned=s.owned.filter(x=>typeof x==='string');s.edit=s.edit!==false;return s}
 let S=normalize(readSave(PF.cur));
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const stat=id=>S.st[id]||(S.st[id]={level:1,rounds:0,first:0,total:0,stars:0});
@@ -365,7 +372,7 @@ const plain=html=>{const d=document.createElement('div');d.innerHTML=html;return
 
 /* ================= HUD helpers ================= */
 let toastT;
-function toast(msg,ms,say){const t=$('#toast');t.innerHTML=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms||3200);if(say)speak(plain(msg))}
+function toast(msg,ms,say){const t=$('#toast');t.innerHTML=msg;t.classList.toggle('up',!$('#ov').hidden);t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms||3200);if(say)speak(plain(msg))}
 /* Medal tiers kept per station: 1 bronze, 2 silver, 3 gold medal, 4 gold cup (gold medal earned at level 3). */
 const MEDAL=['','🥉','🥈','🥇','🏆'];
 const trophyCount=()=>Object.values(S.trophies).filter(v=>v===4).length+(S.champ?1:0);
@@ -373,7 +380,9 @@ function hud(){$('#h-name').textContent=S.name||'Jogador';$('#h-coins').textCont
 /* the mission panel sits right under the top bar, however many rows the bar wraps into */
 function layoutTop(){const h=$('.hud-top');if(h)document.documentElement.style.setProperty('--hudh',h.offsetHeight+'px')}
 function bump(id){const el=$(id);el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump')}
-function addCoins(n){S.coins+=n;save();hud();bump('#h-c')}
+function addCoins(n){if(!n)return;S.coins+=n;save();hud();bump('#h-c')}
+/* Coins are scarce on purpose: 1 for an answer right at the first try (none for a later try), a small bonus at the end of the round, and a prize the first time a medal is won. */
+const coinFor=first=>first?1:0,coinTxt=g=>g?` +${g} 🪙`:'',ROUND_BONUS=[0,0,1,3],MEDAL_COINS=[0,2,4,8,15],CHAMP_COINS=50;
 function confetti(n){const cs=['#E8413A','#2E8BF0','#FFC83D','#2DB34A','#8B4CF0','#FF8A1F'];
   for(let i=0;i<(n||22);i++){const d=document.createElement('i');d.className='cf';d.style.left=rnd(0,100)+'vw';d.style.background=pick(cs);d.style.animationDelay=(Math.random()*.4)+'s';document.body.appendChild(d);setTimeout(()=>d.remove(),2000)}}
 function shake(el){if(!el)return;el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake')}
@@ -383,17 +392,17 @@ function closeSheet(){$('#ov').hidden=true;paused=false;camMode='follow';try{spe
 
 /* ================= CATALOG ================= */
 const CAT={
-  hat:[{k:'nenhum',p:0,n:'Sem chapéu',e:'🚫'},{k:'bone',p:15,n:'Boné',e:'🧢'},{k:'capacete',p:25,n:'Capacete de mineiro',e:'⛑️'},{k:'mago',p:35,n:'Chapéu de mago',e:'🧙'},{k:'coroa',p:60,n:'Coroa',e:'👑'}],
-  shirt:[{k:'azul',c:'#2E7CF6',p:0,n:'Azul'},{k:'vermelho',c:'#E8413A',p:10,n:'Vermelha'},{k:'verde',c:'#2DB34A',p:10,n:'Verde'},{k:'laranja',c:'#FF8A1F',p:10,n:'Laranja'},{k:'roxo',c:'#8B4CF0',p:12,n:'Roxa'},{k:'rosa',c:'#FF5FA2',p:12,n:'Rosa'},{k:'preto',c:'#2A2F3A',p:15,n:'Preta'},{k:'ouro',c:'#F5B800',p:80,n:'Dourada'}],
-  pants:[{k:'jeans',c:'#1F4FA0',p:0,n:'Jeans'},{k:'cinza',c:'#5B6475',p:6,n:'Cinza'},{k:'verde',c:'#2C6B3A',p:8,n:'Verde'},{k:'marrom',c:'#7A4B2A',p:8,n:'Marrom'},{k:'preta',c:'#20242E',p:8,n:'Preta'}],
-  pet:[{k:'nenhum',p:0,n:'Nenhum',e:'🚫'},{k:'cachorro',p:40,n:'Cachorro',e:'🐶'},{k:'gato',p:40,n:'Gato',e:'🐱'},{k:'pintinho',p:50,n:'Pintinho',e:'🐥'},{k:'dragao',p:120,n:'Dragão',e:'🐲'}],
-  power:[{k:'tenis',p:50,n:'Tênis veloz',e:'👟',d:'Corre mais rápido'},{k:'pulo',p:70,n:'Super pulo',e:'🦘',d:'Pula mais alto'}],
-  hair:[{k:'castanho',c:'#5A3A22',p:0,n:'Castanho'},{k:'preto',c:'#1E1A1A',p:0,n:'Preto'},{k:'loiro',c:'#E8C15A',p:0,n:'Loiro'},{k:'ruivo',c:'#C1502A',p:0,n:'Ruivo'},{k:'azul',c:'#3A7BF0',p:20,n:'Azul'},{k:'rosa',c:'#FF6FB0',p:20,n:'Rosa'},{k:'verde',c:'#2DB34A',p:20,n:'Verde'}],
+  hat:[{k:'nenhum',p:0,n:'Sem chapéu',e:'🚫'},{k:'bone',p:40,n:'Boné',e:'🧢'},{k:'capacete',p:60,n:'Capacete de mineiro',e:'⛑️'},{k:'mago',p:80,n:'Chapéu de mago',e:'🧙'},{k:'coroa',p:150,n:'Coroa',e:'👑'}],
+  shirt:[{k:'azul',c:'#2E7CF6',p:0,n:'Azul'},{k:'vermelho',c:'#E8413A',p:30,n:'Vermelha'},{k:'verde',c:'#2DB34A',p:30,n:'Verde'},{k:'laranja',c:'#FF8A1F',p:30,n:'Laranja'},{k:'roxo',c:'#8B4CF0',p:40,n:'Roxa'},{k:'rosa',c:'#FF5FA2',p:40,n:'Rosa'},{k:'preto',c:'#2A2F3A',p:50,n:'Preta'},{k:'ouro',c:'#F5B800',p:200,n:'Dourada'}],
+  pants:[{k:'jeans',c:'#1F4FA0',p:0,n:'Jeans'},{k:'cinza',c:'#5B6475',p:20,n:'Cinza'},{k:'verde',c:'#2C6B3A',p:30,n:'Verde'},{k:'marrom',c:'#7A4B2A',p:30,n:'Marrom'},{k:'preta',c:'#20242E',p:30,n:'Preta'}],
+  pet:[{k:'nenhum',p:0,n:'Nenhum',e:'🚫'},{k:'cachorro',p:120,n:'Cachorro',e:'🐶'},{k:'gato',p:120,n:'Gato',e:'🐱'},{k:'pintinho',p:150,n:'Pintinho',e:'🐥'},{k:'dragao',p:300,n:'Dragão',e:'🐲'}],
+  power:[{k:'tenis',p:150,n:'Tênis veloz',e:'👟',d:'Corre mais rápido'},{k:'pulo',p:200,n:'Super pulo',e:'🦘',d:'Pula mais alto'}],
+  hair:[{k:'castanho',c:'#5A3A22',p:0,n:'Castanho'},{k:'preto',c:'#1E1A1A',p:0,n:'Preto'},{k:'loiro',c:'#E8C15A',p:0,n:'Loiro'},{k:'ruivo',c:'#C1502A',p:0,n:'Ruivo'},{k:'azul',c:'#3A7BF0',p:50,n:'Azul'},{k:'rosa',c:'#FF6FB0',p:50,n:'Rosa'},{k:'verde',c:'#2DB34A',p:50,n:'Verde'}],
   skin:[{k:'s1',c:'#FFD9B3',p:0,n:'Clara'},{k:'s2',c:'#E9B07F',p:0,n:'Média'},{k:'s3',c:'#C98E5F',p:0,n:'Morena'},{k:'s4',c:'#8D5A3B',p:0,n:'Escura'},{k:'s5',c:'#FFD43B',p:0,n:'Amarela'}]
 };
 /* Football shirts: colours and pattern only (no crests, no sponsor marks). pat: s plain, v vertical stripes, h hoops, d diagonal sash, b chest bands, x checks.
    c = shirt colours, trim = collar, short = shorts worn with it, num = colour of the 10 on the back. A kit is worn in the shirt slot. */
-const KIT=(k,n,g,pat,c,o)=>Object.assign({k,n,g,p:30,pat,c,d:g==='sel'?'Seleção · camisa e calção':'Clube · camisa e calção'},o);
+const KIT=(k,n,g,pat,c,o)=>Object.assign({k,n,g,p:80,pat,c,d:g==='sel'?'Seleção · camisa e calção':'Clube · camisa e calção'},o);
 CAT.kit=[
   KIT('bra','Brasil','sel','s',['#FFDD00'],{trim:'#009C3B',short:'#1E40AF',num:'#009C3B'}),KIT('arg','Argentina','sel','v',['#75AADB','#FFFFFF'],{short:'#1B1B1B',num:'#1B1B1B'}),
   KIT('fra','França','sel','s',['#1D2A5B'],{trim:'#E8413A',short:'#FFFFFF',num:'#FFFFFF'}),KIT('ale','Alemanha','sel','s',['#FFFFFF'],{trim:'#1B1B1B',short:'#1B1B1B',num:'#1B1B1B'}),
@@ -1292,22 +1301,23 @@ function friendTalk(f){if(f.cool>0){openSheet(`<div class="quiz"><p><b>${f.name}
   const tip={juntar:'Dica: junte as duas quantidades.',tirar:'Dica: tire e conte o que sobrou.',comparar:'Dica: tire a quantidade menor da maior.',completar:`Dica: conte a partir do ${q.b} até chegar no ${q.a}.`}[kind];let tries=0;
   openSheet(`<div class="quiz"><span class="dlg-name" style="--c:#2E8BF0">${f.name}</span><p>${text}</p><div class="btns">${q.opts.map(v=>`<button class="btn big" data-v="${v}">${v}</button>`).join('')}</div><div class="fb" id="q-fb"></div><button class="btn icon" id="q-spk" aria-label="Ouvir">🗣️</button></div>`);
   $('#q-spk').onclick=()=>speak(plain(text),null,true);speak(plain(text));
-  $$('.quiz .btn.big').forEach(b=>b.onclick=()=>{if(+b.dataset.v===q.ans){sfx.ok();confetti(14);playAnim('cheer');speak('Isso! Valeu!');f.cool=45;addCoins(2);
-      $('#sheet').innerHTML=`<div class="quiz"><p><b>${f.name}:</b> Isso! ${q.a} ${q.op} ${q.b} = ${q.ans}. Valeu! Toma <b>2 🪙</b>.</p><button class="btn go" id="q-x">De nada!</button></div>`;$('#q-x').onclick=()=>closeSheet()}
+  $$('.quiz .btn.big').forEach(b=>b.onclick=()=>{if(+b.dataset.v===q.ans){sfx.ok();confetti(14);playAnim('cheer');speak('Isso! Valeu!');f.cool=90;const g=coinFor(tries===0);addCoins(g);
+      $('#sheet').innerHTML=`<div class="quiz"><p><b>${f.name}:</b> Isso! ${q.a} ${q.op} ${q.b} = ${q.ans}. Valeu!${g?' Toma <b>1 🪙</b>.':''}</p><button class="btn go" id="q-x">De nada!</button></div>`;$('#q-x').onclick=()=>closeSheet()}
     else{tries++;sfx.bad();shake(b);b.disabled=true;if(tries<2){$('#q-fb').textContent=tip;return}
       f.cool=20;$('#sheet').innerHTML=`<div class="quiz"><p><b>${f.name}:</b> Era <b>${q.ans}</b>: ${q.a} ${q.op} ${q.b} = ${q.ans}. Depois eu trago outra charada!</p><button class="btn go" id="q-x">Tudo bem!</button></div>`;$('#q-x').onclick=()=>closeSheet()}})}
 
 /* ================= SCORING + TROPHIES ================= */
 function checkTrophies(st,lvl,stars){const old=S.trophies[st.id]||0,medal=stars===3&&lvl===3?4:stars;
-  let gained=0;if(medal>old){S.trophies[st.id]=medal;gained=medal;S.coins+=[0,5,10,15,30][medal]}
-  let champ=false;if(!S.champ&&STATIONS.every(x=>S.trophies[x.id]===4)){S.champ=true;S.coins+=100;champ=true}
+  let gained=0;if(medal>old){S.trophies[st.id]=medal;gained=medal;S.coins+=MEDAL_COINS[medal]}
+  let champ=false;if(!S.champ&&STATIONS.every(x=>S.trophies[x.id]===4)){S.champ=true;S.coins+=CHAMP_COINS;champ=true}
   save();updateHall();hud();return {medal,gained,champ}}
 /* Stars follow first-try answers: 3 = every question right at the first try, 2 = half or more, 1 = at least one. Running out of hearts caps it at 1. */
 function starsFor(first,n,lost){if(!n)return 0;const s=first>=n?3:first/n>=.5?2:first>0?1:0;return lost?Math.min(s,1):s}
 function finishChallenge(st,first,n,coins,lvl,mode,lost,silent){
-  const s=stat(st.id),pct=n?first/n:0,stars=starsFor(first,n,lost),bonus=Math.round(5*pct);lvl=lvl||1;
+  const s=stat(st.id),pct=n?first/n:0,stars=starsFor(first,n,lost),bonus=ROUND_BONUS[stars];lvl=lvl||1;
   S.stars+=stars;s.stars=(s.stars||0)+stars;s.rounds++;S.coins+=bonus;coins+=bonus;
   let msg='';if(pct>=.8&&!lost&&s.level<3){s.level++;msg=`🚀 Subiu para o nível ${s.level}!`}else if(pct<.4&&s.level>1){s.level--;msg=`Vamos treinar mais no nível ${s.level}.`}
+  const freed=stars>0&&!S.edit;if(freed)S.edit=true;
   const tr=checkTrophies(st,lvl,stars);save();hud();updateSign(st);
   if(silent){toast(`Rodada guardada: <b>${first} de ${n}</b> de primeira ${MEDAL[tr.medal]}`,3200);return}
   const owed=Object.keys(S.sk).filter(k=>k.startsWith(st.id+'.')&&S.sk[k].w>0).sort((a,b)=>S.sk[b].d-S.sk[a].d).slice(0,2).map(skillName);
@@ -1318,9 +1328,9 @@ function finishChallenge(st,first,n,coins,lvl,mode,lost,silent){
     {k:'medal',t:'🥇 Medalha de Ouro',why:'Tudo certo de primeira!',next:`Faça isso no nível 3 e ganhe a TAÇA 🏆. Você jogou no nível ${lvl}.`},
     {k:'copa',t:`🏆 TAÇA DE OURO: ${st.name}`,why:'Tudo certo de primeira no nível 3, o mais difícil!',next:''}][tr.medal];
   openSheet(`<div class="result"><h2>${stars===3?'Incrível!':stars===2?'Muito bom!':stars===1?'Você conseguiu!':'Vamos treinar mais!'}</h2><div class="bigstars">${[1,2,3].map(k=>`<span class="${k<=stars?'':'off'}">⭐</span>`).join('')}</div>
-    <p>${mode?mode.n:st.name}: acertou <b>${first} de ${n}</b> de primeira.</p><p>Ganhou <b>${coins} 🪙</b>${bonus?` (com o bônus de ${bonus})`:''} e <b>${stars} ⭐</b>.</p>${msg?`<div class="pillmsg">${msg}</div>`:''}${owed.length?`<p class="small">Vai aparecer de novo para treinar: ${owed.join(' · ')}</p>`:''}
-    ${tr.champ?`<div class="award"><canvas id="aw-ch" width="320" height="320"></canvas><b>🏆 TAÇA DOS CAMPEÕES!</b><span>Você ganhou a taça de ouro em TODAS as estações! +100 🪙</span></div>`:''}
-    ${M?`<div class="award"><canvas id="aw-cv" width="320" height="320"></canvas><b>${M.t}${tr.medal===4?'!':''}</b><span>${M.why}</span>${tr.gained?`<span>É a sua melhor medalha aqui! +${[0,5,10,15,30][tr.gained]} 🪙</span>`:''}${M.next?`<small>${M.next}</small>`:''}<small>A melhor medalha de cada estação fica na Sala de Troféus.</small></div>`
+    <p>${mode?mode.n:st.name}: acertou <b>${first} de ${n}</b> de primeira.</p><p>Ganhou <b>${coins} 🪙</b>${bonus?` (com o bônus de ${bonus})`:''} e <b>${stars} ⭐</b>.</p>${msg?`<div class="pillmsg">${msg}</div>`:''}${freed?'<div class="pillmsg">✏️ Troca liberada na Loja: compre ou troque <b>uma</b> coisa!</div>':''}${owed.length?`<p class="small">Vai aparecer de novo para treinar: ${owed.join(' · ')}</p>`:''}
+    ${tr.champ?`<div class="award"><canvas id="aw-ch" width="320" height="320"></canvas><b>🏆 TAÇA DOS CAMPEÕES!</b><span>Você ganhou a taça de ouro em TODAS as estações! +${CHAMP_COINS} 🪙</span></div>`:''}
+    ${M?`<div class="award"><canvas id="aw-cv" width="320" height="320"></canvas><b>${M.t}${tr.medal===4?'!':''}</b><span>${M.why}</span>${tr.gained?`<span>É a sua melhor medalha aqui! +${MEDAL_COINS[tr.gained]} 🪙</span>`:''}${M.next?`<small>${M.next}</small>`:''}<small>A melhor medalha de cada estação fica na Sala de Troféus.</small></div>`
       :'<p class="small">Sem medalha desta vez. Acerte pelo menos uma pergunta de primeira para ganhar o bronze 🥉.</p>'}
     <div class="btns"><button class="btn go" id="r-again">▶ De novo</button><button class="btn gold" id="r-go">🏃 Explorar</button></div></div>`);
   if(M)drawCupArt($('#aw-cv'),M.k);if(tr.champ)drawCupArt($('#aw-ch'),'champions');if(tr.gained===4)speak(M.t);else if(tr.champ)speak('Taça dos Campeões!');
@@ -1382,8 +1392,8 @@ function spawnPickups(defs,area,keep){const st=CHX.st,out=[],spots=[];defs.forEa
 function updatePickups(items,held,dt,max){items.forEach(o=>{if(o.state==='ground'){o.ph+=dt;o.sp.position.y=1+Math.sin(o.ph*2)*.15}});held.forEach((o,k)=>o.sp.position.set(P.x,P.y+3.1+k*.7,P.z));
   if(CH.locked)return;for(const o of items){if(o.state==='ground'&&held.length<(max||12)&&Math.hypot(P.x-o.x,P.z-o.z)<1.15&&P.y<2.5){o.state='held';o.sp.scale.set(1,1,1);held.push(o);sfx.pop()}}}
 function dropToGround(o,a){const p=L2W(CH.st,a[0]+Math.random()*(a[1]-a[0]),a[2]+Math.random()*(a[3]-a[2]));o.x=p.x;o.z=p.z;o.state='ground';o.sp.visible=true;o.sp.scale.set(o.s,o.s,1);o.sp.position.set(o.x,1,o.z)}
-function okRound(gain,msg,ms,next){CH.locked=true;const first=CH.tries===0;record(CH.st.id,first,CH.skill);if(first)CH.first++;const g=gain==null?(first?2:1):gain;CH.coins+=g;addCoins(g);sfx.ok();confetti(first?18:8);playAnim('cheer');
-  const cheer=pick(CHEERS),t=ms||(msg?4200:2600);toast(`<b>${cheer}</b> +${g} 🪙${msg?'<br>'+msg:''}`,t);speak(cheer+(msg?' '+plain(msg):''));later(next,t+200)}
+function okRound(gain,msg,ms,next){CH.locked=true;const first=CH.tries===0;record(CH.st.id,first,CH.skill);if(first)CH.first++;const g=gain==null?coinFor(first):gain;CH.coins+=g;addCoins(g);sfx.ok();confetti(first?18:8);playAnim('cheer');
+  const cheer=pick(CHEERS),t=ms||(msg?4200:2600);toast(`<b>${cheer}</b>${coinTxt(g)}${msg?'<br>'+msg:''}`,t);speak(cheer+(msg?' '+plain(msg):''));later(next,t+200)}
 function failRound(msg,ms,next){CH.locked=true;record(CH.st.id,false,CH.skill);sfx.bad();playAnim('sad');const t=ms||5200;toast(msg,t,true);later(next,t+200)}
 function hintBad(msg,anim){sfx.bad();playAnim(anim||'sad');toast('💡 '+msg,4800,true)}
 
@@ -1547,7 +1557,7 @@ function updateShoot(dt){CH.cool-=dt;const aim=CH.locked?null:aimBalloon();CH.re
     else{s.m.position.x+=s.dx*30*dt;s.m.position.z+=s.dz*30*dt}
     if(s.life<=0){drop(s.m);return false}return true})}
 function hitBalloon(b){if(!b.alive||CH.locked)return;b.alive=false;sfx.pop();
-  if(b.it.ok){CH.left--;const clean=CH.tries===0;if(CH.left<=0)okRound(null,CH.q.explain,null,nextShoot);else{if(clean){CH.coins++;addCoins(1)}toast(`💥 Isso!${clean?' +1 🪙':''} Faltam ${CH.left}.`,1600);shootMission()}}
+  if(b.it.ok){CH.left--;if(CH.left<=0)okRound(null,CH.q.explain,null,nextShoot);else{toast(`💥 Isso! Faltam ${CH.left}.`,1600);shootMission()}}
   else{CH.tries++;toast(b.it.label?`Ops! ${b.it.label} não dá ${CH.q.T}.`:`Ops! Esse era ${['esfera','pirâmide'].includes(b.it.name)?'uma':'um'} ${b.it.name.toUpperCase()}.`,4200,true);sfx.bad();playAnim('sad')}}
 function nextShoot(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadShootQ()}
 
@@ -1576,7 +1586,7 @@ function updateFloor(dt){const [a,b]=localAB(CH.st,P.x,P.z),r=CH.lavaR;
 function tileUnder(){const [a,b]=localAB(CH.st,P.x,P.z);return P.y>.4?CH.tiles.find(t=>t.p.active&&Math.abs(a-t.A)<1.8&&Math.abs(b-t.B)<1.8):null}
 function resolveFloor(){CH.phase='resolve';hideSure();const on=tileUnder();
   CH.tiles.forEach((t,i)=>{if(!t.ok){t.p.active=false;t.falling=true;drawTile(t,CH.q.labels[i],'#FF8A80',false)}else drawTile(t,CH.q.labels[i],'#7CE3A0',true)});
-  if(on&&on.ok){CH.won=true;okRound(2,`Você sobreviveu! ${CH.q.explain||''}`,null,nextFloor)}
+  if(on&&on.ok){CH.won=true;okRound(null,`Você sobreviveu! ${CH.q.explain||''}`,null,nextFloor)}
   else{playAnim('sad');loseHeart(on?`Esse número não era a resposta. ${CH.q.explain||''}`:'Você precisa estar EM CIMA de um número quando o tempo acabar!',false)}}
 /* stepping on the lava while still choosing is a slip of the feet, not of the maths: back to the start, no heart lost */
 function burnFloor(){const prev=CH.phase,c=CH;CH.phase='burn';hideSure();
@@ -1625,15 +1635,15 @@ function loadBuildQ(){clearArena();const st=CH.st,G=beginArena(st),q=CH.gen(stat
 function addStep(){const st=CH.st,k=CH.steps.length+1,h=k*.7,A=2.2+(k-1)*1.25,B=-2,m=mesh(BOX(1.25,h,2.6),pick(['#E8413A','#2E8BF0','#FFC83D','#2DB34A','#8B4CF0']),A,h/2,B);CH.G.add(m);CH.steps.push({m,p:platAt(st,A,B,.625,1.3,h,true,null,.1)})}
 function removeStep(){const s=CH.steps.pop();if(!s)return false;drop(s.m);const i=PLATS.indexOf(s.p);if(i>=0)PLATS.splice(i,1);return true}
 function updateBuild(dt){updatePickups(CH.items,CH.held,dt,10);
-  if(CH.chest){CH.chest.m.rotation.y+=dt*2;CH.chestT-=dt;if(isNear(CH.chest,1.4)&&Math.abs(P.y-CH.chest.y)<1.2){CH.chest.m.visible=false;CH.chest=null;addCoins(3);CH.coins+=3;sfx.win();confetti(30);playAnim('cheer');toast('🎁 Você pegou o baú! +3 🪙',2600,true);later(nextBuild,2800)}
+  if(CH.chest){CH.chest.m.rotation.y+=dt*2;CH.chestT-=dt;if(isNear(CH.chest,1.4)&&Math.abs(P.y-CH.chest.y)<1.2){const g=CH.chest.g;CH.chest.m.visible=false;CH.chest=null;addCoins(g);CH.coins+=g;sfx.win();confetti(30);playAnim('cheer');toast('🎁 Você pegou o baú!'+coinTxt(g),2600,true);later(nextBuild,2800)}
     else if(CH.chestT<=0){CH.chest.m.visible=false;CH.chest=null;nextBuild()}return}
   if(CH.locked)return;
   edge('put',isNear(CH.pads.put,1.4),()=>{if(!CH.held.length)return;CH.held.forEach(o=>{o.state='used';o.sp.visible=false;if(CH.steps.length<12)addStep()});CH.held=[];sfx.coin()});
   edge('tirar',isNear(CH.pads.tirar,1.4),()=>{if(removeStep()){const o=CH.items.find(o=>o.state==='used');if(o)dropToGround(o,CH.area);sfx.tap();toast('Tirou um degrau.',1200)}});
   edge('pronto',isNear(CH.pads.pronto,1.4),()=>{if(CH.held.length){toast('Coloque os blocos que estão na cabeça primeiro!',1800);return}const n=CH.steps.length;if(!n){toast('Monte a escada antes do PRONTO.',2200);return}
-    if(CH.q.check(n)){CH.locked=true;const first=CH.tries===0;record(CH.st.id,first,CH.skill);if(first)CH.first++;const g=first?2:1;CH.coins+=g;addCoins(g);sfx.ok();confetti(16);
+    if(CH.q.check(n)){CH.locked=true;const first=CH.tries===0;record(CH.st.id,first,CH.skill);if(first)CH.first++;const g=coinFor(first);CH.coins+=g;addCoins(g);sfx.ok();confetti(16);
       const k=n,A=2.2+(k-1)*1.25,w=L2W(CH.st,A,-2),cm=new THREE.Group();cm.add(mesh(BOX(.9,.6,.7),'#8B5A2B',0,.3,0),mesh(BOX(.95,.25,.75),'#FFC83D',0,.68,0));cm.position.set(w.x,k*.7,w.z);scene.add(cm);CHX.objs.push(cm);
-      CH.chest={m:cm,x:w.x,z:w.z,y:k*.7};CH.chestT=40;playAnim('cheer');toast(`<b>${pick(CHEERS)}</b> +${g} 🪙 Agora SUBA a escada e pegue o baú! 🎁`,4500,true);return}
+      CH.chest={m:cm,x:w.x,z:w.z,y:k*.7,g};CH.chestT=40;playAnim('cheer');toast(`<b>${pick(CHEERS)}</b>${coinTxt(g)} Agora SUBA a escada e pegue o baú! 🎁`,4500,true);return}
     CH.tries++;if(CH.tries>=2)return failRound(`Sua escada tem ${n} degraus. ${CH.q.explain}`,null,nextBuild);hintBad(`Sua escada tem ${n} degraus. ${CH.q.hint}`)})}
 function nextBuild(){if(!CH||CH.type!=='build')return;CH.idx++;if(CH.idx>=CH.n)return done3D();loadBuildQ()}
 
@@ -1756,7 +1766,7 @@ function updateSimon(dt){const C=CH,q=C.q;simonKids(dt);C.items.forEach((o,i)=>{
   if(r==='ok'){C.si++;showProg(null);if(C.si>=q.steps.length)return simonWin(q.steps.length>1?`Você fez os ${q.steps.length} passos na ordem certa!`:'Você fez certinho!');
     sfx.coin();simonMission();const nx=q.steps[C.si];toast(`✓ Passo ${C.si} feito! Agora: <b>${nx.t}</b>`,2600);speak(stat(C.st.id).level<3?'Isso! Agora, '+nx.t:'Isso! E agora?');return}
   if(C.time<=0)simonFail(`O tempo acabou! O mestre mandou: ${s.t}.`)}
-function simonWin(msg){hideSure();CH.phase='done';okRound(2,msg,null,nextSimon)}
+function simonWin(msg){hideSure();CH.phase='done';okRound(null,msg,null,nextSimon)}
 function simonFail(msg){const C=CH;hideSure();C.phase='done';C.hearts--;C.locked=true;C.kids.forEach(f=>f.chase=false);record(C.st.id,false,C.skill);sfx.bad();playAnim('sad');simonMission();
   if(C.hearts<=0){toast(`${msg}<br>Acabaram os corações! 💔`,4400,true);later(()=>{C.n=C.idx+1;done3D(true)},4600)}else{toast(msg,4400,true);later(nextSimon,4600)}}
 function nextSimon(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadSimonQ()}
@@ -1770,9 +1780,9 @@ function startObby(st){const L=stat(st.id).level;resetObby();CH={type:'obby',st,
   checkpoint={x:OX+62.5,z:0};teleport(OX+62.5,0,OX+80,0);camLook=4;obbyMission();toast('Olhe a conta na placa e pule (⬆) na plataforma com a resposta certa!',4500)}
 function obbyMission(){const q=CH.qs[CH.row];setMission(`<span class="vt">⬆ PULAR</span>Conta ${CH.row+1} de 5: pule na resposta de <b>${q.a} ${q.op} ${q.b}</b>`);speak(`Pule na resposta de ${q.a} ${q.op} ${q.b}`)}
 function updateObby(){if(!onGround||!standing||standing.row==null||standing.used||standing.row!==CH.row)return;const p=standing,q=CH.qs[CH.row];p.used=true;
-  if(p.correct){const first=CH.tries===0,gain=first?2:1;if(CH.tries<2)record(CH.st.id,first,q.skill);if(first)CH.first++;CH.coins+=gain;addCoins(gain);
+  if(p.correct){const first=CH.tries===0,gain=coinFor(first);if(CH.tries<2)record(CH.st.id,first,q.skill);if(first)CH.first++;CH.coins+=gain;addCoins(gain);
     platLabel(p,p.val,'#7CE3A0',true);drawBoard(CH.row,`${q.a} ${q.op} ${q.b} = ${q.ans}`,true,q);sfx.ok();confetti(14);checkpoint=OBBY.checkpoints[CH.row];CH.row++;CH.tries=0;if(CH.row<5)revealObby(CH.row);
-    playAnim('cheer');if(CH.row>=5){setMission('🏆 Você chegou à taça! O portal vermelho leva de volta ao começo.');done3D()}else{toast(`${pick(CHEERS)} +${gain} 🪙`,2000);setTimeout(()=>{if(CH&&CH.type==='obby')obbyMission()},900)}}
+    playAnim('cheer');if(CH.row>=5){setMission('🏆 Você chegou à taça! O portal vermelho leva de volta ao começo.');done3D()}else{toast(`${pick(CHEERS)}${coinTxt(gain)}`,2000);setTimeout(()=>{if(CH&&CH.type==='obby')obbyMission()},900)}}
   else{CH.tries++;if(CH.tries===2)record(CH.st.id,false,q.skill);p.active=false;p.falling=true;p.sign.visible=false;platLabel(p,p.val,'#FF8A80',false);sfx.bad();toast(`Ops! ${q.a} ${q.op} ${q.b} não dá ${p.val}. Tente outra plataforma!`,4500,true)}}
 const numTexCache={};
 function numTex(n,col){const k=n+col;return numTexCache[k]||(numTexCache[k]=tex(cv(128,128,g=>{g.fillStyle=col;g.fillRect(0,0,128,128);g.lineWidth=10;g.strokeStyle=INK;g.strokeRect(5,5,118,118);
@@ -1793,7 +1803,7 @@ function orderMission(){const c=CH,nx=c.seq[c.idx],prev=c.seq[c.idx-1];let t;
 function updateOrder(dt){const c=CH;let touching=null;
   c.cubes.forEach(q=>{if(q.taken){q.m.scale.multiplyScalar(Math.max(0,1-dt*8));q.m.position.y+=dt*6;return}q.ph+=dt;q.m.position.y=1.2+Math.sin(q.ph*2)*.2;q.m.rotation.y+=dt;if(Math.hypot(P.x-q.x,P.z-q.z)<1.35&&P.y<2.6)touching=q});
   if(!touching){if(c.last&&Math.hypot(P.x-c.last.x,P.z-c.last.z)>2.2)c.last=null;return}if(touching===c.last)return;
-  if(touching.n===c.seq[c.idx]){touching.taken=true;const first=c.tries===0,gain=first?2:1;if(c.tries<2)record(c.st.id,first,c.skill);if(first)c.first++;c.coins+=gain;addCoins(gain);sfx.coin();playAnim('cheer');c.tries=0;c.idx++;
+  if(touching.n===c.seq[c.idx]){touching.taken=true;const first=c.tries===0,gain=coinFor(first);if(c.tries<2)record(c.st.id,first,c.skill);if(first)c.first++;c.coins+=gain;addCoins(gain);sfx.coin();playAnim('cheer');c.tries=0;c.idx++;
     if(c.idx>=c.n){const cs=c.cubes;setTimeout(()=>cs.forEach(q=>drop(q.m)),600);setMission('🏁 Todos os números na ordem!');done3D()}else orderMission()}
   else{c.last=touching;c.tries++;if(c.tries===2)record(c.st.id,false,c.skill);sfx.dizzy();playAnim('dizzy');toast(`Esse é o <b>${touching.n}</b>. ${c.L===1?`Procure o ${c.seq[c.idx]}!`:'Pense de novo e procure outro!'}`,4200,true);
     const dx=P.x-touching.x,dz=P.z-touching.z,d=Math.hypot(dx,dz)||1;P.x+=dx/d*1.2;P.z+=dz/d*1.2;vy=5}}
@@ -1805,8 +1815,8 @@ function shapeAt(flatQ){let best=null,bd=1e9;for(const s of SHAPES){if(!!s.flat!
   if((s.flat?(d<1.25&&onGround&&P.y<.5):(d<s.r+.95))&&d-(s.flat?0:s.r)<bd){best=s;bd=d-(s.flat?0:s.r)}}return best}
 function updateShapes(){const c=CH,t=shapeAt(!!SHAPE_INFO[c.qs[c.idx].n].flat);
   if(!t){c.last=null;return}if(t===c.last)return;c.last=t;const q=c.qs[c.idx],I=SHAPE_INFO[t.n];
-  if(t.n===q.n){const first=c.tries===0,gain=first?2:1;if(c.tries<2)record(c.st.id,first,q.skill);if(first)c.first++;c.coins+=gain;addCoins(gain);sfx.ok();confetti(10);c.tries=0;
-    playAnim('cheer');toast(`Isso! ${I.g==='a'?'Essa é a':'Esse é o'} <b>${t.n.toUpperCase()}</b> +${gain} 🪙`,2400);t.pulse=1;c.idx++;if(c.idx>=c.n)done3D();else setTimeout(()=>{if(CH===c)shapesMission()},1200)}
+  if(t.n===q.n){const first=c.tries===0,gain=coinFor(first);if(c.tries<2)record(c.st.id,first,q.skill);if(first)c.first++;c.coins+=gain;addCoins(gain);sfx.ok();confetti(10);c.tries=0;
+    playAnim('cheer');toast(`Isso! ${I.g==='a'?'Essa é a':'Esse é o'} <b>${t.n.toUpperCase()}</b>${coinTxt(gain)}`,2400);t.pulse=1;c.idx++;if(c.idx>=c.n)done3D();else setTimeout(()=>{if(CH===c)shapesMission()},1200)}
   else{c.tries++;if(c.tries===2)record(c.st.id,false,q.skill);sfx.bad();playAnim('sad');toast(`${I.g==='a'?'Essa é a':'Esse é o'} <b>${t.n.toUpperCase()}</b>. Procure outra forma!`,4200,true)}}
 /* ---- 🏎️ KART: a straight three-lane track over the sea; each gate has three answers and the kart must go through the right one ---- */
 const KART={gap:96,lanes:[-4,0,4],first:56};
@@ -1832,7 +1842,7 @@ function startKart(st,gen){const L=stat(st.id).level,G=(CH={type:'kart',st,gen,n
   /* coins to pick up in the long stretch between gates (never close to a gate, so they do not hint at the answer) */
   const coinG=new THREE.CylinderGeometry(.55,.55,.14,16),coinM=new THREE.MeshLambertMaterial({color:'#FFC83D',emissive:'#5a3d00'});
   const coin=(x,lane)=>{const m=new THREE.Group(),d=new THREE.Mesh(coinG,coinM);d.rotation.z=Math.PI/2;m.add(d);m.position.set(x,1.2,z0+KART.lanes[lane]);G.add(m);C.loot.push({m,x:st.c.x+x,lat:KART.lanes[lane]})};
-  for(let k=0;k<5;k++)(k?[64,52,40]:[32,24]).forEach(d=>coin(x0+KART.first+k*KART.gap-d,rnd(0,2)));[0,1,2].forEach(l=>coin(x0+KART.first+4*KART.gap+28,l));
+  for(let k=1;k<5;k++)coin(x0+KART.first+k*KART.gap-48,rnd(0,2));
   /* the kart itself rides with the player */
   const k=new THREE.Group(),red=mat('#E8413A');k.add(mesh(BOX(1.5,.5,2.5),red,0,.75,.1),mesh(BOX(1.1,.35,.8),red,0,.7,1.6),mesh(BOX(1.7,.12,.5),'#1B2232',0,1.25,-1.15),mesh(BOX(.12,.5,.12),'#1B2232',-.6,1,-1.15),mesh(BOX(.12,.5,.12),'#1B2232',.6,1,-1.15),mesh(BOX(1.3,.5,.2),'#FFC83D',0,1,-1.05));
   [[-.9,1.15],[.9,1.15],[-.9,-.85],[.9,-.85]].forEach(([x,z])=>{const w=mesh(new THREE.CylinderGeometry(.36,.36,.34,14),'#1B2232',x,.61,z);w.rotation.z=Math.PI/2;k.add(w)});
@@ -1852,7 +1862,7 @@ function kartDrive(dt,jx,jy){const C=CH;yaw=-Math.PI/2;
   PL.legL.rotation.x=PL.legR.rotation.x=-1.5;PL.armL.rotation.x=PL.armR.rotation.x=-1.15;applyAnim(dt);PL.g.position.y=P.y-.25}
 function kartGate(lane){const C=CH,q=C.qs[C.idx],g=C.gates[C.idx],ok=lane===q.ans;record(C.st.id,ok,q.skill);
   g.signs.forEach((s,i)=>{if(i===q.ans||i===lane){kartSign(q.labels[i],i===q.ans)(s.c.getContext('2d'));s.t.needsUpdate=true}});
-  if(ok){C.first++;C.coins+=2;addCoins(2);C.boost=1.6;C.streak++;sfx.ok();confetti(10);toast(`<b>${pick(CHEERS)}</b> +2 🪙${C.streak>1?` · TURBO x${Math.min(3,C.streak)} 🔥`:''}`,1800)}
+  if(ok){const g=coinFor(true);C.first++;C.coins+=g;addCoins(g);C.boost=1.6;C.streak++;sfx.ok();confetti(10);toast(`<b>${pick(CHEERS)}</b>${coinTxt(g)}${C.streak>1?` · TURBO x${Math.min(3,C.streak)} 🔥`:''}`,1800)}
   else{C.spin=.9;C.streak=0;sfx.dizzy();toast(`Era o portão <b>${q.labels[q.ans]}</b>. ${q.explain}`,4200,true)}
   C.idx++;if(C.idx<C.n){kartMission();if(ok)speak(plain(C.qs[C.idx].text));else later(()=>speak(plain(C.qs[C.idx].text)),2600)}else setMission('<span class="vt">🏎️ KART</span>Agora é só cruzar a CHEGADA! 🏁')}
 function update3D(dt){if(!CH||paused)return;const t=CH.type;
@@ -1876,28 +1886,55 @@ function updateWorld(dt){T+=dt;frameN++;
   /* the shadow area follows the player in whole steps, which keeps shadow edges from crawling while walking */
   const sx=Math.round(P.x/2)*2,sz=Math.round(P.z/2)*2;sun.position.set(sx+SUN_DIR.x,SUN_DIR.y,sz+SUN_DIR.z);sun.target.position.set(sx,0,sz)}
 
-/* ================= SHOP (with change math) ================= */
+/* ================= SHOP =================
+   One change at a time: buying or putting something on spends the pass (S.edit), and a round played with at least one star gives it back.
+   The pass does not pile up. Buying also takes the right answer to a sum, in one try and among five options; a wrong answer spends the pass
+   too, so guessing does not pay. Skin colour is not a prize: it is free and never needs the pass. */
 const TABS=[['hat','Chapéus'],['kit','⚽ Futebol'],['shirt','Camisas'],['pants','Calças'],['pet','Bichinhos'],['power','Poderes'],['hair','Cabelo'],['skin','Pele']];
-let shopTab='hat';
-function openShop(){camMode='front';renderShop()}
+let shopTab='hat',shopY=0,buySum=null;
+/* the player turns the back to the stall, so the camera in front shows the character (and what was just put on) instead of the shopkeeper's back */
+function openShop(){const k=NPCS.find(n=>n.kind==='shop');if(k&&Math.hypot(P.x-k.x,P.z-k.z)>.5){rotY=Math.atan2(P.x-k.x,P.z-k.z);PL.g.rotation.y=rotY}camMode='front';shopY=0;renderShop()}
 function renderShop(){const items=CAT[shopTab],slot=slotOf(shopTab),prev=t=>shopTab==='kit'?`<img class="jr" src="${kitURL(t)}" alt="">`:shopTab==='shirt'||shopTab==='pants'||shopTab==='skin'||shopTab==='hair'?`<span class="sw" style="--k:${t.c}"></span>`:t.e;
+  const inUse=t=>owns(shopTab,t.k)&&(shopTab==='power'||S.look[slot]===t.k),free=shopTab==='skin';
   openSheet(`<div class="shop-h"><span class="h2">🛍️ Loja</span><span class="chip" style="background:var(--ink)">Você tem 🪙 ${S.coins}</span><button class="xbtn" id="s-x" aria-label="Fechar">✕</button></div>
+    <div class="pass ${S.edit||free?'on':'off'}" id="s-pass">${free?'🎨 A cor da pele pode ser trocada <b>sempre</b>.':S.edit?'✏️ <b>1 troca liberada:</b> compre ou troque <b>uma</b> coisa.':'🔒 <b>Troca já usada.</b> Jogue um joguinho para liberar outra.'}</div>
     <div class="tabs">${TABS.map(([k,l])=>`<button class="tab${k===shopTab?' on':''}" data-t="${k}">${l}</button>`).join('')}</div>
-    <div class="items">${items.map(t=>{const own=owns(shopTab,t.k),eq=shopTab==='power'?own:S.look[slot]===t.k,poor=!own&&S.coins<t.p;
+    <div class="items${S.edit||free?'':' shut'}">${items.map(t=>{const own=owns(shopTab,t.k),eq=inUse(t),poor=!own&&S.coins<t.p;
       return `<button class="item${eq?' eq':''}${poor?' poor':''}" data-k="${t.k}"><span class="pv">${prev(t)}</span><span>${t.n}</span>${t.d?`<small>${t.d}</small>`:''}<span class="st${own?'':' price'}">${eq?(shopTab==='power'?'Ativo ✓':'Usando ✓'):own?'Usar':'🪙 '+t.p}</span></button>`}).join('')}</div>`,'bottom');
+  $('#sheet').scrollTop=shopY;
   $('#s-x').onclick=()=>{sfx.tap();closeSheet()};
-  $$('.tab').forEach(b=>b.onclick=()=>{sfx.tap();shopTab=b.dataset.t;renderShop()});
-  $$('.item').forEach(b=>b.onclick=()=>{const t=find(shopTab,b.dataset.k);
-    if(!owns(shopTab,t.k)){if(S.coins<t.p){sfx.bad();toast(`Faltam ${t.p-S.coins} moedas: ${t.p} − ${S.coins} = ${t.p-S.coins}. Faça mais desafios!`,3000);return}buyQuiz(t);return}
-    sfx.tap();if(shopTab!=='power'){S.look[slot]=t.k;buildPlayer()}save();hud();const y=$('#sheet').scrollTop;renderShop();$('#sheet').scrollTop=y})}
-function buyQuiz(t){const have=S.coins,left=have-t.p,opts=optNums(left,[left+10,left-10,left+1,left-1,have+t.p],0,999,3);let tries=0;const tab=shopTab;
-  openSheet(`<div class="quiz"><div class="h2">Antes de comprar...</div><p>Você tem <b>🪙 ${have}</b>.<br>${t.e||''} <b>${t.n}</b> custa <b>🪙 ${t.p}</b>.<br>Quantas moedas vão <b>sobrar</b>?</p>
-    <div class="btns">${opts.map(v=>`<button class="btn big" data-v="${v}">${v}</button>`).join('')}</div><div class="fb" id="q-fb"></div><div class="btns"><button class="btn" id="q-back">Voltar</button><button class="btn icon" id="q-spk">🗣️</button></div></div>`,'bottom');
-  const qs=`Você tem ${have} moedas. ${t.n} custa ${t.p}. Quantas moedas vão sobrar?`;$('#q-back').onclick=()=>renderShop();$('#q-spk').onclick=()=>speak(qs,null,true);speak(qs);
-  const buy=msg=>{S.coins-=t.p;S.owned.push(tab+':'+t.k);if(tab!=='power'){S.look[slotOf(tab)]=t.k;buildPlayer()}save();hud();sfx.coin();confetti(20);renderShop();playAnim('cheer');toast(msg,4000,true)};
-  $$('.quiz .btn.big').forEach(b=>b.onclick=()=>{if(+b.dataset.v===left)return buy(`Comprou: ${t.n}! ${have} − ${t.p} = <b>${left}</b> 🪙`);
-    tries++;sfx.bad();shake(b);b.disabled=true;if(tries>=2)return buy(`Sobraram ${left}: ${have} − ${t.p} = ${left}. Comprou: ${t.n}!`);
-    $('#q-fb').textContent=`Dica: faça ${have} − ${t.p}. ${t.p>=10?'Tire as dezenas primeiro.':'Conte para trás.'}`})}
+  $$('.tab').forEach(b=>b.onclick=()=>{sfx.tap();shopTab=b.dataset.t;shopY=0;renderShop()});
+  $$('.item').forEach(b=>b.onclick=()=>{const t=find(shopTab,b.dataset.k);if(inUse(t)){sfx.tap();return}
+    if(free){sfx.tap();S.look[slot]=t.k;buildPlayer();save();shopY=$('#sheet').scrollTop;renderShop();return}
+    /* a football kit comes with its own shorts, so other trousers would not show: do not let the change (or the coins) be spent on them */
+    if(shopTab==='pants'&&kitOf(S.look.shirt)){sfx.bad();shake(b);toast('A camisa de futebol já vem com o calção. Para usar outra calça, troque de camisa primeiro.',4200);return}
+    if(!S.edit){sfx.bad();shake(b);toast('🔒 Você já usou a sua troca. <b>Jogue um joguinho</b> para liberar outra!',3600);return}
+    if(!owns(shopTab,t.k)&&S.coins<t.p){sfx.bad();toast(`Faltam ${t.p-S.coins} moedas: ${t.p} − ${S.coins} = ${t.p-S.coins}. Faça mais desafios!`,3000);return}
+    shopY=$('#sheet').scrollTop;sfx.tap();if(owns(shopTab,t.k))wearAsk(t);else buyQuiz(t)})}
+/* putting on something already owned costs no coins, but it is the one change of the round: ask before spending it */
+function wearAsk(t){const tab=shopTab,lab=TABS.find(x=>x[0]===tab)[1];
+  openSheet(`<div class="quiz"><div class="h2">Trocar agora?</div><p>${lab}: <b>${t.n}</b></p><p class="small">Esta é a sua <b>única troca</b>. Para trocar outra coisa, você vai precisar jogar um joguinho.</p>
+    <div class="btns"><button class="btn go" id="w-ok">✓ Trocar</button><button class="btn" id="w-back">Voltar</button></div></div>`,'bottom');
+  $('#w-back').onclick=()=>{sfx.tap();renderShop()};
+  $('#w-ok').onclick=()=>{if(!S.edit)return renderShop();S.look[slotOf(tab)]=t.k;S.edit=false;buildPlayer();save();hud();sfx.coin();playAnim('cheer');renderShop();toast(`Pronto! ${lab}: <b>${t.n}</b>.`,2600)}}
+/* The sum that unlocks a purchase. While the coins fit in 100 it is the change ("how many will be left?"); with more coins than that
+   it is a sum from the child's level, kept until it is answered (backing out and coming back does not draw an easier one). */
+function buyQ(t){const have=S.coins,left=have-t.p;
+  if(have<=100)return {change:true,ans:left,eq:`${have} − ${t.p} = ${left}`,html:`Você tem <b>🪙 ${have}</b>.<br>${t.e||''} <b>${t.n}</b> custa <b>🪙 ${t.p}</b>.<br>Quantas moedas vão <b>sobrar</b>?`,
+    say:`Você tem ${have} moedas. ${t.n} custa ${t.p}. Quantas moedas vão sobrar?`,opts:optNums(left,[left+10,left-10,left+1,left-1,have+t.p,left+2,left-2,left+5,left+20],0,999,5)};
+  const q=buySum||(buySum=genArith(Math.max(stat('contas').level,stat('n10').level))),alt=q.op==='+'?q.a-q.b:q.a+q.b;
+  return {change:false,ans:q.ans,eq:`${q.a} ${q.op} ${q.b} = ${q.ans}`,html:`Para liberar <b>${t.n}</b>, resolva a conta:<br><b class="sum">${q.a} ${q.op} ${q.b} = ?</b>`,
+    say:`Quanto é ${q.a} ${q.op==='+'?'mais':'menos'} ${q.b}?`,opts:optNums(q.ans,[q.ans+1,q.ans-1,q.ans+2,q.ans-2,q.ans+10,q.ans-10,alt],0,999,5)}}
+function buyQuiz(t){const tab=shopTab,Q=buyQ(t);
+  openSheet(`<div class="quiz"><div class="h2">Antes de comprar...</div><p>${Q.html}</p><p class="small">Só vale <b>uma</b> resposta: se errar, só depois de outro joguinho. Pense com calma!</p>
+    <div class="btns">${Q.opts.map(v=>`<button class="btn big" data-v="${v}">${v}</button>`).join('')}</div><div class="btns"><button class="btn" id="q-back">Voltar</button><button class="btn icon" id="q-spk" aria-label="Ouvir">🗣️</button></div></div>`);
+  $('#q-back').onclick=()=>{sfx.tap();renderShop()};$('#q-spk').onclick=()=>speak(Q.say,null,true);speak(Q.say);
+  $$('.quiz .btn.big').forEach(b=>b.onclick=()=>{if(!S.edit||owns(tab,t.k)||S.coins<t.p)return renderShop();buySum=null;
+    if(+b.dataset.v===Q.ans){S.coins-=t.p;S.owned.push(tab+':'+t.k);if(tab!=='power'){S.look[slotOf(tab)]=t.k;buildPlayer()}S.edit=false;save();hud();sfx.coin();confetti(20);renderShop();playAnim('cheer');toast(`Comprou: <b>${t.n}</b>! ${Q.eq} ✓`,4000,true);return}
+    /* a wrong answer: nothing is bought, and the pass is spent - the next try comes after another round (by then the coins, and so the change, are different) */
+    S.edit=false;save();sfx.bad();playAnim('sad');
+    $('#sheet').innerHTML=`<div class="quiz"><div class="h2">Não foi dessa vez</div><p>A conta era <b>${Q.eq}</b>.</p><p class="small">A compra não foi liberada. Jogue um joguinho para <b>tentar de novo</b>.</p><div class="btns"><button class="btn go" id="q-x">Entendi</button></div></div>`;
+    $('#q-x').onclick=()=>{sfx.tap();renderShop()}})}
 
 /* ================= MENU / PARENTS / TUTORIAL ================= */
 function openMenu(){
@@ -1922,7 +1959,7 @@ function openTut(){openSheet(`<div class="pad"><div class="h2">Bem-vindo à Cida
     <span class="i">🌀</span><span>Entre nos <b>portais</b> para ir aos mundos. Lá, fale com o personagem do <b>!</b> e escolha o jogo.</span>
     <span class="i">🎮</span><span>Tem obby, tiro ao balão, chão de lava, <b>kart</b>, construção, ajudar amigos e muito mais! No <b>Mestre Mandou</b> tem pega-pega, esconde-esconde e ordens de até 3 passos.</span>
     <span class="i">🔨⚽</span><span>Em muitas perguntas aparece um <b>botão amarelo de ação</b>: pintar, quebrar a caixa com o martelo, chutar a bola no gol, arremessar na cesta.</span>
-    <span class="i">🪙</span><span>Ganhe moedas acertando. Na <b>Loja</b>, faça a conta do troco para comprar.</span>
+    <span class="i">🪙</span><span>Ganhe moedas acertando de primeira. Cada joguinho libera <b>uma</b> troca na <b>Loja</b>, e para comprar é preciso acertar uma conta.</span>
     <span class="i">🏆</span><span>Cada rodada vale uma medalha: <b>🥇 ouro</b> com tudo certo de primeira, <b>🥈 prata</b> com a metade ou mais, <b>🥉 bronze</b> por terminar. Ouro no <b>nível 3</b> vale a <b>TAÇA 🏆</b>.</span>
     <span class="i">🎸🗣️</span><span>No topo da tela: <b>🎸</b> liga ou desliga a música, e <b>🗣️</b> liga ou desliga a voz que lê as perguntas.</span>
     <span class="i">▴</span><span>Nos jogos, toque na <b>instrução</b> (ou no <b>▴</b>) para encolher o painel e ver o cenário inteiro. Toque de novo para abrir.</span>
@@ -1983,7 +2020,7 @@ function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math
   if(autoQual&&QUAL>0&&!document.hidden){if(raw>1){qN=0;qT=0}else{qT+=raw;qN++;if(qT>=2.5){if(T>3&&qN/qT<27)setQuality(QUAL-1);qN=0;qT=0}}}
   updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();breakCheck(dt);renderer.render(scene,camera)}
 function boot(){if(S.lite)setQuality(0);resize();buildPlayer();hud();STATIONS.forEach(updateSign);updateHall();camera.position.set(P.x,P.y+5,P.z+10);requestAnimationFrame(tick);if(!S.tut)openTut()}
-window.__ilhaDebug={SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
+window.__ilhaDebug={CAT,buyQ,SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
   aim:()=>CH&&CH.type==='shoot'?aimBalloon():null,set pitch(v){pitch=v},step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateCam(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
 const fontsReady=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('400 20px Andika')]):Promise.resolve();
 Promise.race([fontsReady,new Promise(r=>setTimeout(r,1800))]).then(()=>{OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));boot()}).catch(boot);
