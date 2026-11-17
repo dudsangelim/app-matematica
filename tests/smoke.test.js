@@ -520,6 +520,14 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.context().close();
   });
 
+  await test('folded mission panel stays inside a narrow phone screen in a timed game', async () => {
+    const p = await open(360, 740); await enter(p, 'vocab'); await start(p, 'vocab', 1, 1); await p.waitForTimeout(150);
+    await p.evaluate(() => { const D = __ilhaDebug; D.CH.phase = 'play'; D.CH.time = 12; }); await p.waitForTimeout(1200); await p.click('#m-min');
+    const r = await p.evaluate(() => { const box = s => document.querySelector(s).getBoundingClientRect(), m = box('#mission'), q = box('#m-quit'), hit = document.elementFromPoint(q.x + q.width / 2, q.y + q.height / 2); return { left: m.left >= 0, right: m.right <= innerWidth, quitInside: q.right <= innerWidth && q.left >= 0, quitReachable: hit && hit.id === 'm-quit', clock: box('#m-text small.live').width > 0 }; });
+    eq(r, { left: true, right: true, quitInside: true, quitReachable: true, clock: true }, 'folded panel at 360 px wide');
+    await p.context().close();
+  });
+
   await test('no script errors during the whole run', async () => { eq(errors, [], 'errors'); });
 
   await browser.close(); server.close();
