@@ -86,12 +86,19 @@ input{user-select:text;-webkit-user-select:text}
 #b-jump,#b-fire{width:86px;height:86px;border-radius:50%;background:rgba(255,255,255,.9);border:4px solid var(--ink);font-size:38px;font-weight:700;box-shadow:0 5px 0 var(--ink);padding:0;touch-action:none}
 #b-fire{background:#FF6B5E}
 /* crosshair of the balloon game: what is under it gets hit */
-#xh{position:fixed;z-index:3;left:50%;top:37.5%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;border:4px solid #fff;box-shadow:0 0 0 3px var(--ink),inset 0 0 0 3px var(--ink);pointer-events:none;opacity:.75}
-#xh::before,#xh::after{content:"";position:absolute;background:#fff;box-shadow:0 0 0 2px var(--ink)}
-#xh::before{left:50%;top:-12px;bottom:-12px;width:4px;margin-left:-2px}
-#xh::after{top:50%;left:-12px;right:-12px;height:4px;margin-top:-2px}
-#xh.on{border-color:var(--gold);opacity:1}
-#xh.on::before,#xh.on::after{background:var(--gold)}
+/* the scope of the balloon game: dark outside the glass, a cross in the middle, gold when a balloon is under it */
+#scope{position:fixed;inset:0;z-index:3;pointer-events:none;--r:min(37vh,38vw);background:radial-gradient(circle var(--r) at 50% 57%,transparent 0,transparent 97%,rgba(6,10,20,.93) 100%)}
+#scope i{position:absolute;left:50%;top:57%;width:calc(var(--r)*2);height:calc(var(--r)*2);margin:calc(var(--r)*-1) 0 0 calc(var(--r)*-1);border-radius:50%;box-sizing:border-box;border:6px solid var(--ink);box-shadow:inset 0 0 0 3px rgba(255,255,255,.5),inset 0 0 70px rgba(6,10,20,.5)}
+#scope i::before,#scope i::after{content:"";position:absolute;background:rgba(20,26,40,.8)}
+#scope i::before{left:50%;top:0;bottom:0;width:3px;margin-left:-1.5px}
+#scope i::after{top:50%;left:0;right:0;height:3px;margin-top:-1.5px}
+#scope b{position:absolute;left:50%;top:57%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;border:3px solid #E53935;box-sizing:border-box}
+#scope.on i{border-color:var(--gold)}
+#scope.on b{border-color:var(--gold);background:rgba(255,200,61,.55)}
+#scope.miss i{animation:scopemiss .5s}
+@keyframes scopemiss{0%,100%{box-shadow:inset 0 0 0 3px rgba(255,255,255,.5),inset 0 0 70px rgba(6,10,20,.5)}30%{box-shadow:inset 0 0 0 3px rgba(255,255,255,.5),inset 0 0 90px rgba(229,57,53,.85)}}
+body.fp #b-jump,body.fp .rot,body.fp #where{display:none}
+body.fp #toast{pointer-events:none;font-size:17px;padding:8px 14px}
 #b-jump:active,#b-fire:active,#b-act:active,#b-sure:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
 #b-sure{padding:13px 18px;border-radius:16px;background:var(--gold);border:4px solid var(--ink);font-weight:700;font-size:20px;box-shadow:0 5px 0 var(--ink)}
 #b-act{padding:13px 18px;border-radius:16px;background:var(--go);color:#fff;border:4px solid var(--ink);font-weight:700;font-size:20px;box-shadow:0 5px 0 var(--ink);animation:pulse 1.2s infinite;max-width:60vw}
@@ -222,7 +229,7 @@ select{font-size:17px;padding:8px;border:3px solid var(--ink);border-radius:10px
     <button id="b-jump" aria-label="Pular">⬆</button>
   </div>
 </div>
-<div id="xh" hidden></div>
+<div id="scope" hidden><i></i><b></b></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 <div id="fade"></div>
 <div id="ov" hidden><div class="sheet" id="sheet"></div></div>
@@ -431,7 +438,10 @@ const plain=html=>{const d=document.createElement('div');d.innerHTML=html;return
 
 /* ================= HUD helpers ================= */
 let toastT;
-function toast(msg,ms,say){const t=$('#toast');t.innerHTML=msg;t.classList.toggle('up',!$('#ov').hidden);t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms||3200);if(say)speak(plain(msg))}
+function toast(msg,ms,say){const t=$('#toast');t.innerHTML=msg;t.classList.toggle('up',!$('#ov').hidden);
+  /* through the scope the message goes right under the question, away from the cross */
+  if(document.body.classList.contains('fp')&&$('#ov').hidden){t.style.top=Math.round($('#mission').getBoundingClientRect().bottom+8)+'px';t.style.bottom='auto'}else t.style.top=t.style.bottom='';
+  t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms||3200);if(say)speak(plain(msg))}
 /* Medal tiers kept per station: 1 bronze, 2 silver, 3 gold medal, 4 gold cup (gold medal earned at level 3). */
 const MEDAL=['','🥉','🥈','🥇','🏆'];
 const trophyCount=()=>Object.values(S.trophies).filter(v=>v===4).length+(S.champ?1:0);
@@ -1342,20 +1352,20 @@ const endP=e=>{if(e.pointerId===joyId)releaseJoy();if(e.pointerId===camId)camId=
 touch.addEventListener('pointermove',e=>{
   if(e.pointerType==='mouse'&&e.buttons===0)return endP(e);
   if(e.pointerId===joyId){let dx=e.clientX-joyO.x,dy=e.clientY-joyO.y;const d=Math.hypot(dx,dy),m=55;if(d>m){dx*=m/d;dy*=m/d}knob.style.transform=`translate(${dx}px,${dy}px)`;input.jx=dx/m;input.jy=dy/m}
-  else if(e.pointerId===camId){yaw-=(e.clientX-camLast.x)*.01;pitch=clamp(pitch+(e.clientY-camLast.y)*.006,.05,1.15);camLast={x:e.clientX,y:e.clientY}}});
+  else if(e.pointerId===camId){const dx=e.clientX-camLast.x,dy=e.clientY-camLast.y;if(CH&&CH.fp)scopeDrag(dx,dy);else{yaw-=dx*.01;pitch=clamp(pitch+dy*.006,.05,1.15)}camLast={x:e.clientX,y:e.clientY}}});
 ['pointerup','pointercancel'].forEach(t=>addEventListener(t,endP,true));
 touch.addEventListener('lostpointercapture',endP);
 ['touchend','touchcancel'].forEach(t=>addEventListener(t,e=>{if(e.touches&&!e.touches.length){if(joyId!==null&&joyType==='touch')releaseJoy();if(camType==='touch')camId=null}},{capture:true,passive:true}));
 ['blur','pagehide'].forEach(t=>addEventListener(t,resetInput));
 document.addEventListener('visibilitychange',()=>{if(document.hidden)resetInput()});
 addEventListener('contextmenu',e=>{if(!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))e.preventDefault()});
-touch.addEventListener('wheel',e=>{yaw-=e.deltaX*.004;pitch=clamp(pitch+e.deltaY*.002,.05,1.15)},{passive:true});
+touch.addEventListener('wheel',e=>{if(CH&&CH.fp)return scopeDrag(e.deltaX*.4,e.deltaY*.4);yaw-=e.deltaX*.004;pitch=clamp(pitch+e.deltaY*.002,.05,1.15)},{passive:true});
 $('#b-jump').addEventListener('pointerdown',e=>{e.preventDefault();input.jump=true});
 $('#b-fire').addEventListener('pointerdown',e=>{e.preventDefault();fire()});
 [['#b-rl',1],['#b-rr',-1]].forEach(([id,d])=>{const b=$(id);
   b.addEventListener('pointerdown',e=>{e.preventDefault();camRot=d;b.classList.add('on');try{b.setPointerCapture(e.pointerId)}catch(_){}});
   const up=()=>{camRot=0;b.classList.remove('on')};b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up)});
-addEventListener('keydown',e=>{if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)||e.metaKey||e.ctrlKey||e.altKey)return;const k=e.key.toLowerCase();keys[k]=true;if(e.key===' '){input.jump=true;e.preventDefault()}if(k==='e'&&!paused){if(sureFn)sure();else if(near)act()}if(k==='f')fire();if(k==='c')celebrate();if(k==='m'&&!paused&&!mis.hidden)toggleMission()});
+addEventListener('keydown',e=>{if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)||e.metaKey||e.ctrlKey||e.altKey)return;const k=e.key.toLowerCase();keys[k]=true;if(e.key===' '){if(CH&&CH.fp)fire();else input.jump=true;e.preventDefault()}if(k==='e'&&!paused){if(sureFn)sure();else if(near)act()}if(k==='f')fire();if(k==='c')celebrate();if(k==='m'&&!paused&&!mis.hidden)toggleMission()});
 /* a key let go while Ctrl, Alt or Cmd is down may never report it: releasing a modifier clears every held key */
 addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(/^(meta|control|alt|os)$/.test(k)){for(const x in keys)keys[x]=false}else keys[k]=false});
 
@@ -1371,6 +1381,7 @@ function updatePlayer(dt){
   let jx=input.jx,jy=input.jy;
   if(keys['a']||keys['arrowleft'])jx=-1;if(keys['d']||keys['arrowright'])jx=1;if(keys['w']||keys['arrowup'])jy=-1;if(keys['s']||keys['arrowdown'])jy=1;
   if(paused||(ANIM&&ANIM.lock)){jx=jy=0;input.jump=false}
+  if(CH&&CH.fp){input.jump=false;scopeAim(dt,jx,jy);return}
   if(CH&&CH.type==='kart'){input.jump=false;kartDrive(dt,jx,jy);return}
   const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
   let mx=fx*(-jy)+rx*jx,mz=fz*(-jy)+rz*jx,m=Math.hypot(mx,mz);if(m>1){mx/=m;mz/=m;m=1}
@@ -1402,7 +1413,10 @@ function updatePet(dt){if(!PET)return;const bx=P.x-Math.sin(rotY)*1.6+Math.cos(r
 const tmpV=new THREE.Vector3(),tmpC=new THREE.Vector3();
 /* camLook is the height the camera aims at: raised when a question has a board, so the board shows below the mission panel */
 let camLook=1.7;
-function updateCam(dt){let ty=yaw,dist=10,py=pitch,ly=camLook;if(camMode==='front'){ty=rotY;dist=6.5;py=.12;ly=.2}else if(camMode==='cele'){ty=rotY;dist=8.5;py=.12;ly=1.9}
+function updateCam(dt){
+  /* through the scope: the camera is the player's eye, turned by the aim (with a small kick up after a shot) */
+  if(CH&&CH.fp){const a=CH.a0+CH.ax,e=CH.ay+CH.kick*.12,c=Math.cos(e),y=P.y+SCOPE.eye;camera.position.set(P.x,y,P.z);camera.lookAt(P.x+Math.sin(a)*c*10,y+Math.sin(e)*10,P.z+Math.cos(a)*c*10);return}
+  let ty=yaw,dist=10,py=pitch,ly=camLook;if(camMode==='front'){ty=rotY;dist=6.5;py=.12;ly=.2}else if(camMode==='cele'){ty=rotY;dist=8.5;py=.12;ly=1.9}
   tmpC.set(P.x+Math.sin(ty)*Math.cos(py)*dist,Math.max(P.y,-1)+1.8+Math.sin(py)*dist,P.z+Math.cos(ty)*Math.cos(py)*dist);
   /* under the roof of the trophy hall the camera stays below the ceiling instead of sitting inside it */
   if(!WORLD&&camMode==='follow'&&Math.hypot(tmpC.x-HALL.c.x,tmpC.z-HALL.c.z)<9.6)tmpC.y=Math.min(tmpC.y,4.3);
@@ -1502,12 +1516,12 @@ function quit3D(silent){if(!CH)return;
   if(CH.type==='order')CH.cubes.forEach(c=>drop(c.m));
   if(CH.type==='obby')resetObby();
   if(CH.type==='kart')leaveKart();
-  clearArena();checkpoint=null;$('#b-fire').hidden=true;$('#xh').hidden=true;hideSure();camLook=1.7;
+  clearArena();checkpoint=null;leaveScope();hideSure();camLook=1.7;
   CH=null;mis.hidden=true;if(!silent)toast('Desafio encerrado. Fale com o personagem para jogar de novo!')}
 /* The result sheet opens a moment after the round ends. If the player starts something else first, the round is still scored (quietly). */
 let pendFin=null;
 function flushFin(){if(!pendFin)return;const p=pendFin;clearTimeout(p.t);p.fn(true)}
-function done3D(lost){const c=CH;clearArena();CH=null;mis.hidden=true;checkpoint=null;$('#b-fire').hidden=true;$('#xh').hidden=true;hideSure();camLook=1.7;
+function done3D(lost){const c=CH;clearArena();CH=null;mis.hidden=true;checkpoint=null;leaveScope();hideSure();camLook=1.7;
   const fn=silent=>{pendFin=null;finishChallenge(c.st,c.first,c.n,c.coins,c.level,c.mode,lost,silent===true)};
   if(lost)playAnim('sad');else{playAnim('win');toast(`<b>Fim da rodada!</b> 🎉`,2400)}
   pendFin={fn,t:setTimeout(fn,(lost?1900:ANIM&&ANIM.type==='cele'?ANIM.dur*1000+200:2700)*TS)}}
@@ -1679,33 +1693,48 @@ function updateThrow(dt){const sh=CH.shot;
     const w=L2W(CH.st,t.hx,t.B);CH.shot={m,t:0,dur:.8,fx:P.x,fy:P.y+2.6,fz:P.z,tx:w.x,tz:w.z,tgt:t};sfx.jump()})}
 
 /* ---- 🎯 SHOOTER ---- */
-function startShoot(st,gen){CH={type:'shoot',st,gen,n:5,idx:0,first:0,coins:0};$('#b-fire').hidden=false;$('#xh').hidden=false;loadShootQ()}
-function loadShootQ(){clearArena();beginArena(CH.st);giveTool('blaster');const q=CH.gen(stat(CH.st.id).level);Object.assign(CH,{q,skill:lastSkill,tries:0,locked:false,left:q.items.filter(i=>i.ok).length,balloons:[],shots:[],cool:0});
-  const cols=['#E8413A','#2E8BF0','#2DB34A','#8B4CF0','#FF8A1F','#FF5FA2'],spots=[];
-  q.items.forEach(it=>{let A,B,g=0;do{A=4+Math.random()*10;B=-9+Math.random()*18;g++}while(g<200&&spots.some(s=>Math.hypot(s[0]-A,s[1]-B)<3.2));spots.push([A,B]);
-    const sp=sprite(texOf(pBalloon(pick(cols),it)),2.7,2.7),p=L2W(CH.st,A,B),h=2.8+Math.random()*3;sp.position.set(p.x,h,p.z);scene.add(sp);CHX.sprites.push(sp);CH.balloons.push({sp,it,x:p.x,z:p.z,h,ph:Math.random()*6,alive:true,pop:0})});
+/* The balloon game is played through a scope. The player stands still: the stick (or a drag on the screen, or the arrow keys) moves the aim
+   and the red button fires. CH.ax and CH.ay are the angles of the aim, to the side and up, measured from the way the player faces (CH.a0).
+   sy is where the centre of the scope sits on the screen (a little below the middle, to leave room for the question at the top). */
+const SCOPE={fov:40,eye:2.5,sy:.57,maxX:1.2,minY:-.1,maxY:.8};
+/* the glass of the scope always shows the same angle: on a tall screen, where the glass is small next to the height, the view is widened to keep it so */
+function scopeFov(){const r=Math.min(.37*innerHeight,.38*innerWidth);camera.fov=Math.min(78,2*Math.atan(Math.tan(SCOPE.fov*Math.PI/360)*.37*innerHeight/r)*180/Math.PI);camera.updateProjectionMatrix()}
+function enterScope(){document.body.classList.add('fp');$('#b-fire').hidden=false;$('#scope').hidden=false;scopeFov()}
+function leaveScope(){document.body.classList.remove('fp');$('#b-fire').hidden=true;const sc=$('#scope');sc.hidden=true;sc.classList.remove('on','miss');if(camera.fov!==60){camera.fov=60;camera.updateProjectionMatrix()}if(PL)PL.g.visible=true;if(PET)PET.visible=true}
+/* called every frame in place of walking: the stick and the keys turn the aim, slower while a balloon is under the cross so it is easy to stop on it */
+function scopeAim(dt,jx,jy){const rot=camRot||(keys['q']?1:keys['r']?-1:0),k=$('#scope').classList.contains('on')?.45:1;
+  CH.ax=clamp(CH.ax+(rot-jx)*1.15*k*dt,-SCOPE.maxX,SCOPE.maxX);CH.ay=clamp(CH.ay-jy*.85*k*dt,SCOPE.minY,SCOPE.maxY);
+  PL.g.visible=false;if(PET)PET.visible=false;PL.g.position.copy(P)}
+function scopeDrag(dx,dy){CH.ax=clamp(CH.ax-dx*.003,-SCOPE.maxX,SCOPE.maxX);CH.ay=clamp(CH.ay-dy*.003,SCOPE.minY,SCOPE.maxY)}
+function startShoot(st,gen){CH={type:'shoot',fp:true,st,gen,n:5,idx:0,first:0,coins:0,ax:0,ay:.22,a0:0,kick:0};enterScope();loadShootQ()}
+function loadShootQ(){clearArena();beginArena(CH.st);giveTool('blaster');const q=CH.gen(stat(CH.st.id).level);Object.assign(CH,{q,skill:lastSkill,tries:0,locked:false,left:q.items.filter(i=>i.ok).length,balloons:[],shots:[],cool:0,ax:0,ay:.22});
+  const w=L2W(CH.st,-2,0),f=L2W(CH.st,9,0);teleport(w.x,w.z,f.x,f.z);pitch=.3;CH.a0=rotY;
+  /* the balloons hang in an arc in front of the player, in two rows, so that every one can be reached by turning the scope */
+  const cols=['#E8413A','#2E8BF0','#2DB34A','#8B4CF0','#FF8A1F','#FF5FA2'],n=q.items.length,place=shuffle(q.items.map((_,i)=>i));
+  q.items.forEach((it,i)=>{const k=place[i],th=n>1?-.85+1.7*k/(n-1):0,d=10.5+Math.random()*2.5,h=(k%2?6:3.1)+Math.random()*.8,x=P.x+Math.sin(CH.a0+th)*d,z=P.z+Math.cos(CH.a0+th)*d;
+    const sp=sprite(texOf(pBalloon(pick(cols),it)),2.7,2.7);sp.material.depthTest=false;sp.renderOrder=5;sp.position.set(x,h,z);scene.add(sp);CHX.sprites.push(sp);CH.balloons.push({sp,it,x,z,h,ph:Math.random()*6,alive:true,pop:0})});
   CH.ret=sprite(texOf(g=>{g.lineWidth=16;g.strokeStyle='#FFC83D';g.beginPath();g.arc(128,128,104,0,7);g.stroke();g.lineWidth=7;g.strokeStyle=INK;g.beginPath();g.arc(128,128,114,0,7);g.stroke();g.beginPath();g.arc(128,128,94,0,7);g.stroke()}),3.5,3.5);
   CH.ret.material.depthTest=false;CH.ret.renderOrder=6;CH.ret.visible=false;scene.add(CH.ret);CHX.sprites.push(CH.ret);
-  const w=L2W(CH.st,-2,0),f=L2W(CH.st,9,0);teleport(w.x,w.z,f.x,f.z);pitch=.3;camLook=3.2;shootMission();sayQ(q.text,CH.idx===0?'Arraste a tela para colocar a mira em cima do balão e toque no botão vermelho para atirar.':'')}
-/* the balloon under the crosshair (the crosshair sits at 37.5% of the screen height) */
-function aimBalloon(){camera.updateMatrixWorld();camera.matrixWorldInverse.copy(camera.matrixWorld).invert();let best=null,bd=.27;
-  for(const b of CH.balloons){if(!b.alive)continue;tmpV.copy(b.sp.position).project(camera);if(tmpV.z>1)continue;const d=Math.hypot(tmpV.x,(tmpV.y-.25)*.5);if(d<bd){bd=d;best=b}}return best}
-function shootMission(){setMission(`<span class="vt">🎯 ATIRAR</span>${CH.idx+1}/${CH.n} · ${CH.q.text}<small>Faltam ${CH.left}. Arraste a tela (ou ⟲ ⟳) para pôr a mira no balão e toque em 🎯.</small>`)}
-function fire(){if(!CH||CH.type!=='shoot'||paused||CH.cool>0||CH.locked)return;CH.cool=.35;
-  const dx=-Math.sin(yaw),dz=-Math.cos(yaw),best=aimBalloon();
-  if(best)rotY=Math.atan2(best.x-P.x,best.z-P.z);else rotY=Math.atan2(dx,dz);
-  const m=mesh(new THREE.SphereGeometry(.22,10,8),'#FFE45C',P.x+Math.sin(rotY)*.9,P.y+1.9,P.z+Math.cos(rotY)*.9,false);scene.add(m);
-  CH.shots.push({m,t:best,life:1.4,dx:Math.sin(rotY),dz:Math.cos(rotY)});sfx.shot()}
-function updateShoot(dt){CH.cool-=dt;const aim=CH.locked?null:aimBalloon();CH.ret.visible=!!aim;if(aim)CH.ret.position.copy(aim.sp.position);$('#xh').classList.toggle('on',!!aim);
-  CH.balloons.forEach(b=>{if(b.alive){b.ph+=dt;b.sp.position.set(b.x+Math.sin(b.ph*.7)*.6,b.h+Math.sin(b.ph*1.3)*.35,b.z+Math.cos(b.ph*.5)*.6)}
+  shootMission();sayQ(q.text,CH.idx===0?'Mova a mira com o direcional até o balão certo e toque no botão vermelho para atirar.':'')}
+/* the balloon under the cross of the scope: the nearest one whose picture the cross is on */
+function aimBalloon(){camera.updateMatrixWorld();camera.matrixWorldInverse.copy(camera.matrixWorld).invert();const y0=1-2*SCOPE.sy,tf=Math.tan(camera.fov*Math.PI/360);let best=null,bd=1e9;
+  for(const b of CH.balloons){if(!b.alive)continue;const d=camera.position.distanceTo(b.sp.position);tmpV.copy(b.sp.position).project(camera);if(tmpV.z>1)continue;
+    const e=Math.hypot(tmpV.x*camera.aspect,tmpV.y-y0);if(e<1.25/(d*tf)&&e<bd){bd=e;best=b}}return best}
+function shootMission(){setMission(`<span class="vt">🎯 ATIRAR</span>${CH.idx+1}/${CH.n} · ${CH.q.text}<small>Faltam ${CH.left}. Mova a mira com o direcional (ou arrastando a tela) e toque em 🎯.</small>`)}
+function fire(){if(!CH||CH.type!=='shoot'||paused||CH.cool>0||CH.locked)return;CH.cool=.35;CH.kick=.14;const best=aimBalloon(),c=camera.position;camera.getWorldDirection(tmpV);
+  const m=mesh(new THREE.SphereGeometry(.16,10,8),'#FFE45C',c.x+tmpV.x*1.2,c.y+tmpV.y*1.2-.45,c.z+tmpV.z*1.2,false);scene.add(m);
+  CH.shots.push({m,t:best,life:1.2,dx:tmpV.x,dy:tmpV.y,dz:tmpV.z});sfx.shot()}
+function updateShoot(dt){CH.cool-=dt;if(CH.kick>0)CH.kick=Math.max(0,CH.kick-dt);const aim=CH.locked?null:aimBalloon();CH.ret.visible=!!aim;if(aim)CH.ret.position.copy(aim.sp.position);$('#scope').classList.toggle('on',!!aim);
+  CH.balloons.forEach(b=>{if(b.alive){b.ph+=dt;b.sp.position.set(b.x+Math.sin(b.ph*.7)*.4,b.h+Math.sin(b.ph*1.3)*.25,b.z+Math.cos(b.ph*.5)*.4)}
     else if(b.pop<1){b.pop+=dt*4;const s=2.7*(1+b.pop*.8);b.sp.scale.set(s,s,1);b.sp.material.transparent=true;b.sp.material.opacity=Math.max(0,1-b.pop);if(b.pop>=1)b.sp.visible=false}});
   CH.shots=CH.shots.filter(s=>{s.life-=dt;
-    if(s.t&&s.t.alive){const tp=s.t.sp.position,v=tmpV.set(tp.x-s.m.position.x,tp.y-s.m.position.y,tp.z-s.m.position.z),d=v.length();if(d<.7){drop(s.m);hitBalloon(s.t);return false}v.multiplyScalar(Math.min(d,30*dt)/d);s.m.position.add(v)}
-    else{s.m.position.x+=s.dx*30*dt;s.m.position.z+=s.dz*30*dt}
+    if(s.t&&s.t.alive){const tp=s.t.sp.position,v=tmpV.set(tp.x-s.m.position.x,tp.y-s.m.position.y,tp.z-s.m.position.z),d=v.length();if(d<.7){drop(s.m);hitBalloon(s.t);return false}v.multiplyScalar(Math.min(d,60*dt)/d);s.m.position.add(v)}
+    else{s.m.position.x+=s.dx*60*dt;s.m.position.y+=s.dy*60*dt;s.m.position.z+=s.dz*60*dt}
     if(s.life<=0){drop(s.m);return false}return true})}
 function hitBalloon(b){if(!b.alive||CH.locked)return;b.alive=false;sfx.pop();
   if(b.it.ok){CH.left--;if(CH.left<=0)okRound(null,CH.q.explain,null,nextShoot);else{toast(`💥 Isso! Faltam ${CH.left}.`,1600);shootMission()}}
-  else{CH.tries++;toast(b.it.label?`Ops! ${b.it.label} não dá ${CH.q.T}.`:`Ops! Esse era ${['esfera','pirâmide'].includes(b.it.name)?'uma':'um'} ${b.it.name.toUpperCase()}.`,4200,true);sfx.bad();playAnim('sad')}}
+  else{CH.tries++;toast(b.it.label?`Ops! ${b.it.label} não dá ${CH.q.T}.`:`Ops! Esse era ${['esfera','pirâmide'].includes(b.it.name)?'uma':'um'} ${b.it.name.toUpperCase()}.`,4200,true);sfx.bad();sfx.sad();
+    const sc=$('#scope');sc.classList.remove('miss');void sc.offsetWidth;sc.classList.add('miss')}}
 function nextShoot(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadShootQ()}
 
 /* ---- 🌋 FLOOR IS LAVA ---- */
@@ -2104,7 +2133,7 @@ function openTut(){openSheet(`<div class="pad"><div class="h2">Bem-vindo à Cida
     <span class="i">🕹️</span><span>Arraste no lado <b>esquerdo</b> da tela para andar. Botão <b>⬆</b> pula.</span>
     <span class="i">⟲⟳</span><span>Segure <b>⟲ ⟳</b> ou arraste no lado <b>direito</b> para girar a câmera.</span>
     <span class="i">🌀</span><span>Entre nos <b>portais</b> para ir aos mundos. Lá, fale com o personagem do <b>!</b> e escolha o jogo.</span>
-    <span class="i">🎮</span><span>Tem obby, tiro ao balão, chão de lava, <b>kart</b>, construção, ajudar amigos e muito mais! No <b>Mestre Mandou</b> tem pega-pega, esconde-esconde e ordens de até 3 passos.</span>
+    <span class="i">🎮</span><span>Tem obby, tiro ao balão pela <b>luneta</b>, chão de lava, <b>kart</b>, construção, ajudar amigos e muito mais! No <b>Mestre Mandou</b> tem pega-pega, esconde-esconde e ordens de até 3 passos.</span>
     <span class="i">🔨⚽</span><span>Em muitas perguntas aparece um <b>botão amarelo de ação</b>: pintar, quebrar a caixa com o martelo, chutar a bola no gol, arremessar na cesta.</span>
     <span class="i">🪙</span><span>Ganhe moedas acertando de primeira. Cada joguinho libera <b>uma</b> troca na <b>Loja</b>, e para comprar é preciso acertar uma conta.</span>
     <span class="i">🎉</span><span>Cada <b>medalha nova</b> libera uma <b>comemoração</b> de gol. Para escolher, toque no botão <b>🎉</b> (ou na aba Comemorações da Loja).</span>
@@ -2162,7 +2191,7 @@ $('#b-cele').onclick=()=>{if(paused)return;sfx.tap();openCeles()};
 $('#b-voice').onclick=()=>{S.voice=!S.voice;save();hud();if(!S.voice)try{speechSynthesis.cancel()}catch(e){}toast(S.voice?'A voz vai ler as perguntas 🗣️':'Voz desligada',1800,S.voice)};
 
 /* ================= LOOP ================= */
-function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();layoutTop()}
+function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();if(CH&&CH.fp)scopeFov();layoutTop()}
 addEventListener('resize',resize);
 let last=performance.now(),qN=0,qT=0,autoQual=true;
 function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math.min(.05,raw);last=now;
@@ -2170,7 +2199,7 @@ function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math
   if(autoQual&&QUAL>0&&!document.hidden){if(raw>1){qN=0;qT=0}else{qT+=raw;qN++;if(qT>=2.5){if(T>3&&qN/qT<27)setQuality(QUAL-1);qN=0;qT=0}}}
   updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();breakCheck(dt);renderer.render(scene,camera)}
 function boot(){if(S.lite)setQuality(0);resize();buildPlayer();hud();STATIONS.forEach(updateSign);updateHall();camera.position.set(P.x,P.y+5,P.z+10);requestAnimationFrame(tick);if(!S.tut)openTut()}
-window.__ilhaDebug={CAT,buyQ,speak,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
+window.__ilhaDebug={CAT,buyQ,speak,camera,SCOPE,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
   aim:()=>CH&&CH.type==='shoot'?aimBalloon():null,set pitch(v){pitch=v},step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateCam(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
 const fontsReady=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('400 20px Andika')]):Promise.resolve();
 Promise.race([fontsReady,new Promise(r=>setTimeout(r,1800))]).then(()=>{OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));boot()}).catch(boot);
