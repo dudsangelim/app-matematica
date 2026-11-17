@@ -215,7 +215,7 @@ select{font-size:17px;padding:8px;border:3px solid var(--ink);border-radius:10px
   <button id="b-act" hidden></button>
   <button id="b-sure" hidden></button>
   <button id="b-fire" hidden aria-label="Atirar">🎯</button>
-  <button class="rot" id="b-cele" aria-label="Comemorar">🎉</button>
+  <button class="rot" id="b-cele" aria-label="Escolher a comemoração">🎉</button>
   <div class="hud-row">
     <button class="rot" id="b-rl" aria-label="Girar câmera para a esquerda">⟲</button>
     <button class="rot" id="b-rr" aria-label="Girar câmera para a direita">⟳</button>
@@ -1302,17 +1302,23 @@ function celeAnim(a,t,k){const L=PL,c=a.ce.k,s=Math.sin,ease=x=>x<=0?0:x>=1?1:x*
   else if(c==='frio'){arms(-1.05+s(t*30)*.08,.85);L.g.rotation.z=s(t*42)*.03;L.g.rotation.x=.08;L.g.position.y=P.y+Math.abs(s(t*20))*.05;L.head.rotation.z=s(t*36)*.06;legs(s(t*24)*.12,-s(t*24)*.12);
     a.attach.forEach((sp,i)=>{const u=(t*.9+i/3)%1;sp.position.set(Math.cos(i*2.1+t)*.9,3.6-u*2.2,Math.sin(i*2.1+t)*.9);sp.material.opacity=1-u})}
   else if(c==='mascara'){const h=ease(k/.15);arms(-2.3*h,.5*h);legs(0,0,-.2*h);L.g.rotation.x=.06*h;L.head.rotation.y=s(t*2)*.25*h}}
-/* the 🎉 button: the chosen celebration, any time the player is free on the ground */
+/* key C: the chosen celebration, any time the player is free on the ground (the 🎉 button opens the list to choose from) */
 function celebrate(){if(paused||!PL||(ANIM&&ANIM.lock)||!onGround)return;if(CH){toast('Termine o desafio primeiro. Depois é só comemorar! 🎉',2200);return}playAnim('cele')}
-function openCeles(){if(camMode!=='cele')camMode='front';
-  openSheet(`<div class="shop-h"><span class="h2">🎉 Comemorações</span><span class="chip" style="background:var(--ink)">${S.celes} de ${CELES.length}</span><button class="xbtn" id="s-x" aria-label="Fechar">✕</button></div>
-    <div class="pass on">Cada <b>medalha nova</b> (ou taça) libera mais uma. A escolhida aparece no fim da rodada e no botão 🎉.</div>
+/* The list of celebrations. It opens from the 🎉 button, from the Menu and as a tab of the shop. Choosing one closes the list and plays it;
+   in the middle of a challenge it is only chosen (it plays when the round ends). */
+function openCeles(fromShop){if(camMode!=='cele')camMode='front';
+  openSheet(`<div class="shop-h"><span class="h2">${fromShop?'🛍️ Loja':'🎉 Comemorações'}</span><span class="chip" style="background:var(--ink)">${fromShop?'🎉 ':''}${S.celes} de ${CELES.length}</span><button class="xbtn" id="s-x" aria-label="Fechar">✕</button></div>
+    <div class="pass on" id="c-how">Toque em uma para <b>escolher</b>. Cada <b>medalha nova</b> (ou taça) libera mais uma, e a escolhida aparece no fim de cada rodada.</div>
+    ${fromShop?`<div class="tabs">${TABS.map(([k,l])=>`<button class="tab${k==='cele'?' on':''}" data-t="${k}">${l}</button>`).join('')}</div>`:''}
     <div class="items">${[{k:'',n:'Dança da vitória',who:'A de sempre',e:'🕺'},...CELES].map((c,i)=>{const open=i<=S.celes,eq=S.cele===c.k;
-      return `<button class="item${eq?' eq':''}${open?'':' poor'}" data-k="${c.k}"><span class="pv">${open?c.e:'🔒'}</span><span>${c.n}</span><small>${c.who}</small><span class="st">${eq?'Escolhida ✓':open?'Escolher':'Bloqueada'}</span></button>`}).join('')}</div>`,'bottom');
+      return `<button class="item${eq?' eq':''}${open?'':' poor'}" data-k="${c.k}"><span class="pv">${open?c.e:'🔒'}</span><span>${c.n}</span><small>${c.who}</small><span class="st">${eq?'Escolhida ✓':open?'Escolher':'Bloqueada'}</span></button>`}).join('')}</div>`,fromShop?'bottom':'');
   $('#s-x').onclick=()=>{sfx.tap();closeSheet()};
-  $$('.item').forEach(b=>b.onclick=()=>{const k=b.dataset.k,i=CELES.findIndex(c=>c.k===k);
+  $$('.tab').forEach(b=>b.onclick=()=>{sfx.tap();shopTab=b.dataset.t;shopY=0;renderShop()});
+  $$('.item').forEach(b=>b.onclick=()=>{const k=b.dataset.k,i=CELES.findIndex(c=>c.k===k),c=CELES[i];
     if(i>=S.celes){sfx.bad();shake(b);const left=i-S.celes+1;toast(`🔒 ${left>1?'Faltam':'Falta'} <b>${left}</b> ${left>1?'medalhas novas':'medalha nova'} para liberar esta.`,3200);return}
-    S.cele=k;save();const y=$('#sheet').scrollTop;openCeles();$('#sheet').scrollTop=y;playAnim('cele')})}
+    S.cele=k;save();sfx.tap();
+    if(CH){const y=$('#sheet').scrollTop;openCeles(fromShop);$('#sheet').scrollTop=y;toast('Escolhida! Ela aparece quando a rodada terminar. 🎉',2800);return}
+    closeSheet();playAnim('cele');if(k!=='siu')toast(c?`${c.e} <b>${c.n}</b>`:'🕺 <b>Dança da vitória</b>',2000)})}
 
 /* ================= INPUT ================= */
 const input={jx:0,jy:0,jump:false};const keys={};
@@ -1469,7 +1475,7 @@ function finishChallenge(st,first,n,coins,lvl,mode,lost,silent){
     {k:'medal',t:'🥇 Medalha de Ouro',why:'Tudo certo de primeira!',next:`Faça isso no nível 3 e ganhe a TAÇA 🏆. Você jogou no nível ${lvl}.`},
     {k:'copa',t:`🏆 TAÇA DE OURO: ${st.name}`,why:'Tudo certo de primeira no nível 3, o mais difícil!',next:''}][tr.medal];
   openSheet(`<div class="result"><h2>${stars===3?'Incrível!':stars===2?'Muito bom!':stars===1?'Você conseguiu!':'Vamos treinar mais!'}</h2><div class="bigstars">${[1,2,3].map(k=>`<span class="${k<=stars?'':'off'}">⭐</span>`).join('')}</div>
-    <p>${mode?mode.n:st.name}: acertou <b>${first} de ${n}</b> de primeira.</p><p>Ganhou <b>${coins} 🪙</b>${bonus?` (com o bônus de ${bonus})`:''} e <b>${stars} ⭐</b>.</p>${msg?`<div class="pillmsg">${msg}</div>`:''}${freed?'<div class="pillmsg">✏️ Troca liberada na Loja: compre ou troque <b>uma</b> coisa!</div>':''}${newCele?`<div class="pillmsg">🎉 Comemoração nova: <b>${newCele.n}</b> (${newCele.who}). Toque no 🎉 para comemorar!</div>`:''}${owed.length?`<p class="small">Vai aparecer de novo para treinar: ${owed.join(' · ')}</p>`:''}
+    <p>${mode?mode.n:st.name}: acertou <b>${first} de ${n}</b> de primeira.</p><p>Ganhou <b>${coins} 🪙</b>${bonus?` (com o bônus de ${bonus})`:''} e <b>${stars} ⭐</b>.</p>${msg?`<div class="pillmsg">${msg}</div>`:''}${freed?'<div class="pillmsg">✏️ Troca liberada na Loja: compre ou troque <b>uma</b> coisa!</div>':''}${newCele?`<div class="pillmsg">🎉 Comemoração nova: <b>${newCele.n}</b> (${newCele.who}). Toque no 🎉 para escolher e comemorar!</div>`:''}${owed.length?`<p class="small">Vai aparecer de novo para treinar: ${owed.join(' · ')}</p>`:''}
     ${tr.champ?`<div class="award"><canvas id="aw-ch" width="320" height="320"></canvas><b>🏆 TAÇA DOS CAMPEÕES!</b><span>Você ganhou a taça de ouro em TODAS as estações! +${CHAMP_COINS} 🪙</span></div>`:''}
     ${M?`<div class="award"><canvas id="aw-cv" width="320" height="320"></canvas><b>${M.t}${tr.medal===4?'!':''}</b><span>${M.why}</span>${tr.gained?`<span>É a sua melhor medalha aqui! +${MEDAL_COINS[tr.gained]} 🪙</span>`:''}${M.next?`<small>${M.next}</small>`:''}<small>A melhor medalha de cada estação fica na Sala de Troféus.</small></div>`
       :'<p class="small">Sem medalha desta vez. Acerte pelo menos uma pergunta de primeira para ganhar o bronze 🥉.</p>'}
@@ -2031,11 +2037,11 @@ function updateWorld(dt){T+=dt;frameN++;
    One change at a time: buying or putting something on spends the pass (S.edit), and a round played with at least one star gives it back.
    The pass does not pile up. Buying also takes the right answer to a sum, in one try and among five options; a wrong answer spends the pass
    too, so guessing does not pay. Skin colour is not a prize: it is free and never needs the pass. */
-const TABS=[['hat','Chapéus'],['kit','⚽ Futebol'],['shirt','Camisas'],['pants','Calças'],['pet','Bichinhos'],['power','Poderes'],['hair','Cabelo'],['skin','Pele']];
+const TABS=[['hat','Chapéus'],['kit','⚽ Futebol'],['cele','🎉 Comemorações'],['shirt','Camisas'],['pants','Calças'],['pet','Bichinhos'],['power','Poderes'],['hair','Cabelo'],['skin','Pele']];
 let shopTab='hat',shopY=0,buySum=null;
 /* the player turns the back to the stall, so the camera in front shows the character (and what was just put on) instead of the shopkeeper's back */
 function openShop(){const k=NPCS.find(n=>n.kind==='shop');if(k&&Math.hypot(P.x-k.x,P.z-k.z)>.5){rotY=Math.atan2(P.x-k.x,P.z-k.z);PL.g.rotation.y=rotY}camMode='front';shopY=0;renderShop()}
-function renderShop(){const items=CAT[shopTab],slot=slotOf(shopTab),prev=t=>shopTab==='kit'?`<img class="jr" src="${kitURL(t)}" alt="">`:shopTab==='hair'?`<img class="jr" src="${hairURL(t)}" alt="">`:shopTab==='shirt'||shopTab==='pants'||shopTab==='skin'?`<span class="sw" style="--k:${t.c}"></span>`:t.e;
+function renderShop(){if(shopTab==='cele')return openCeles(true);const items=CAT[shopTab],slot=slotOf(shopTab),prev=t=>shopTab==='kit'?`<img class="jr" src="${kitURL(t)}" alt="">`:shopTab==='hair'?`<img class="jr" src="${hairURL(t)}" alt="">`:shopTab==='shirt'||shopTab==='pants'||shopTab==='skin'?`<span class="sw" style="--k:${t.c}"></span>`:t.e;
   const inUse=t=>owns(shopTab,t.k)&&(shopTab==='power'||S.look[slot]===t.k),free=shopTab==='skin';
   openSheet(`<div class="shop-h"><span class="h2">🛍️ Loja</span><span class="chip" style="background:var(--ink)">Você tem 🪙 ${S.coins}</span><button class="xbtn" id="s-x" aria-label="Fechar">✕</button></div>
     <div class="pass ${S.edit||free?'on':'off'}" id="s-pass">${free?'🎨 A cor da pele pode ser trocada <b>sempre</b>.':S.edit?'✏️ <b>1 troca liberada:</b> compre ou troque <b>uma</b> coisa.':'🔒 <b>Troca já usada.</b> Jogue um joguinho para liberar outra.'}</div>
@@ -2101,6 +2107,7 @@ function openTut(){openSheet(`<div class="pad"><div class="h2">Bem-vindo à Cida
     <span class="i">🎮</span><span>Tem obby, tiro ao balão, chão de lava, <b>kart</b>, construção, ajudar amigos e muito mais! No <b>Mestre Mandou</b> tem pega-pega, esconde-esconde e ordens de até 3 passos.</span>
     <span class="i">🔨⚽</span><span>Em muitas perguntas aparece um <b>botão amarelo de ação</b>: pintar, quebrar a caixa com o martelo, chutar a bola no gol, arremessar na cesta.</span>
     <span class="i">🪙</span><span>Ganhe moedas acertando de primeira. Cada joguinho libera <b>uma</b> troca na <b>Loja</b>, e para comprar é preciso acertar uma conta.</span>
+    <span class="i">🎉</span><span>Cada <b>medalha nova</b> libera uma <b>comemoração</b> de gol. Para escolher, toque no botão <b>🎉</b> (ou na aba Comemorações da Loja).</span>
     <span class="i">🏆</span><span>Cada rodada vale uma medalha: <b>🥇 ouro</b> com tudo certo de primeira, <b>🥈 prata</b> com a metade ou mais, <b>🥉 bronze</b> por terminar. Ouro no <b>nível 3</b> vale a <b>TAÇA 🏆</b>.</span>
     <span class="i">🎸🗣️</span><span>No topo da tela: <b>🎸</b> liga ou desliga a música, e <b>🗣️</b> liga ou desliga a voz que lê as perguntas.</span>
     <span class="i">▴</span><span>Nos jogos, toque na <b>instrução</b> (ou no <b>▴</b>) para encolher o painel e ver o cenário inteiro. Toque de novo para abrir.</span>
@@ -2151,7 +2158,7 @@ $('#b-menu').onclick=()=>{sfx.tap();openMenu()};
 $('#b-sound').onclick=()=>{S.sound=!S.sound;save();hud();if(ambBus)ambBus.gain.setTargetAtTime(S.sound?1:0,actx.currentTime,.3);sfx.tap();toast(S.sound?'Efeitos de som ligados 🔊':'Efeitos de som desligados',1500)};
 /* the music button goes round: rock, calm, off */
 $('#b-music').onclick=()=>{if(!S.music){S.music=true;S.musStyle='rock'}else if(S.musStyle!=='calma')S.musStyle='calma';else S.music=false;save();hud();ensureAudio();musicOn(S.music);toast(!S.music?'Música desligada':S.musStyle==='calma'?'Música calma 🎹':'Rock ligado 🎸',1600)};
-$('#b-cele').onclick=()=>{sfx.tap();celebrate()};
+$('#b-cele').onclick=()=>{if(paused)return;sfx.tap();openCeles()};
 $('#b-voice').onclick=()=>{S.voice=!S.voice;save();hud();if(!S.voice)try{speechSynthesis.cancel()}catch(e){}toast(S.voice?'A voz vai ler as perguntas 🗣️':'Voz desligada',1800,S.voice)};
 
 /* ================= LOOP ================= */
