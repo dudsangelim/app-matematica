@@ -57,6 +57,8 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
   }
   const start = (page, id, mi, level) => page.evaluate(([id, mi, level]) => { const D = __ilhaDebug, st = D.STM[id]; D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); if (level) { D.S().st[id] = D.S().st[id] || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; D.S().st[id].level = level; } D.startMode(st, st.modes[mi]); return D.CH && D.CH.type; }, [id, mi, level]);
   const STATION_IDS = ['contas', 'ordem', 'vocab', 'n10', 'formas', 'dinheiro', 'n100', 'medidas'];
+  /* how many games each station offers (three of them also have the kart) */
+  const MODES = { contas: [0, 1, 2], ordem: [0, 1, 2], vocab: [0, 1], n10: [0, 1], formas: [0, 1], dinheiro: [0, 1], n100: [0, 1, 2], medidas: [0, 1] };
 
   console.log('Ilha dos Números: smoke tests');
   const page = await open(1024, 768, { tutorial: false });
@@ -95,11 +97,12 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     assert(!bad.length, bad.join('\n'));
   });
 
-  await test('all 16 game modes start at levels 1, 2 and 3 and run for a moment', async () => {
+  await test('all 19 game modes start at levels 1, 2 and 3 and run for a moment', async () => {
+    eq(await page.evaluate(() => Object.fromEntries(Object.keys(__ilhaDebug.STM).map(id => [id, __ilhaDebug.STM[id].modes.map((m, i) => i)]))), MODES, 'games per station');
     const seen = new Set();
     for (const id of STATION_IDS) {
       await enter(page, id);
-      for (const mi of [0, 1]) for (const level of [1, 2, 3]) {
+      for (const mi of MODES[id]) for (const level of [1, 2, 3]) {
         const before = errors.length, type = await start(page, id, mi, level);
         await page.waitForTimeout(120);
         const st = await page.evaluate(() => { const D = __ilhaDebug; for (let i = 0; i < 20; i++) D.step(1 / 60); return { type: D.CH && D.CH.type, mission: !document.querySelector('#mission').hidden, text: document.querySelector('#m-text').textContent }; });
@@ -109,7 +112,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         seen.add(id + ':' + type);
       }
     }
-    eq(seen.size, 16, 'distinct station:mode pairs started');
+    eq(seen.size, 19, 'distinct station:mode pairs started');
     await page.evaluate(() => document.querySelector('#m-quit').click());
   });
 
@@ -175,7 +178,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
 
   await test('stars and coins follow first-try answers', async () => {
     const r = await page.evaluate(() => { const f = __ilhaDebug.starsFor; return [f(0, 5), f(1, 5), f(2, 5), f(3, 5), f(4, 5), f(5, 5), f(3, 4), f(4, 4), f(5, 6), f(7, 8), f(6, 8), f(3, 3, true)]; });
-    eq(r, [0, 0, 1, 2, 2, 3, 2, 3, 3, 3, 2, 1], 'stars');
+    eq(r, [0, 1, 1, 2, 2, 3, 2, 3, 2, 2, 2, 1], 'stars');
   });
 
   await test('missed skills come back more often than the others', async () => {
@@ -266,17 +269,20 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await page.evaluate(() => document.querySelector('#m-quit').click());
   });
 
-  await test('painting one tile: crossing a neighbour does not answer, standing on the right one does', async () => {
+  await test('painting: walking over tiles does nothing; the button paints, and the colour asked for is part of the answer', async () => {
     await enter(page, 'vocab');
     const r = await page.evaluate(() => {
-      const D = __ilhaDebug, st = D.STM.vocab, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }; let g = 0; D.S().st.vocab.level = 2;
+      const D = __ilhaDebug, st = D.STM.vocab, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, press = () => { document.querySelector('#b-sure').click(); run(2); }; let g = 0; D.S().st.vocab.level = 2;
       do { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[0]); } while (!(D.CH.q.verb === 'paint' && !D.CH.q.multi) && ++g < 300);
-      const C = D.CH, wrong = C.targets.find(t => t.i !== C.q.ans), right = C.targets[C.q.ans], off = D.L2W(st, -6, -6);
-      D.P.set(C.buckets[0].x, 0, C.buckets[0].z); run(6); D.P.set(wrong.x, .4, wrong.z); run(18); D.P.set(off.x, 0, off.z); run(6);
-      const crossing = [C.tries, C.locked]; D.P.set(right.x, .4, right.z); run(60);
-      return { verb: C.q.verb, crossing, locked: C.locked, tries: C.tries, first: C.first };
+      const C = D.CH, q = C.q, wrong = C.targets.find(t => t.i !== q.ans), right = C.targets[q.ans], off = D.L2W(st, -6, -6), stand = t => { D.P.set(off.x, 0, off.z); run(6); D.P.set(t.x, .4, t.z); run(14); };
+      const other = C.buckets.find(b => b.k !== q.col), good = C.buckets.find(b => b.k === q.col), named = /PINTE de <span class="pc"/.test(q.text);
+      D.P.set(other.x, 0, other.z); run(6); const offer = document.querySelector('#b-sure').textContent; press();
+      stand(wrong); run(60); const walkedOver = [C.tries, C.locked];
+      stand(right); const label = document.querySelector('#b-sure').textContent; press(); const wrongColour = [C.tries, C.locked];
+      D.P.set(good.x, 0, good.z); run(6); press(); stand(right); press();
+      return { verb: q.verb, named, offer: offer.includes(other.n), label: label.includes('Pintar'), walkedOver, wrongColour, locked: C.locked, tries: C.tries };
     });
-    eq(r, { verb: 'paint', crossing: [0, false], locked: true, tries: 0, first: 1 }, 'after crossing a wrong tile, then after standing on the right one');
+    eq(r, { verb: 'paint', named: true, offer: true, label: true, walkedOver: [0, false], wrongColour: [1, false], locked: true, tries: 1 }, 'paint flow');
     await page.evaluate(() => document.querySelector('#m-quit').click());
   });
 
@@ -346,9 +352,9 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
 
   await test('saves from the previous version still load', async () => {
     const ctx = await browser.newContext({ viewport: { width: 800, height: 600 } }); const p = await ctx.newPage(); p.on('pageerror', e => errors.push(e.message));
-    await p.addInitScript(() => { if (!localStorage.getItem('ilha-numeros-3d-v1')) localStorage.setItem('ilha-numeros-3d-v1', JSON.stringify({ name: 'Antigo', coins: 12, stars: 4, sound: true, music: true, voice: false, tut: true, look: { skin: 's1', shirt: 'azul', pants: 'jeans', hat: 'bone', pet: 'nenhum' }, owned: ['hat:bone'], st: { contas: { level: 2, rounds: 3, first: 9, total: 14, stars: 6 } }, trophies: { contas: 2 }, champ: false })); });
+    await p.addInitScript(() => { if (!localStorage.getItem('ilha-numeros-3d-v1')) localStorage.setItem('ilha-numeros-3d-v1', JSON.stringify({ name: 'Antigo', coins: 12, stars: 4, sound: true, music: true, voice: false, tut: true, look: { skin: 's1', shirt: 'azul', pants: 'jeans', hat: 'bone', pet: 'nenhum' }, owned: ['hat:bone'], st: { contas: { level: 2, rounds: 3, first: 9, total: 14, stars: 6 } }, trophies: { contas: 2, formas: 3 }, champ: false })); });
     await p.goto(base); await p.waitForFunction(() => window.__ilhaDebug);
-    eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.name, S.coins, S.st.contas.level, S.trophies.contas, typeof S.sk, document.querySelector('#ov').hidden]; }), ['Antigo', 12, 2, 2, 'object', true], 'old save');
+    eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.name, S.coins, S.st.contas.level, S.trophies.contas, S.trophies.formas, typeof S.sk, document.querySelector('#ov').hidden]; }), ['Antigo', 12, 2, 2, 4, 'object', true], 'old save (its gold cup, stored as 3, becomes 4)');
     await p.click('#b-menu'); await p.click('#mn-par');
     const [a, b] = await p.evaluate(() => document.querySelector('#gate p').textContent.match(/\d+/g).map(Number));
     await p.fill('#g-in', String(a * b)); await p.click('#gate .btn.gold'); await p.waitForSelector('#p-ex');
@@ -422,7 +428,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     const ms = +process.env.SOAK || 2500;
     for (const id of STATION_IDS) {
       await enter(page, id);
-      for (const mi of [0, 1]) {
+      for (const mi of MODES[id]) {
         const before = errors.length; await start(page, id, mi, 1 + Math.floor(Math.random() * 3));
         const until = Date.now() + ms;
         while (Date.now() < until) {
@@ -458,6 +464,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         else if (C.type === 'shapes') { const q = C.qs[C.idx], sh = D.SHAPES.find(x => x.n === q.n); go(st.spawn.x, st.spawn.z); go(sh.x + (sh.flat ? 0 : sh.r + .5), sh.z); }
         else if (C.type === 'shoot') { const b = C.balloons.find(b => b.alive && b.it.ok); if (b) { D.yaw = Math.atan2(D.P.x - b.x, D.P.z - b.z); run(24); D.fire(); for (let i = 0; i < 90 && b.alive; i++) D.step(1 / 60); } }
         else if (C.type === 'floor') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const t = C.tiles.find(t => t.ok); go(t.p.cx, t.p.cz, 1); run(20); document.querySelector('#b-sure').click(); run(3); }
+        else if (C.type === 'kart') { if (C.phase === 'ready') C.phase = 'go'; const g = C.gates[C.idx]; C.v = 8; if (g) C.lat = (C.qs[C.idx].ans - 1) * 4; D.P.x = (g ? g.x : C.endX) - .3; run(6); }
         else if (C.type === 'simon') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const k = C.q.k;
           if (k === 'cima') { const pl = D.PLATS.find(p => p.bloco); go(pl.cx, pl.cz, 1.3); run(20); }
           else { const w = { dentro: [11, 7], embaixo: [2, -6], perto: [10, -5.5], longe: [-4, 8], entre: [2, 8], fora: [11, 3] }[k], p = L(w[0], w[1]); go(p.x, p.z); }
@@ -467,8 +474,14 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         else if (C.type === 'act') { const q = C.q, off = L(-6, -6);
           if (q.verb === 'jump') { const t = C.targets[q.ans]; D.P.set(t.x, 1.4, t.z); for (let i = 0; i < 60 && !C.locked; i++) D.step(1 / 60); }
           else if (q.verb === 'circle') { const t = C.targets[q.ans]; for (let k = 0; k <= 48 && !C.locked; k++) { const a = k / 40 * 2 * Math.PI; D.P.set(t.x + Math.cos(a) * t.R, 0, t.z + Math.sin(a) * t.R); D.step(1 / 60); } }
-          else if (q.verb === 'paint') { go(C.buckets[0].x, C.buckets[0].z); for (const i of (q.multi ? q.sol : [q.ans])) { const t = C.targets.find(t => t.i === i); go(off.x, off.z); go(t.x, t.z, .4); if (!q.multi) run(50); } if (q.multi) { go(off.x, off.z); go(C.pads.pronto.x, C.pads.pronto.z); } }
-          else { q.solIdx.forEach((i, k) => { const o = C.items[i]; go(o.x, o.z); if (k % 8 === 7) go(C.basket.x - 1.9, C.basket.z); }); go(C.basket.x - 1.9, C.basket.z); go(off.x, off.z + 12); go(C.pads.pronto.x, C.pads.pronto.z); } }
+          else if (q.verb === 'paint') { const press = () => { document.querySelector('#b-sure').click(); run(2); }, take = k => { const bk = C.buckets.find(b => b.k === k); go(bk.x, bk.z); press(); };
+            const jobs = (q.multi ? q.sol : [q.ans]).map((i, n) => [i, q.cols ? q.solCol[n] : q.col]); let have = null;
+            for (const [i, k] of jobs) { if (have !== k) { take(k); have = k; } const t = C.targets.find(t => t.i === i); go(off.x, off.z); go(t.x, t.z, .4); press(); }
+            if (q.multi) { go(off.x, off.z); go(C.pads.pronto.x, C.pads.pronto.z); } }
+          else if (q.verb === 'smash') { const t = C.targets[q.ans]; go(t.x - 2, t.z); document.querySelector('#b-sure').click(); }
+          else if (q.verb === 'kick') { const t = C.targets[q.ans], b = C.ball, g = L(t.A + .6, t.B), d = Math.hypot(g.x - b.x, g.z - b.z); if (b.wait || Math.hypot(b.vx, b.vz) > .1) return false; go(b.x - (g.x - b.x) / d * 1.4, b.z - (g.z - b.z) / d * 1.4); document.querySelector('#b-sure').click(); for (let i = 0; i < 90 && !C.locked; i++) D.step(1 / 60); }
+          else if (q.verb === 'throw') { if (C.shot) { run(60); return false; } const t = C.targets[q.ans], s0 = L(-1, 0); D.P.set(s0.x, 0, s0.z); D.rotY = Math.atan2(t.x - s0.x, t.z - s0.z); run(3); D.rotY = Math.atan2(t.x - s0.x, t.z - s0.z); document.querySelector('#b-sure').click(); for (let i = 0; i < 90 && !C.locked; i++) D.step(1 / 60); }
+          else { q.solIdx.forEach((i, k) => { const o = C.items[i]; go(o.x, o.z); if (q.one || k % 8 === 7) go(C.basket.x - 1.9, C.basket.z); }); go(C.basket.x - 1.9, C.basket.z); go(off.x, off.z + 12); go(C.pads.pronto.x, C.pads.pronto.z); } }
         return false;
       });
       if (done) break;
@@ -481,7 +494,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
   await test('a round played without mistakes earns 3 stars in every game mode, at every level', async () => {
     const p = await open(1024, 768); const bad = [];
     await p.evaluate(() => { __ilhaDebug.autoQual = false; __ilhaDebug.setQuality(0); });
-    for (const id of STATION_IDS) for (const mi of [0, 1]) {
+    for (const id of STATION_IDS) for (const mi of MODES[id]) {
       const isAct = await p.evaluate(([id, mi]) => __ilhaDebug.STM[id].modes[mi].k === 'act', [id, mi]);
       for (const level of [1, 2, 3]) for (let rep = 0; rep < (isAct ? 3 : 1); rep++) {
         const r = await perfectRound(p, id, mi, level);
@@ -490,17 +503,17 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     }
     assert(!bad.length, bad.join('\n'));
     const t = await p.evaluate(() => __ilhaDebug.S().trophies);
-    eq(STATION_IDS.map(id => t[id]), STATION_IDS.map(() => 3), 'gold cup in every station after perfect level-3 rounds');
+    eq(STATION_IDS.map(id => t[id]), STATION_IDS.map(() => 4), 'gold cup in every station after perfect level-3 rounds');
     assert(await p.evaluate(() => __ilhaDebug.S().champ), 'the champions cup was not awarded with all 8 gold cups');
     await p.context().close();
   });
 
-  await test('medals: a first perfect round gives silver, and the gold cup comes at level 3', async () => {
+  await test('medals: a perfect round gives the gold medal, and gold at level 3 gives the cup', async () => {
     const p = await open(1024, 768);
     await p.evaluate(() => { __ilhaDebug.autoQual = false; __ilhaDebug.setQuality(0); });
     const seen = [];
     for (const level of [1, 2, 3]) { const r = await perfectRound(p, 'n10', 0, level); seen.push([r.stars, r.level, r.trophy]); }
-    eq(seen, [[3, 2, 2], [3, 3, 2], [3, 3, 3]], 'stars, level reached and medal after each perfect round in Fazenda do 10');
+    eq(seen, [[3, 2, 3], [3, 3, 3], [3, 3, 4]], 'stars, level reached and best medal (3 = gold medal, 4 = gold cup) after each perfect round in Fazenda do 10');
     await p.context().close();
   });
 
@@ -525,6 +538,55 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.evaluate(() => { const D = __ilhaDebug; D.CH.phase = 'play'; D.CH.time = 12; }); await p.waitForTimeout(1200); await p.click('#m-min');
     const r = await p.evaluate(() => { const box = s => document.querySelector(s).getBoundingClientRect(), m = box('#mission'), q = box('#m-quit'), hit = document.elementFromPoint(q.x + q.width / 2, q.y + q.height / 2); return { left: m.left >= 0, right: m.right <= innerWidth, quitInside: q.right <= innerWidth && q.left >= 0, quitReachable: hit && hit.id === 'm-quit', clock: box('#m-text small.live').width > 0 }; });
     eq(r, { left: true, right: true, quitInside: true, quitReachable: true, clock: true }, 'folded panel at 360 px wide');
+    await p.context().close();
+  });
+
+  await test('hammer, football and basket: a wrong pick gives a hint, the right one ends the question', async () => {
+    await enter(page, 'dinheiro');
+    for (const verb of ['smash', 'kick', 'throw']) {
+      const r = await page.evaluate(async verb => {
+        const D = __ilhaDebug, st = D.STM.dinheiro, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, press = () => document.querySelector('#b-sure').click(); let g = 0; D.forceVerb = verb; D.timeScale = .01; D.S().st.dinheiro.level = 2;
+        do { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[0]); } while (D.CH.q.verb !== verb && ++g < 300);
+        const C = D.CH, q = C.q, wait = ms => new Promise(r => setTimeout(r, ms)), label = () => document.querySelector('#b-sure').textContent;
+        const tryOn = async t => {
+          if (verb === 'smash') { D.P.set(t.x - 2, 0, t.z); run(6); const l = label(); press(); await wait(260); run(2); return l; }
+          if (verb === 'kick') { const b = C.ball, w = D.L2W(st, t.A + .6, t.B), d = Math.hypot(w.x - b.x, w.z - b.z); D.P.set(b.x - (w.x - b.x) / d * 1.4, 0, b.z - (w.z - b.z) / d * 1.4); run(6); const l = label(); press(); for (let i = 0; i < 90 && Math.hypot(b.vx, b.vz) > 0; i++) D.step(1 / 60); await wait(60); run(2); return l; }
+          const s0 = D.L2W(st, -1, 0); D.P.set(s0.x, 0, s0.z); D.rotY = Math.atan2(t.x - s0.x, t.z - s0.z); run(3); const l = label(), aim = C.aim.visible; press(); run(70); return l + (aim ? ' aim' : '');
+        };
+        const bad = C.targets.find(t => t.i !== q.ans), l1 = await tryOn(bad), afterWrong = [C.tries, C.locked, bad.dead]; D.timeScale = 1; const l2 = await tryOn(C.targets[q.ans]);
+        const out = { verb: q.verb, text: /QUEBRE a caixa|CHUTE a bola no gol|ARREMESSE a bola na cesta/.test(q.text), label: l1, afterWrong, locked: C.locked, tries: C.tries, first: C.first }; D.forceVerb = null; D.timeScale = 1; return out;
+      }, verb);
+      eq([r.verb, r.text, r.afterWrong, r.locked, r.tries, r.first], [verb, true, [1, false, true], true, 1, 0], `${verb} (button "${r.label}")`);
+      assert(/Quebrar|Chutar|Arremessar/.test(r.label), `the action button for ${verb} was "${r.label}"`);
+    }
+    await page.evaluate(() => document.querySelector('#m-quit').click());
+  });
+
+  await test('kart: wrong and right gates are scored once each, and the race ends back on the island', async () => {
+    await enter(page, 'ordem');
+    const r = await page.evaluate(() => {
+      const D = __ilhaDebug, S = D.S(), st = D.STM.ordem, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }; D.timeScale = .01; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click();
+      const t0 = S.st.ordem ? S.st.ordem.total : 0, c0 = S.coins; D.startMode(st, st.modes[2]); const C = D.CH, far = Math.hypot(D.P.x - st.c.x, D.P.z - st.c.z) > 100, stays = (run(30), D.P.x);
+      C.phase = 'go'; const pass = lane => { const g = C.gates[C.idx]; C.v = 8; C.lat = (lane - 1) * 4; D.P.x = g.x - .3; run(6); };
+      const q0 = C.qs[0]; pass((q0.ans + 1) % 3); const afterWrong = [C.idx, C.first, S.coins - c0]; pass(C.qs[1].ans); const afterRight = [C.idx, C.first, S.coins - c0];
+      for (let k = 2; k < 5; k++) pass(C.qs[k].ans); C.v = 8; D.P.x = C.endX - .3; run(6);
+      return { far, waitsForStart: Math.abs(stays - (C.x0 + 8)) < .01, afterWrong, afterRight, records: S.st.ordem.total - t0, ended: !D.CH, home: Math.hypot(D.P.x - st.c.x, D.P.z - st.c.z) < 20 };
+    });
+    eq(r, { far: true, waitsForStart: true, afterWrong: [1, 0, 0], afterRight: [2, 1, 2], records: 5, ended: true, home: true }, 'kart race');
+    await page.waitForSelector('.result h2', { timeout: 6000 });
+    eq(await page.evaluate(() => document.querySelector('.result p').textContent), 'Kart dos Números: acertou 4 de 5 de primeira.', 'result line');
+    await page.evaluate(() => { __ilhaDebug.timeScale = 1; __ilhaDebug.closeSheet(); });
+  });
+
+  await test('shop: a football shirt can be bought and worn, and its shorts come with it', async () => {
+    const p = await open(1024, 768);
+    await p.evaluate(() => { const D = __ilhaDebug; D.S().coins = 40; D.P.set(0, 0, -5); for (let i = 0; i < 3; i++) D.step(1 / 60); });
+    await p.waitForSelector('#b-act:not([hidden])'); await p.click('#b-act', { force: true }); await p.click('.tab[data-t="kit"]');
+    eq(await p.evaluate(() => [document.querySelectorAll('.item').length, document.querySelectorAll('.item img.jr').length]), [27, 27], 'shirts on offer, each with its picture');
+    await p.click('.item[data-k="bra"]'); await p.waitForSelector('.quiz .btn.big'); await p.click('.quiz .btn.big[data-v="10"]');
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(); let chest = null; D.scene.traverse(o => { if (o.isMesh && Array.isArray(o.material) && o.material[5] && o.material[5].map && !o.userData.head) chest = o; });
+      return { coins: S.coins, shirt: S.look.shirt, owned: S.owned.includes('kit:bra'), chest: !!chest, using: document.querySelector('.item[data-k="bra"]').classList.contains('eq') }; });
+    eq(r, { coins: 10, shirt: 'bra', owned: true, chest: true, using: true }, 'after buying the Brasil shirt for 30 with 40 coins');
     await p.context().close();
   });
 

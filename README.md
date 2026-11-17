@@ -6,18 +6,20 @@ A criança controla um boneco de blocos numa **cidade central**. Os **portais** 
 
 | Mundo | Capítulo | Jogos |
 |---|---|---|
-| Obby das Contas | Adição e subtração | Obby sobre o mar, Estoura-Balão (tiro) |
-| Corrida dos Números | A ordem dos números | Corrida dos cubos, Chão de Lava |
+| Obby das Contas | Adição e subtração | Obby sobre o mar, Estoura-Balão (tiro), Kart das Contas |
+| Corrida dos Números | A ordem dos números | Corrida dos cubos, Chão de Lava, Kart dos Números |
 | Vila das Posições | Vocabulário fundamental | Circular, pular e pintar (inclui direita/esquerda e na frente/atrás); O Mestre Mandou |
 | Fazenda do 10 | Números até 10 | Pintar, levar ao cesto, padrões, gráfico de colunas, "certeza, talvez, impossível"; Ajude os Amigos (dividir) |
 | Parque das Formas | Figuras geométricas | Caça às Formas, Tiro às Formas |
 | Mercadinho | Nosso dinheiro | Pagar, troco, caixa; Atenda os Clientes |
-| Torre do 100 | Números até 39 e até 100 | Dezenas e unidades, quadro do 100, Chão de Lava |
+| Torre do 100 | Números até 39 e até 100 | Dezenas e unidades, quadro do 100, Chão de Lava, Kart do 100 |
 | Oficina das Medidas | Grandezas e medidas | Lápis, prédios, copos, balança; Construa a Escada |
 
 ## Recursos
 
-- Ações com o boneco: **pular em cima**, **correr em volta para circular**, **pegar tinta e pintar**, **carregar objetos**, **atirar**, **sobreviver**, **construir** e **ajudar amigos**.
+- Ações com o boneco: **pular em cima**, **correr em volta para circular**, **pintar com a cor pedida**, **quebrar a caixa com o martelo**, **chutar a bola no gol**, **arremessar na cesta**, **carregar objetos** (um por um no nível 1), **dirigir o kart**, **atirar**, **sobreviver**, **construir** e **ajudar amigos**. As perguntas de escolher uma resposta sorteiam a ação a cada vez.
+- **Botão amarelo de ação**: pintar, pegar tinta, quebrar, chutar e arremessar acontecem ao tocar no botão (ou tecla E), não só por passar por cima.
+- **Medalhas**: cada rodada vale 🥇 ouro (tudo certo de primeira), 🥈 prata (metade ou mais) ou 🥉 bronze (rodada terminada). A estação guarda a melhor, e ouro no nível 3 vale a **taça 🏆**.
 - Os níveis 1 a 3 se ajustam sozinhos aos acertos da criança.
 - Cada resposta é registrada por **habilidade** (por exemplo, "calcular o troco"). O que a criança erra **volta nas rodadas seguintes**, até ela acertar duas vezes de primeira.
 - **Estrelas e moedas de bônus acompanham os acertos de primeira**: 3 estrelas com tudo certo (rodadas de 6 ou mais perguntas aceitam um erro), 2 com 60% e 1 com 30%.
@@ -28,8 +30,8 @@ A criança controla um boneco de blocos numa **cidade central**. Os **portais** 
 - **Narração** das perguntas em português, com mais tempo para ler antes do cronômetro começar.
 - **Música de rock leve** gerada no próprio jogo, uma para cada mundo.
 - **Animações** do boneco: queimado na lava, frustrado, comemorando, dança da vitória, molhado e tonto.
-- **Loja** com conta de troco na hora de comprar: chapéus, roupas, bichinhos e poderes.
-- **Troféus**: medalhas de bronze e prata, uma taça de ouro por estação e a Taça dos Campeões, todos expostos na Sala de Troféus.
+- **Loja** com conta de troco na hora de comprar: chapéus, roupas, bichinhos, poderes e **camisas de futebol** de seleções e clubes (só cores e padrão, sem escudos nem marcas).
+- **Troféus**: a melhor medalha de cada estação, a taça de ouro e a Taça dos Campeões ficam expostas na Sala de Troféus.
 - **Área dos pais**, protegida por uma conta: desempenho por estação, **semana a semana** e **por habilidade**, aviso de pausa opcional e **cópia de segurança** do progresso (salvar e restaurar um arquivo).
 - **Visual**: céu em degradê com sol, mar com ondas, sombras nítidas, flores, arbustos e pedras, e cabelo no boneco (aba Cabelo da Loja). O jogo mede a velocidade do aparelho e **reduz o visual sozinho** se ficar lento; no Menu ☰ dá para escolher **Visual leve**.
 - **Vários jogadores** no mesmo aparelho (Menu ☰ → Jogadores), cada um com seu progresso.
