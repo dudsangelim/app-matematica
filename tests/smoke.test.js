@@ -734,16 +734,27 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.click('#b-menu'); await p.click('#mn-cele');
     eq(await p.evaluate(() => [document.querySelectorAll('.item').length, document.querySelectorAll('.item.poor').length, document.querySelector('.item.eq').dataset.k]), [11, 8, 'ceu'], 'list: all, locked, chosen');
     await p.click('.item[data-k="mascara"]'); eq(await p.evaluate(() => __ilhaDebug.S().cele), 'ceu', 'a locked celebration is not chosen');
-    await p.click('.item[data-k="siu"]'); eq(await p.evaluate(() => [__ilhaDebug.S().cele, __ilhaDebug.ANIM && __ilhaDebug.ANIM.type, __ilhaDebug.ANIM && __ilhaDebug.ANIM.ce.k, __ilhaDebug.camMode]), ['siu', 'cele', 'siu', 'front'], 'choosing shows it, with the character in view above the list');
+    await p.click('.item[data-k="siu"]'); eq(await p.evaluate(() => [__ilhaDebug.S().cele, __ilhaDebug.ANIM && __ilhaDebug.ANIM.type, __ilhaDebug.ANIM && __ilhaDebug.ANIM.ce.k, __ilhaDebug.camMode, document.querySelector('#ov').hidden]), ['siu', 'cele', 'siu', 'cele', true], 'choosing closes the list and plays it');
     const run = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), bad = []; D.closeSheet();
       for (const c of D.CELES) { D.playAnim('cele', null, c.k); let moved = false; for (let i = 0; i < (c.d + .3) * 30; i++) { D.step(1 / 30); const L = D.PL; if (D.ANIM && (L.armL.rotation.z || L.legL.rotation.z || L.legL.rotation.x || L.g.rotation.x || L.g.position.y !== D.P.y)) moved = true; }
         const L = D.PL; if (D.ANIM || !moved || L.armL.rotation.z || L.armR.rotation.z || L.legL.rotation.z || L.legR.rotation.z || L.g.rotation.x || L.g.rotation.z || L.head.rotation.x || D.camMode !== 'follow') bad.push(c.k); }
       S.cele = 'siu'; D.playAnim('win'); const chosen = [D.ANIM.type, D.ANIM.ce.k]; S.cele = ''; D.playAnim('win'); const plain = D.ANIM.type; S.cele = 'mascara'; D.playAnim('win'); const locked = D.ANIM.type; S.cele = 'siu';
       for (let i = 0; i < 120; i++) D.step(1 / 30); return { bad, chosen, plain, locked }; });
     eq(run, { bad: [], chosen: ['cele', 'siu'], plain: 'win', locked: 'win' }, 'playing the celebrations');
-    const btn = await p.evaluate(() => { const D = __ilhaDebug, b = document.querySelector('#b-cele'), st = D.STM.formas, out = [b.hidden]; b.click(); out.push(D.ANIM && D.ANIM.type); for (let i = 0; i < 130; i++) D.step(1 / 30);
-      D.startMode(st, st.modes[0]); D.step(1 / 60); out.push(b.hidden); document.querySelector('#m-quit').click(); D.step(1 / 60); out.push(b.hidden); return out; });
-    eq(btn, [false, 'cele', true, false], 'the celebrate button: there while exploring, plays the chosen one, hidden during a challenge');
+    /* the 🎉 button opens the list; picking one there chooses it and plays it */
+    await p.click('#b-cele'); eq(await p.evaluate(() => [document.querySelectorAll('.item').length, !!document.querySelector('.tabs'), document.querySelector('.item.eq').dataset.k]), [11, false, 'siu'], 'list from the button');
+    await p.click('.item[data-k="ceu"]'); eq(await p.evaluate(() => [__ilhaDebug.S().cele, __ilhaDebug.ANIM.ce.k, document.querySelector('#ov').hidden]), ['ceu', 'ceu', true], 'picked from the button');
+    await p.click('#b-cele'); await p.click('.item[data-k=""]'); eq(await p.evaluate(() => [__ilhaDebug.S().cele, __ilhaDebug.ANIM.type]), ['', 'win'], 'the plain victory dance can be chosen back');
+    /* the same list is a tab of the shop */
+    await p.evaluate(() => { const D = __ilhaDebug; for (let i = 0; i < 130; i++) D.step(1 / 30); D.P.set(0, 0, -5); for (let i = 0; i < 3; i++) D.step(1 / 60); });
+    await p.waitForSelector('#b-act:not([hidden])'); await p.click('#b-act', { force: true }); await p.click('.tab[data-t="cele"]');
+    eq(await p.evaluate(() => [document.querySelectorAll('.item').length, document.querySelector('.tab.on').dataset.t, document.querySelectorAll('.tab').length]), [11, 'cele', 9], 'celebrations tab in the shop');
+    await p.click('.tab[data-t="hat"]'); eq(await p.evaluate(() => [!!document.querySelector('#s-pass'), document.querySelector('.tab.on').dataset.t]), [true, 'hat'], 'and back to the hats');
+    await p.click('.tab[data-t="cele"]'); await p.click('.item[data-k="siu"]'); eq(await p.evaluate(() => [__ilhaDebug.S().cele, __ilhaDebug.S().edit, document.querySelector('#ov').hidden]), ['siu', true, true], 'choosing in the shop does not spend the change');
+    const btn = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), b = document.querySelector('#b-cele'), st = D.STM.formas, out = [b.hidden]; for (let i = 0; i < 130; i++) D.step(1 / 30);
+      D.startMode(st, st.modes[0]); D.step(1 / 60); out.push(b.hidden); document.querySelector('#b-menu').click(); document.querySelector('#mn-cele').click(); document.querySelector('.item[data-k="ceu"]').click();
+      out.push(S.cele, !!D.ANIM, document.querySelector('#ov').hidden, document.querySelector('.item.eq').dataset.k); D.closeSheet(); document.querySelector('#m-quit').click(); D.step(1 / 60); out.push(b.hidden); return out; });
+    eq(btn, [false, true, 'ceu', false, false, 'ceu', false], 'the button is hidden during a challenge; choosing from the menu then only chooses, without playing');
     await p.context().close();
   });
 
