@@ -2209,10 +2209,10 @@ const golHead=()=>`<span class="vt">⚽ GOL DE PLACA</span>${CH.idx+1}/${CH.n} �
 const golAsk=()=>setMission(`${golHead()}${CH.q.text}<small>Toque no número certo para chutar · Você ${CH.gols} × ${CH.defs} Goleiro 🧤</small>`);
 function golPhase(ph){const C=CH,q=C.q,d=C.bd,h=golHead(),gs=q.a===1?'gol':'gols';C.ph=ph;C.t=0;
   if(ph==='show'){
-    if(q.kind==='add'){d.head=`1º TEMPO: ${golN(q.a).toUpperCase()}`;setMission(`${h}No 1º tempo seu time fez <b>${q.a}</b> ${gs}.`);speak(`No primeiro tempo, seu time fez ${golN(q.a)}.`)}
+    if(q.kind==='add'){d.head=`1º TEMPO: ${golN(q.a).toUpperCase()}`;setMission(`${h}No 1º tempo seu time fez <b>${q.a}</b> ${gs}.`);speak(`Primeiro tempo: ${golN(q.a)}.`)}
     else if(q.kind==='sub'){d.head=`SEU TIME: ${golN(q.a).toUpperCase()}`;setMission(`${h}Seu time fez <b>${q.a}</b> ${gs}.`);speak(`Seu time fez ${golN(q.a)}.`)}
-    else if(q.kind==='dif'){d.head=`SEU TIME ${q.a} × ${q.b} RIVAL`;d.n1=q.a;d.n2=q.b;setMission(`${h}Seu time fez <b>${q.a}</b> e o rival fez <b>${q.b}</b>.`);speak(`Seu time fez ${golN(q.a)} e o rival fez ${golN(q.b)}.`)}
-    else{d.head=`TEM ${q.a} · PRECISA DE ${q.end} 🏆`;setMission(`${h}Seu time tem <b>${q.a}</b> ${gs}. Para ganhar a taça precisa de <b>${q.end}</b>.`);speak(`Seu time tem ${golN(q.a)}. Para ganhar a taça precisa de ${q.end}.`)}
+    else if(q.kind==='dif'){d.head=`SEU TIME ${q.a} × ${q.b} RIVAL`;d.n1=q.a;d.n2=q.b;setMission(`${h}Seu time fez <b>${q.a}</b> e o rival fez <b>${q.b}</b>.`)}
+    else{d.head=`TEM ${q.a} · PRECISA DE ${q.end} 🏆`;setMission(`${h}Seu time tem <b>${q.a}</b> ${gs}. Para ganhar a taça precisa de <b>${q.end}</b>.`)}
     golBoard()}
   else if(ph==='cover'){d.cover=true;d.big='?';sfx.tap();golBoard();setMission(`${h}Tinha <b>${q.a}</b> ${gs}. O placar apagou! 🙈`)}
   else if(ph==='move'){C.stepT=.5;if(q.kind==='add'){setMission(`${h}Tinha <b>${q.a}</b>. Agora veja os gols do <b>2º tempo</b>!`);speak('Veja os gols do segundo tempo.')}else{setMission(`${h}Tinha <b>${q.a}</b>. Agora veja os gols que o juiz <b>anulou</b>!`);speak('Veja os gols que o juiz anulou.')}}
@@ -2227,8 +2227,8 @@ function golPick(i,b){const C=CH;if(!C||C.type!=='gol'||C.ph!=='ask'||C.locked)r
 function updateGol(dt){const C=CH,q=C.q,d=C.bd,kp=C.kp,K=C.kick,A=GOL.A,ez=u=>u<=0?0:u>=1?1:u*u*(3-2*u);C.t+=dt;C.time+=dt;
   if(C.ph==='in'){if(C.t>=.7)golPhase('show')}
   else if(C.ph==='show'){
-    if(q.kind==='add'||q.kind==='sub'){const n=Math.min(q.a,Math.floor(C.t/.14)+1);if(n!==d.n1){d.n1=n;sfx.tick();golBoard()}if(C.t>=q.a*.14+(C.lvl===1?1.9:2.3))golPhase(C.lvl>1?'cover':'move')}
-    else if(C.t>=3.2)golPhase('ask')}
+    if(q.kind==='add'||q.kind==='sub'){const n=Math.min(q.a,Math.floor(C.t/.14)+1);if(n!==d.n1){d.n1=n;sfx.tick();golBoard()}if(C.t>=q.a*.14+(C.lvl===1?2.3:2.6))golPhase(C.lvl>1?'cover':'move')}
+    else if(C.t>=2.4)golPhase('ask')}
   else if(C.ph==='cover'){if(C.t>=1)golPhase('move')}
   else if(C.ph==='move'){C.stepT-=dt;
     if(C.stepT<=0&&C.moved<q.b){C.moved++;C.stepT=.62;if(q.kind==='add'){d.n2=C.moved;d.big='+'+C.moved;d.head=`2º TEMPO: +${C.moved}`;sfx.pop()}else{d.x=C.moved;d.big='−'+C.moved;d.head=`ANULADO: −${C.moved}`;sfx.tap()}golBoard()}
@@ -2610,10 +2610,10 @@ function reportData(){const days=n=>{const out=[];for(let i=0;i<n;i++){const d=n
   R.errs=errs.slice(-8).reverse();R.pat={n:P.length,by1:P.filter(p=>p.by1).length,swap:P.filter(p=>p.swap).length,first:P.filter(p=>p.first&&!p.by1).length};
   const max=Math.max(1,...R.areas.map(a=>a.t.rounds));R.play=R.areas.slice().sort((a,b)=>b.t.rounds-a.t.rounds);R.avoid=R.areas.filter(a=>a.t.rounds<max*.2&&max>=5);
   /* what to do next, the most useful first */
-  const tips=[],sm=id=>R.sums.find(x=>x.id===id).s,und=['contas.juntar','contas.tirar','contas.retamais','contas.retamenos'],total=sum(R.areas.map(a=>a.t.total));
+  const tips=[],sm=id=>R.sums.find(x=>x.id===id).s,und=['contas.juntar','contas.tirar','contas.comparar','contas.retamais','contas.retamenos'],total=sum(R.areas.map(a=>a.t.total));
   if(total<10)tips.push('Ainda há poucas respostas para tirar conclusões. Depois de alguns dias de jogo este relatório fica mais preciso.');
-  if(und.every(id=>sm(id)<2))tips.push('Comece pelo <b>Ônibus dos Números</b> e pelos <b>Pulos na Reta</b> (mundo Obby das Contas). Eles mostram o que é somar e tirar antes da conta escrita.');
-  else if(und.some(id=>sm(id)===2))tips.push(`No Ônibus ou na Reta ainda há dificuldade em: <b>${und.filter(id=>sm(id)===2).map(skillName).join('</b>, <b>')}</b>. Jogue junto e peça para contar em voz alta quem está no ônibus, ou cada pulo. Em casa, repita com objetos (tampinhas, feijões).`);
+  if(und.every(id=>sm(id)<2))tips.push('Comece pelo <b>Gol de Placa</b>, pelo <b>Ônibus dos Números</b> e pelos <b>Pulos na Reta</b> (mundo Obby das Contas). Eles mostram o que é somar e tirar antes da conta escrita.');
+  else if(und.some(id=>sm(id)===2))tips.push(`No Gol de Placa, no Ônibus ou na Reta ainda há dificuldade em: <b>${und.filter(id=>sm(id)===2).map(skillName).join('</b>, <b>')}</b>. Jogue junto e peça para contar em voz alta as bolas do placar, quem está no ônibus, ou cada pulo. Em casa, repita com objetos (tampinhas, feijões).`);
   if(und.some(id=>sm(id)>=3)&&(sm('contas.soma')===2||sm('contas.sub')===2))tips.push('Com objetos e pulos vai bem, mas a <b>conta escrita</b> ainda trava. Antes de responder, peça para dizer: "vai ficar mais ou vai ficar menos?" e para contar a partir do primeiro número.');
   if(R.pat.n>=4&&R.pat.by1/R.pat.n>=.4)tips.push('Muitos erros são <b>por 1</b>. É comum quando a criança conta o número de partida: na reta, conte os <b>pulos</b>, não as casas.');
   if(R.pat.n>=4&&R.pat.swap/R.pat.n>=.25)tips.push('Às vezes <b>soma quando era para tirar</b> (ou o contrário). Vale ler o sinal em voz alta antes de calcular.');

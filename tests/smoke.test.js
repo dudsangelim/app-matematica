@@ -115,7 +115,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         seen.add(id + ':' + type);
       }
     }
-    eq(seen.size, 19, 'distinct station:mode pairs started');
+    eq(seen.size, 20, 'distinct station:mode pairs started');
     await page.evaluate(() => document.querySelector('#m-quit').click());
   });
 
