@@ -356,7 +356,7 @@ function record(id,first,skill){const s=stat(id);s.total++;if(first)s.first++;
 let actx=null,sfxBus=null,musBus=null,noiseBuf=null;const MUSVOL=.3;
 function ensureAudio(){if(actx){if(actx.state==='suspended'&&!document.hidden)actx.resume();return}
   try{actx=new (window.AudioContext||window.webkitAudioContext)();sfxBus=actx.createGain();sfxBus.connect(actx.destination);musBus=actx.createGain();musBus.gain.value=S.music?MUSVOL:0;musBus.connect(actx.destination);
-    noiseBuf=actx.createBuffer(1,actx.sampleRate,actx.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;try{startAmb()}catch(e){ambBus=ambSea=null}startMusic()}catch(e){actx=null}}
+    noiseBuf=actx.createBuffer(1,actx.sampleRate,actx.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;try{startAmb()}catch(e){ambBus=ambSea=null}startMusic();if(siuData)decodeSiu(siuData).then(b=>{siuBuf=b},()=>{})}catch(e){actx=null}}
 document.addEventListener('pointerdown',()=>{ensureAudio();unlockSpeech()},true);
 document.addEventListener('keydown',()=>{ensureAudio();unlockSpeech()},true);
 /* silence everything while the page is in the background */
@@ -881,7 +881,7 @@ function mkExpr(v,L){const sub=Math.random()<(L===1?.3:.45);
 /* Levels 1 and 2: one sum, and balloons with numbers - a single thing to work out. Level 3 keeps the hunt for every sum that makes a number
    (several sums to work out for one question), with fewer balloons than before. */
 function genShootArith(L){
-  if(L<3){const q=genArith(L),ask=`${q.a} ${q.op} ${q.b}`,nums=optNums(q.ans,[q.ans+1,q.ans-1,q.ans+2,q.ans-2,q.op==='+'?Math.abs(q.a-q.b):q.a+q.b,q.ans+10],0,30,5);
+  if(L<3){const dk=S.sk['contas.decompor'];if(dk)dk.w=0;const q=genArith(L),ask=`${q.a} ${q.op} ${q.b}`,nums=optNums(q.ans,[q.ans+1,q.ans-1,q.ans+2,q.ans-2,q.op==='+'?Math.abs(q.a-q.b):q.a+q.b,q.ans+10],0,30,5);
     return {T:q.ans,ask,text:`Quanto é <b>${ask}</b>? Estoure o balão com a resposta`,items:nums.map(v=>({label:String(v),ok:v===q.ans})),explain:`${ask} = ${q.ans}`}}
   tag('contas','decompor');const T=pick([20,30,40,50,60,70,80])+(Math.random()<.5?0:rnd(1,8));
   const ok=new Set();let g=0;while(ok.size<2&&g<200){g++;const e=mkExpr(T,L);if(e)ok.add(e)}
@@ -1373,16 +1373,22 @@ function celebrate(){if(paused||!PL||(ANIM&&ANIM.lock)||!onGround)return;if(CH){
 /* ---- a "siuuu" of your own: a recording from the microphone, or an audio file chosen on the device. It replaces the game's shout in the
    Siuuu celebration and is kept on this device only (in the browser's storage, outside the save, so it is not in the backup either). ---- */
 const SIU_KEY='ilha-numeros-siu',SIU_MAX=2000000;
-let siuData=null,siuEl=null,siuStop=0;try{siuData=localStorage.getItem(SIU_KEY)||null}catch(e){}
-function setSiu(data){siuEl=null;siuData=data||null;try{if(data)localStorage.setItem(SIU_KEY,data);else localStorage.removeItem(SIU_KEY);return true}catch(e){siuData=null;try{localStorage.removeItem(SIU_KEY)}catch(_){}return false}}
+let siuData=null,siuBuf=null,siuEl=null,siuStop=0;try{siuData=localStorage.getItem(SIU_KEY)||null}catch(e){}
+/* the sound as the game's own audio can play it (a promise of a buffer; it fails when there is no audio yet or the data is not sound) */
+const decodeSiu=data=>actx?fetch(data).then(r=>r.arrayBuffer()).then(b=>new Promise((ok,bad)=>actx.decodeAudioData(b,ok,bad))):Promise.reject(new Error('no audio'));
+function setSiu(data){siuEl=null;siuBuf=null;siuData=data||null;try{if(data)localStorage.setItem(SIU_KEY,data);else localStorage.removeItem(SIU_KEY);return true}catch(e){siuData=null;try{localStorage.removeItem(SIU_KEY)}catch(_){}return false}}
 /* plays it (at most six seconds of it); false when there is none or the sound is off */
-function playSiu(){if(!siuData||!S.sound)return false;try{if(!siuEl)siuEl=new Audio(siuData);siuEl.currentTime=0;const p=siuEl.play();if(p&&p.catch)p.catch(()=>{});clearTimeout(siuStop);siuStop=setTimeout(()=>{try{siuEl&&siuEl.pause()}catch(e){}},6000);return true}catch(e){return false}}
+function playSiu(){if(!siuData||!S.sound)return false;
+  try{if(actx&&siuBuf){const n=actx.createBufferSource();n.buffer=siuBuf;n.connect(sfxBus);n.start(0,0,6);return true}
+    /* not decoded (yet): the plain player; a browser may refuse it outside a touch, and then the game's shout is heard instead of silence */
+    if(!siuEl)siuEl=new Audio(siuData);siuEl.currentTime=0;const p=siuEl.play();if(p&&p.catch)p.catch(()=>shout(0,1.25,196));clearTimeout(siuStop);siuStop=setTimeout(()=>{try{siuEl&&siuEl.pause()}catch(e){}},6000);return true}catch(e){return false}}
 const readAsData=blob=>new Promise((ok,bad)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result));fr.onerror=()=>bad(new Error('read'));fr.readAsDataURL(blob)});
 /* can the browser play it? (a picture renamed to .mp3, or a format this browser does not know, must not be saved) */
-const playable=data=>new Promise(ok=>{const a=new Audio();let done=false;const end=v=>{if(!done){done=true;ok(v)}};a.onloadedmetadata=()=>end(true);a.onerror=()=>end(false);setTimeout(()=>end(false),5000);a.src=data});
-function recordFrom(stream,ms){return new Promise((ok,bad)=>{const chunks=[],rec=new MediaRecorder(stream),off=()=>stream.getTracks().forEach(t=>t.stop());
-  rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};rec.onerror=()=>{off();bad(new Error('rec'))};
-  rec.onstop=()=>{off();readAsData(new Blob(chunks,{type:rec.mimeType||'audio/webm'})).then(ok,bad)};rec.start();setTimeout(()=>{if(rec.state==='recording')rec.stop()},ms)})}
+const playable=data=>decodeSiu(data).then(buf=>buf,()=>new Promise(ok=>{const a=new Audio();let done=false;const end=v=>{if(!done){done=true;ok(v)}};a.onloadedmetadata=()=>end(true);a.onerror=()=>end(false);setTimeout(()=>end(false),5000);a.preload='metadata';a.src=data;try{a.load()}catch(e){}}));
+function recordFrom(stream,ms){return new Promise((ok,bad)=>{const chunks=[],off=()=>stream.getTracks().forEach(t=>t.stop());
+  /* whatever goes wrong, the microphone is let go */
+  try{const rec=new MediaRecorder(stream);rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};rec.onerror=()=>{off();bad(new Error('rec'))};
+    rec.onstop=()=>{off();readAsData(new Blob(chunks,{type:rec.mimeType||'audio/webm'})).then(ok,bad)};rec.start();setTimeout(()=>{try{if(rec.state==='recording')rec.stop()}catch(e){off();bad(e)}},ms)}catch(e){off();bad(e)}})}
 function openSiu(msg){const has=!!siuData,wait=ms=>new Promise(r=>setTimeout(r,ms));
   openSheet(`<div class="quiz"><div class="h2">🎤 Meu Siuuu</div>
     <p class="small">Grave o seu grito ou escolha um áudio do aparelho. Ele toca na comemoração <b>Siuuu!</b> e fica guardado <b>só neste aparelho</b>.</p>
@@ -1392,7 +1398,7 @@ function openSiu(msg){const has=!!siuData,wait=ms=>new Promise(r=>setTimeout(r,m
   const st=$('#u-state'),here=()=>document.body.contains(st)&&!$('#ov').hidden,lock=on=>$$('.quiz .btn').forEach(b=>{if(b.id!=='u-back')b.disabled=on});
   const keep=async(data,okMsg)=>{if(!data||data.length>SIU_MAX)return openSiu('Esse áudio é grande demais. Escolha um curtinho, de poucos segundos.');
     const good=await playable(data);if(!here())return;if(!good)return openSiu('Este navegador não consegue tocar esse arquivo. Tente outro áudio (MP3, por exemplo).');
-    if(!setSiu(data))return openSiu('Não coube na memória do aparelho. Tente um áudio mais curto.');openSiu(okMsg);playSiu()};
+    if(!setSiu(data))return openSiu('Não coube na memória do aparelho. Tente um áudio mais curto.');if(good!==true)siuBuf=good;openSiu(okMsg);playSiu()};
   $('#u-back').onclick=()=>{sfx.tap();openCeles()};
   $('#u-play').onclick=()=>{if(!playSiu())toast(S.sound?'Ainda não há um som seu.':'Os efeitos de som estão desligados (🔊).',2400)};
   $('#u-del').onclick=()=>{sfx.tap();setSiu(null);openSiu('Pronto: voltou o som do jogo.')};
@@ -1451,7 +1457,7 @@ touch.addEventListener('pointermove',e=>{
 touch.addEventListener('lostpointercapture',endP);
 ['touchend','touchcancel'].forEach(t=>addEventListener(t,e=>{if(e.touches&&!e.touches.length){if(joyId!==null&&joyType==='touch')releaseJoy();if(camType==='touch')camId=null}},{capture:true,passive:true}));
 ['blur','pagehide'].forEach(t=>addEventListener(t,resetInput));
-document.addEventListener('visibilitychange',()=>{if(document.hidden){resetInput();flushTime();save()}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){resetInput();flushTime()}});
 addEventListener('contextmenu',e=>{if(!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))e.preventDefault()});
 touch.addEventListener('wheel',e=>{if(CH&&CH.fp)return scopeDrag(e.deltaX*.4,e.deltaY*.4);if(CH&&CH.fixCam)return;yaw-=e.deltaX*.004;pitch=clamp(pitch+e.deltaY*.002,.05,1.15)},{passive:true});
 $('#b-jump').addEventListener('pointerdown',e=>{e.preventDefault();input.jump=true});
@@ -1459,7 +1465,7 @@ $('#b-fire').addEventListener('pointerdown',e=>{e.preventDefault();fire()});
 [['#b-rl',1],['#b-rr',-1]].forEach(([id,d])=>{const b=$(id);
   b.addEventListener('pointerdown',e=>{e.preventDefault();camRot=d;b.classList.add('on');try{b.setPointerCapture(e.pointerId)}catch(_){}});
   const up=()=>{camRot=0;b.classList.remove('on')};b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up)});
-addEventListener('keydown',e=>{if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)||e.metaKey||e.ctrlKey||e.altKey)return;const k=e.key.toLowerCase();keys[k]=true;if(e.key===' '){if(CH&&CH.fp)fire();else input.jump=true;e.preventDefault()}if(k==='e'&&!paused){if(sureFn)sure();else if(near)act()}if(k==='f')fire();if(k==='c')celebrate();if(k==='m'&&!paused&&!mis.hidden)toggleMission()});
+addEventListener('keydown',e=>{if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)||e.metaKey||e.ctrlKey||e.altKey)return;const k=e.key.toLowerCase();keys[k]=true;if(e.key===' '){if(CH&&CH.fp)fire();else if(!(CH&&CH.hop&&e.repeat))input.jump=true;e.preventDefault()}if(k==='e'&&!paused){if(sureFn)sure();else if(near)act()}if(k==='f')fire();if(k==='c')celebrate();if(k==='m'&&!paused&&!mis.hidden)toggleMission()});
 /* a key let go while Ctrl, Alt or Cmd is down may never report it: releasing a modifier clears every held key */
 addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(/^(meta|control|alt|os)$/.test(k)){for(const x in keys)keys[x]=false}else keys[k]=false});
 
@@ -1579,7 +1585,7 @@ function newMission(){const lv=stat('contas').level,C=STM.contas,pool=lv<3?['bus
   const prev=(S.mis.list[1]||{}).id,cand=STATIONS.filter(s=>s.id!=='contas'&&s.id!==prev),open=cand.filter(s=>!resting(s)),from=open.length?open:cand;
   const score=s=>{const t=stat(s.id);return t.total<5?-1+t.rounds*.01:t.first/t.total},weak=from.slice().sort((a,b)=>score(a)-score(b))[0];
   S.mis.list=[{id:'contas',mi,done:false},{id:weak.id,mi:-1,done:false},{id:'',mi:-1,done:false}]}
-function mission(){const L=S.mis.list;if(L.length!==3||L[0].id!=='contas'||!STM.contas.modes[L[0].mi]||!STM[L[1].id]||L[2].id||L.every(i=>i.done))newMission();return S.mis.list}
+function mission(){const L=S.mis.list;if(L.length!==3||L[0].id!=='contas'||!STM.contas.modes[L[0].mi]||!STM[L[1].id]||L[1].mi!==-1||L[2].id||L[2].mi!==-1||L.every(i=>i.done))newMission();return S.mis.list}
 /* a round that ended with stars: which item of the mission it fills (the named ones first, then the free one), and whether that completes it */
 function missionNote(st,mode,stars){if(!S.misOn||stars<1)return null;const L=mission(),mi=st.modes.indexOf(mode);
   let k=L.findIndex(i=>!i.done&&i.id===st.id&&(i.mi<0||i.mi===mi));if(k<0)k=L.findIndex(i=>!i.done&&!i.id);if(k<0)return {hit:-1,done:false,left:L.filter(i=>!i.done).length};
@@ -1591,21 +1597,21 @@ function restNote(st,stars){const out={back:[],rest:false};if(!S.restOn)return o
   if(stars===3&&!S.rest[st.id]){const need=STATIONS.filter(s=>s.id!==st.id&&!S.rest[s.id]).map(s=>s.id);if(need.length){S.rest[st.id]={need};out.rest=true}}
   out.back.concat(out.rest?[st]:[]).forEach(updateSign);return out}
 /* go and play: travel to the station when needed, then start the game (or open the list of its games) */
-function goPlay(st,mode){closeSheet();const go=()=>{if(mode){quit3D(true);startMode(st,mode)}else talk(st,true)};
+function goPlay(st,mode){if(CH)return;closeSheet();const go=()=>{if(mode){quit3D(true);startMode(st,mode)}else talk(st,true)};
   if(WORLD===st)return go();enterWorld(st);setTimeout(()=>{if(WORLD===st&&!CH&&$('#ov').hidden)go()},800)}
 function openMission(){const L=mission(),left=L.filter(i=>!i.done).length,md=i=>STM[i.id].modes[i.mi];
   const name=i=>!i.id?'🎲 Um jogo à sua escolha':i.mi>=0?`${md(i).i} ${md(i).n}`:`Um jogo em: ${STM[i.id].name}`,sub=i=>!i.id?'Qualquer um, em qualquer mundo':i.mi>=0?STM[i.id].name:STM[i.id].sub;
   openSheet(`<div class="menu"><div class="shop-h" style="padding:0"><span class="h2">🎯 Missão</span><span class="chip" style="background:var(--ink)">${3-left} de 3</span><button class="xbtn" id="mi-x" aria-label="Fechar">✕</button></div>
     <p class="mhow">Termine as 3 rodadas, cada uma com pelo menos <b>1 ⭐</b>, e ganhe <b>1 troca na Loja</b> e <b>${MIS_COINS} 🪙</b>.</p>
-    <div class="mlist">${L.map((i,k)=>`<div class="mrow${i.done?' done':''}"><span class="mn">${i.done?'✓':k+1}</span><span class="mt"><b>${name(i)}</b><small>${sub(i)}</small></span>${i.done?'<span class="st">Feito</span>':i.id?`<button class="btn go" data-k="${k}">▶ Jogar</button>`:''}</div>`).join('')}</div>
-    <p class="small" style="margin:0">Missões completas: ${S.mis.n}</p></div>`);
+    <div class="mlist">${L.map((i,k)=>`<div class="mrow${i.done?' done':''}"><span class="mn">${i.done?'✓':k+1}</span><span class="mt"><b>${name(i)}</b><small>${sub(i)}</small></span>${i.done?'<span class="st">Feito</span>':i.id?`<button class="btn go" data-k="${k}"${CH?' disabled':''}>▶ Jogar</button>`:''}</div>`).join('')}</div>
+    <p class="small" style="margin:0">${CH?'Termine a rodada que está jogando para ir a outro jogo. ':''}Missões completas: ${S.mis.n}</p></div>`);
   $('#mi-x').onclick=()=>{sfx.tap();closeSheet()};
   $$('.mrow .btn').forEach(b=>b.onclick=()=>{sfx.tap();const i=L[+b.dataset.k];goPlay(STM[i.id],i.mi>=0?md(i):null)})}
 /* the station is resting: say so, and show where a medal is still needed */
 function restSheet(st){const need=S.rest[st.id].need.filter(x=>STM[x]),k=mission().findIndex(i=>!i.done&&i.id===st.id);
   openSheet(`<div class="dlg"><span class="dlg-name" style="--c:${st.color}">${st.npc.name}</span><p>💤 Você ganhou <b>ouro</b> aqui! Agora este jogo está descansando. Ele volta quando você ganhar uma medalha em:</p>
     <div class="travel">${need.map(id=>`<button data-id="${id}" style="--c:${STM[id].color}">${STM[id].name}<small>${STM[id].sub}</small></button>`).join('')}</div>
-    <div class="btns">${S.misOn&&k>=0?'<button class="btn gold" id="rs-mis">🎯 Jogar pela missão</button>':''}<button class="btn" id="d-no">Entendi</button></div></div>`);
+    <div class="btns">${S.misOn&&k>=0&&!CH?'<button class="btn gold" id="rs-mis">🎯 Jogar pela missão</button>':''}<button class="btn" id="d-no">Entendi</button></div></div>`);
   $('#d-no').onclick=()=>{sfx.tap();closeSheet()};$$('.travel button').forEach(b=>b.onclick=()=>{sfx.tap();closeSheet();enterWorld(STM[b.dataset.id])});
   if($('#rs-mis'))$('#rs-mis').onclick=()=>{sfx.tap();const i=mission()[k];goPlay(st,i.mi>=0?st.modes[i.mi]:null)};
   speak('Você ganhou ouro aqui! Este jogo está descansando. Jogue os outros para ele voltar.',null,false,st.npc.name)}
@@ -1636,7 +1642,7 @@ function finishChallenge(st,first,n,coins,lvl,mode,lost,silent){
   const misMsg=!mn?'':mn.done?`🎯 <b>Missão completa!</b> +${MIS_COINS} 🪙${freed?' e <b>1 troca</b> na Loja':had?' (a troca da Loja já estava guardada)':''}. Já tem missão nova.`:mn.hit>=0?`🎯 Valeu para a missão! ${mn.left>1?`Faltam <b>${mn.left}</b> rodadas`:'Falta <b>1</b> rodada'}.`:'🎯 A missão pede outros jogos agora. Toque em <b>Missão</b> para ver quais.';
   const restMsg=(rs.rest?'💤 <b>Ouro!</b> Este jogo vai descansar. Ele volta quando você ganhar uma medalha em cada um dos outros.':'')+(rs.back.length?`${rs.rest?'<br>':''}🎈 ${rs.back.map(x=>`<b>${x.name}</b>`).join(', ')} ${rs.back.length>1?'voltaram':'voltou'} a abrir!`:'');
   const again=!resting(st)||(S.misOn&&mission().some(i=>!i.done&&i.id===st.id&&(i.mi<0||i.mi===st.modes.indexOf(mode))));
-  const owed=Object.keys(S.sk).filter(k=>k.startsWith(st.id+'.')&&S.sk[k].w>0).sort((a,b)=>S.sk[b].d-S.sk[a].d).slice(0,2).map(skillName);
+  const owed=Object.keys(S.sk).filter(k=>k.startsWith(st.id+'.')&&S.sk[k].w>0&&!(k==='contas.decompor'&&lvl<3)).sort((a,b)=>S.sk[b].d-S.sk[a].d).slice(0,2).map(skillName);
   sfx.win();confetti(tr.gained||tr.champ?80:stars?40:12);
   /* the medal of this round, why it was earned, and what the next one takes */
   const M=[null,{k:'bronze',t:'🥉 Medalha de Bronze',why:'Você terminou a rodada.',next:'Para a prata 🥈: acerte pelo menos a metade de primeira.'},
@@ -2395,12 +2401,14 @@ function buyQuiz(t){const tab=shopTab,Q=buyQ(t);
    For each skill the situation comes from the latest answers (up to twelve are kept), so it follows what the child can do now:
    0 not practised yet · 1 hardly practised (fewer than 5 answers) · 2 needs help (under 60% right at the first try) ·
    3 getting there (60% to 84%) · 4 mastered (85% or more, with at least 8 answers). */
+/* a day counts as a day of play when something was answered, a round ended, or the game was open for a minute */
+const dayPlayed=d=>!!d&&(d.q>0||d.r>0||d.t>=60);
 const REP_ST=[['#C9CED6','Ainda não praticou'],['#C9CED6','Pouco praticado'],['#E53935','Precisa de ajuda'],['#FFC83D','Em progresso'],['#22B35E','Domina']];
 function skillState(k){if(!k||!k.n)return 0;if(k.n<5)return 1;const h=k.h||'',rate=h.length>=5?(h.split('1').length-1)/h.length:k.f/k.n;return rate>=.85&&k.n>=8?4:rate>=.6?3:2}
 /* the sums skills, from understanding (objects in sight) to working out (the written sum) */
 const REP_SUMS=[['contas.juntar','Entender'],['contas.tirar','Entender'],['contas.retamais','Entender'],['contas.retamenos','Entender'],['contas.falta','Pensar ao contrário'],['contas.soma','Calcular'],['contas.sub','Calcular'],['contas.decompor','Calcular'],['n100.conta','Aplicar'],['dinheiro.troco','Aplicar']];
 function reportData(){const days=n=>{const out=[];for(let i=0;i<n;i++){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-i);out.push(dKey(d))}return out};
-  flushTime();const agg=ks=>ks.reduce((a,k)=>{const d=S.days[k];if(d&&(d.q||d.r||d.t>=60)){a.days++;a.t+=d.t;a.q+=d.q;a.f+=d.f;a.r+=d.r;a.m+=d.m}return a},{days:0,t:0,q:0,f:0,r:0,m:0}),d14=days(14);
+  flushTime();const agg=ks=>ks.reduce((a,k)=>{const d=S.days[k];if(dayPlayed(d)){a.days++;a.t+=d.t;a.q+=d.q;a.f+=d.f;a.r+=d.r;a.m+=d.m}return a},{days:0,t:0,q:0,f:0,r:0,m:0}),d14=days(14);
   const R={name:S.name||'Jogador',week:agg(d14.slice(0,7)),prev:agg(d14.slice(7)),last7:d14.slice(0,7).reverse().map(k=>[k,S.days[k]||null])};
   R.sums=REP_SUMS.map(([id,step])=>{const k=S.sk[id]||{n:0,f:0,h:''};return {id,step,k,s:skillState(k)}});
   R.areas=STATIONS.map(st=>{const t=stat(st.id),sk=Object.keys(SKN).filter(id=>id.startsWith(st.id+'.')).map(id=>({id,k:S.sk[id],s:skillState(S.sk[id])}));
@@ -2435,7 +2443,7 @@ function openReport(){const R=reportData(),dot=s=>`<span class="dot" style="back
     <div class="sec" style="margin-top:0">O que fazer agora</div><ul class="tips">${R.tips.map(t=>`<li>${t}</li>`).join('')}</ul>
     <div class="sec">Últimos 7 dias</div>
     <p class="rp">Jogou em <b>${R.week.days}</b> ${R.week.days===1?'dia':'dias'}, <b>${Math.round(R.week.t/60)} min</b> no total: <b>${R.week.r}</b> rodadas, <b>${R.week.m}</b> ${R.week.m===1?'missão':'missões'}, <b>${R.week.q}</b> respostas, <b>${pct(R.week.f,R.week.q)}</b> de primeira${tr===null?'':tr>.05?' (↑ melhor que nos 7 dias antes)':tr<-.05?' (↓ abaixo dos 7 dias antes)':' (parecido com os 7 dias antes)'}.</p>
-    <div class="week">${R.last7.map(([k,d])=>`<div class="wd${d&&(d.q||d.r)?' on':''}"><b>${wd(k)}</b><span>${d&&(d.q||d.r)?Math.max(1,Math.round(d.t/60))+' min':'—'}</span><small>${d&&d.q?pct(d.f,d.q):''}</small></div>`).join('')}</div>
+    <div class="week">${R.last7.map(([k,d])=>`<div class="wd${dayPlayed(d)?' on':''}"><b>${wd(k)}</b><span>${dayPlayed(d)?Math.max(1,Math.round(d.t/60))+' min':'—'}</span><small>${d&&d.q?pct(d.f,d.q):''}</small></div>`).join('')}</div>
     <div class="sec">Adição e subtração</div>
     <p class="small" style="margin:0 0 6px">Do mais concreto ao mais abstrato: <b>entender</b> (ver gente subir e descer, pular na reta), <b>calcular</b> (a conta escrita) e <b>aplicar</b> (troco, dezenas). As bolinhas são as últimas respostas: cheia = certa de primeira.</p>
     <div class="tbl"><table><thead><tr><th>Habilidade</th><th>De primeira</th><th>Últimas</th><th>Situação</th></tr></thead><tbody>${R.sums.map(x=>`<tr><td><small class="stp2">${x.step}</small>${esc(skillName(x.id))}</td><td>${x.k.n?`${x.k.f}/${x.k.n}`:'—'}</td><td class="hist">${hist(x.k)}</td><td>${dot(x.s)}</td></tr>`).join('')}</tbody></table></div>
@@ -2535,7 +2543,7 @@ function parents(){const nm=esc(S.name||'Jogador'),pc=(f,n)=>n?`${f}/${n} (${Mat
   $('#p-im').onclick=()=>{if(!armIm){armIm=true;$('#p-im').textContent='Toque de novo: substitui este jogador';return}$('#p-file').click()};
   $('#p-file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onerror=()=>toast('Não consegui ler o arquivo.');
     r.onload=()=>{try{const d=JSON.parse(r.result);if(!isObj(d)||d.app!=='ilha-dos-numeros'||!isObj(d.save)||!isObj(d.save.st))throw 0;S=normalize(d.save);S.tut=true;save();location.reload()}catch(_){toast('Esse arquivo não é uma cópia do jogo.')}};r.readAsText(f)};
-  $('#p-rs').onclick=()=>{if(!arm){arm=true;$('#p-rs').textContent='Toque de novo para confirmar';return}S=normalize({name:S.name,tut:true,sound:S.sound,music:S.music,voice:S.voice,caps:S.caps,breakMin:S.breakMin});save();hud();buildPlayer();STATIONS.forEach(updateSign);updateHall();closeSheet();toast('Progresso apagado.')};
+  $('#p-rs').onclick=()=>{if(!arm){arm=true;$('#p-rs').textContent='Toque de novo para confirmar';return}S=normalize({name:S.name,tut:true,sound:S.sound,music:S.music,musStyle:S.musStyle,voice:S.voice,caps:S.caps,breakMin:S.breakMin,misOn:S.misOn,restOn:S.restOn});save();hud();buildPlayer();STATIONS.forEach(updateSign);updateHall();closeSheet();toast('Progresso apagado.')};
   if($('#p-del'))$('#p-del').onclick=()=>{if(!armDel){armDel=true;$('#p-del').textContent='Toque de novo para remover';return}try{localStorage.removeItem(KEY)}catch(e){}PF.ids=PF.ids.filter(i=>i!==PF.cur);PF.cur=PF.ids[0];savePF();location.reload()}}
 /* optional reminder to take a break (set in the parents area); it waits for the current challenge to end */
 let playT=0;
@@ -2560,7 +2568,7 @@ function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math
   if(!paused&&!document.hidden)dayT+=dt;
   updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();breakCheck(dt);renderer.render(scene,camera)}
 function boot(){if(S.lite)setQuality(0);resize();buildPlayer();hud();STATIONS.forEach(updateSign);updateHall();camera.position.set(P.x,P.y+5,P.z+10);requestAnimationFrame(tick);if(!S.tut)openTut()}
-window.__ilhaDebug={CAT,buyQ,speak,mission,newMission,missionNote,restNote,resting,openMission,talk,parents,openReport,reportData,reportText,skillState,DAY,noteErr,flushTime,set dayT(v){dayT=v},pickVoice,openVoices,openSiu,playSiu,get siu(){return siuData},camera,SCOPE,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
+window.__ilhaDebug={CAT,buyQ,speak,mission,newMission,missionNote,restNote,resting,openMission,talk,parents,openReport,reportData,reportText,skillState,DAY,noteErr,flushTime,set dayT(v){dayT=v},pickVoice,openVoices,openSiu,playSiu,get siu(){return siuData},get siuBuf(){return !!siuBuf},camera,SCOPE,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
   aim:()=>CH&&CH.type==='shoot'?aimBalloon():null,set pitch(v){pitch=v},step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateCam(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
 const fontsReady=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('400 20px Andika')]):Promise.resolve();
 Promise.race([fontsReady,new Promise(r=>setTimeout(r,1800))]).then(()=>{OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));boot()}).catch(boot);

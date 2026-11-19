@@ -649,6 +649,8 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       C = play(1, q => !q.add && q.b >= 2); q = C.q; const e0 = (S.errs || []).length; hop(q.b - 1); sure.click(); run(2);
       out.miss = [C.tries, C.locked, C.pos === q.a, S.errs.length - e0, S.errs[S.errs.length - 1].g === q.a - (q.b - 1)];
       hop(q.b); sure.click(); run(2); out.second = [C.locked, C.first];
+      /* a key held down is one hop, not one per repeat */
+      C = play(1, q => q.add && q.a + 4 <= q.N); const key = rep => window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', repeat: rep, bubbles: true })); key(false); run(24); for (let i = 0; i < 3; i++) { key(true); run(24); } out.held = C.pos - C.q.a;
       /* the ends of the line stop the hops */
       C = play(1, q => q.add); C.pos = C.q.N; C.hop.from = C.hop.to = C.q.N; hop(1); out.end = C.pos === C.q.N;
       /* level 3: no hops; the player walks to the number */
@@ -656,7 +658,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       D.P.set(st.c.x + C.B0 + q.ans * C.w, 0, st.c.z - C.fixCam.x); run(4); out.l3at = [C.pos === q.ans, !sure.hidden]; const f1 = C.first; sure.click(); run(2); out.l3right = [C.locked, C.first - f1];
       quit(); return out;
     });
-    eq(r, { start: ['line', true, true, true, 11, true], noWalk: true, over: [true, true], undo: true, right: [true, 1], miss: [1, false, true, 1, true], second: [true, 0], end: true, l3: [true, 20], l3at: [true, true], l3right: [true, 1] }, 'number line');
+    eq(r, { start: ['line', true, true, true, 11, true], noWalk: true, over: [true, true], undo: true, right: [true, 1], miss: [1, false, true, 1, true], second: [true, 0], held: 1, end: true, l3: [true, 20], l3at: [true, true], l3right: [true, 1] }, 'number line');
   });
 
   await test('balloon game: played through a scope - the player stands still, the stick moves the aim, and the shot goes to the balloon under the cross', async () => {
@@ -863,6 +865,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     eq(await state(), ['Usando o som do jogo.', false, '', true], 'at first');
     await pick({ name: 'siu.wav', mimeType: 'audio/wav', buffer: wav(2000) }); await p.waitForFunction(() => /seu Siuuu/.test(document.querySelector('#u-state').textContent), null, { timeout: 8000 });
     eq((await state()).slice(1), [true, 'data:audio', false], 'an audio file is kept on the device');
+    eq(await p.evaluate(() => __ilhaDebug.siuBuf), true, 'and it is decoded for the game\'s own audio, which plays without a touch');
     eq(await p.evaluate(() => { let threw = ''; try { __ilhaDebug.celeSnd.siu(); __ilhaDebug.playSiu(); } catch (e) { threw = String(e); } return [threw, document.querySelector('#u-back') ? 1 : 0]; }), ['', 1], 'the celebration sound plays it without error');
     await p.click('#u-back'); eq(await p.evaluate(() => document.querySelector('#c-siu').textContent), '🎤 Meu Siuuu ✓', 'the list shows there is a sound of your own'); await p.click('#c-siu');
     await pick({ name: 'foto.mp3', mimeType: 'audio/mpeg', buffer: Buffer.from('isto não é um áudio de verdade, é só texto') }); await p.waitForFunction(() => /não consegue tocar/.test(document.querySelector('#u-state').textContent), null, { timeout: 9000 });
@@ -905,6 +908,8 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.click('#b-mis'); const want = await p.evaluate(() => { const D = __ilhaDebug, i = D.mission()[0]; return [document.querySelectorAll('.mrow').length, document.querySelectorAll('.mrow .btn').length, D.STM.contas.modes[i.mi].k]; });
     eq(want.slice(0, 2), [3, 2], 'lines and play buttons'); await p.click('.mrow .btn[data-k="0"]');
     await p.waitForFunction(k => __ilhaDebug.CH && __ilhaDebug.CH.type === k && __ilhaDebug.WORLD && __ilhaDebug.WORLD.id === 'contas', want[2], { timeout: 8000 });
+    eq(await p.evaluate(() => { const D = __ilhaDebug; document.querySelector('#b-mis').click(); const out = [[...document.querySelectorAll('.mrow .btn')].every(b => b.disabled), /Termine a rodada/.test(document.querySelector('#sheet').textContent)]; D.closeSheet(); const ch = D.CH; D.STM && document.querySelector('#b-mis').click(); document.querySelectorAll('.mrow .btn').forEach(b => b.click()); D.closeSheet(); return [...out, D.CH === ch]; }), [true, true, true], 'during a round the mission does not take the player elsewhere');
+    eq(await p.evaluate(() => { const D = __ilhaDebug, S = D.S(); S.mis.list[1].mi = 7; const L = D.mission(); return [L[1].mi, L[2].mi, L.length]; }), [-1, -1, 3], 'a damaged mission is replaced');
     /* switched off in the parents area: the old rule is back, and the button goes away */
     eq(await p.evaluate(() => { const D = __ilhaDebug, S = D.S(); document.querySelector('#m-quit').click(); D.parents(); document.querySelector('#p-mis').click(); const off = [S.misOn, document.querySelector('#b-mis').hidden]; D.closeSheet(); S.edit = false; D.finishChallenge(D.STM.formas, 3, 5, 3, 1, null, false, true); return [...off, S.edit]; }), [false, true, true], 'mission off');
     await p.context().close();
@@ -922,9 +927,9 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       /* a resting station that the mission asks for can be played from the mission */
       const mi = D.mission()[0].mi, otherGame = mi === 2 ? 0 : 2; fin('contas', 5, true, otherGame); D.talk(M.contas); out.misBtn = [D.resting(M.contas), !!document.querySelector('#rs-mis'), document.querySelectorAll('.mode').length]; D.closeSheet();
       /* the parents can switch it off, or release what is resting */
-      S.restOn = false; out.off = D.resting(M.contas); S.restOn = true; D.parents(); const btn = document.querySelector('#p-free'); out.btn = [btn.disabled, /\(1\)/.test(btn.textContent)]; btn.click(); out.released = [Object.keys(S.rest).length, D.resting(M.contas)]; D.closeSheet();
+      S.restOn = false; out.off = D.resting(M.contas); S.restOn = true; S.misOn = false; D.parents(); document.querySelector('#p-rs').click(); document.querySelector('#p-rs').click(); out.wiped = [D.S().misOn, D.S().restOn, D.S().mis.n]; D.S().rest = { contas: { need: ['formas'] } }; D.parents(); const btn = document.querySelector('#p-free'); out.btn = [btn.disabled, /\(1\)/.test(btn.textContent)]; btn.click(); out.released = [Object.keys(D.S().rest).length, D.resting(M.contas)]; D.closeSheet();
       return out; });
-    eq(r, { gold: [true, 7, false, true], sheet: [0, 7], viaMission: [2, 0], second: [true, 6, 6, false], noStar: true, almost: [true, r.almost[1]], back: [false, false, 0], open: [2, 0], misBtn: [true, true, 0], off: false, btn: [false, true], released: [0, false] }, 'rest');
+    eq(r, { gold: [true, 7, false, true], sheet: [0, 7], viaMission: [2, 0], second: [true, 6, 6, false], noStar: true, almost: [true, r.almost[1]], back: [false, false, 0], open: [2, 0], misBtn: [true, true, 0], off: false, wiped: [false, true, 0], btn: [false, true], released: [0, false] }, 'rest');
     assert(r.almost[1].split(',').length === 1, `one station left before the rest ends: ${r.almost[1]}`);
     await p.context().close();
   });
