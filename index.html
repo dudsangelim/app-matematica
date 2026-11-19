@@ -43,6 +43,7 @@ input{user-select:text;-webkit-user-select:text}
 #touch{position:fixed;inset:0;z-index:1;touch-action:none}
 .hud-top{position:fixed;z-index:5;top:calc(8px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));right:calc(10px + env(safe-area-inset-right,0px));display:flex;gap:6px;align-items:center;pointer-events:none;flex-wrap:wrap}
 .hud-top>*{pointer-events:auto}
+button.chip{border:0;font-family:inherit;cursor:pointer}
 .chip{background:var(--glass);color:#fff;border-radius:12px;padding:7px 11px;font-weight:600;font-size:18px;display:flex;gap:5px;align-items:center;font-variant-numeric:tabular-nums}
 .chip.bump{animation:bump .4s}
 @keyframes bump{40%{transform:scale(1.2)}}
@@ -155,6 +156,33 @@ body.fp #toast{pointer-events:none;font-size:17px;padding:8px 14px}
 .quiz .sum{font-size:34px;font-family:var(--fd,inherit);letter-spacing:1px}
 .quiz p.small{font-size:17px;color:var(--muted)}
 .tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 14px 10px}
+.mhow{margin:0;font-family:var(--fb);font-size:18px;line-height:1.35}
+.mlist{display:flex;flex-direction:column;gap:8px}
+.mrow{display:flex;align-items:center;gap:10px;border:3px solid var(--ink);border-radius:14px;background:#fff;padding:8px 10px}
+.mrow.done{background:var(--okbg)}
+.mrow .mn{flex:none;width:34px;height:34px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-weight:700;font-size:18px}
+.mrow.done .mn{background:var(--ok)}
+.mrow .mt{flex:1;min-width:0;display:flex;flex-direction:column;font-size:18px}
+.mrow .mt small{font-family:var(--fb);font-size:14px;color:var(--muted);font-weight:500}
+.mrow .btn{padding:8px 14px;font-size:17px}
+.ck{display:flex;gap:10px;align-items:flex-start;font-family:var(--fb);font-size:16px;line-height:1.4;margin:8px 0}
+.ck input{flex:none;width:24px;height:24px;margin-top:2px}
+.rep .tips{margin:0;padding-left:22px;font-family:var(--fb);font-size:17px;line-height:1.45}
+.rep .tips li{margin:4px 0}
+.rep .rp{margin:0 0 8px;font-family:var(--fb);font-size:17px;line-height:1.45}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.wd{border:2px solid #C9CED6;border-radius:10px;padding:5px 2px;text-align:center;display:flex;flex-direction:column;font-size:13px;color:var(--muted);min-height:58px}
+.wd.on{border-color:var(--ink);background:var(--okbg);color:var(--ink)}
+.wd b{font-size:14px}
+.rep td,.rep th{white-space:normal}
+.rep td:first-child{min-width:140px}
+.rep .stp2{display:block;font-family:var(--fd);font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.hist{white-space:nowrap!important;line-height:1}
+.hist i{display:inline-block;width:8px;height:8px;border-radius:50%;border:2px solid var(--ink);margin-right:1px;box-sizing:border-box}
+.hist i.y{background:var(--ok);border-color:var(--ok)}
+.errs{display:flex;flex-wrap:wrap;gap:6px}
+.errs span{border:2px solid var(--ink);border-radius:10px;padding:3px 9px;font-family:var(--fb);font-size:15px;background:#fff}
+.errs .bad{color:#B3261E}
 .tab{flex:none;border:3px solid var(--ink);border-radius:10px;background:#fff;padding:7px 12px;font-weight:600;font-size:16px}
 .tab.on{background:var(--gold)}
 .items{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px;padding:0 14px 16px}
@@ -212,6 +240,7 @@ select{font-size:17px;padding:8px;border:3px solid var(--ink);border-radius:10px
   <div class="chip" id="h-c"><span>🪙</span><b id="h-coins">0</b></div>
   <div class="chip" id="h-s"><span>⭐</span><b id="h-stars">0</b></div>
   <div class="chip" id="h-t"><span>🏆</span><b id="h-troph">0</b></div>
+  <button class="chip" id="b-mis" aria-label="Missão"><span>🎯</span><b id="h-mis">0/3</b></button>
   <span class="sp"></span>
   <button class="hbtn" id="b-music" aria-label="Música">🎸</button>
   <button class="hbtn" id="b-voice" aria-label="Voz que lê as perguntas">🗣️</button>
@@ -268,18 +297,24 @@ const CELES=[{k:'siu',n:'Siuuu!',who:'Cristiano Ronaldo',e:'🚀',d:3.2,f:'wow'}
   {k:'abertos',n:'Braços abertos',who:'Bellingham',e:'🙆',d:3,f:'happy'},{k:'arvore',n:'Pose da árvore',who:'Salah',e:'🌳',d:3.2,f:'zen'},{k:'frio',n:'Que frio!',who:'Cole Palmer',e:'🥶',d:3,f:'cool'},
   {k:'mascara',n:'Máscara',who:'Gyökeres',e:'🎭',d:3,f:'cool'}];
 const celeOf=k=>CELES.find(c=>c.k===k)||null;
-const DEF={name:'',coins:0,stars:0,sound:true,music:true,voice:true,caps:false,breakMin:0,tut:false,look:{skin:'s2',hair:'castanho',shirt:'azul',pants:'jeans',hat:'nenhum',pet:'nenhum'},lite:false,misMin:false,edit:true,musStyle:'rock',celes:-1,cele:'',owned:[],st:{},trophies:{},champ:false,sk:{},wk:{}};
+const DEF={name:'',coins:0,stars:0,sound:true,music:true,voice:true,caps:false,breakMin:0,tut:false,look:{skin:'s2',hair:'castanho',shirt:'azul',pants:'jeans',hat:'nenhum',pet:'nenhum'},lite:false,misMin:false,edit:true,musStyle:'rock',celes:-1,cele:'',misOn:true,restOn:true,mis:{n:0,list:[]},rest:{},errs:[],days:{},owned:[],st:{},trophies:{},champ:false,sk:{},wk:{}};
 const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 function normalize(raw){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),isObj(raw)?raw:{}),oldTiers=isObj(raw)&&!(raw.v>=2);s.v=2;s.look=Object.assign({},DEF.look,isObj(s.look)?s.look:{});
   ['st','trophies','sk','wk'].forEach(k=>{if(!isObj(s[k]))s[k]={}});if(!Array.isArray(s.owned))s.owned=[];s.name=String(s.name||'').slice(0,14);s.coins=Math.max(0,Math.round(+s.coins)||0);s.stars=Math.max(0,Math.round(+s.stars)||0);s.breakMin=[0,15,20,30,45].includes(+s.breakMin)?+s.breakMin:0;
   const num=(o,ks)=>ks.forEach(k=>o[k]=Math.max(0,+o[k]||0));
   Object.keys(s.st).forEach(k=>{const t=s.st[k];if(!isObj(t))return delete s.st[k];num(t,['rounds','first','total','stars']);t.level=Math.min(3,Math.max(1,Math.round(+t.level)||1))});
-  Object.keys(s.sk).forEach(k=>{const t=s.sk[k];if(!isObj(t))return delete s.sk[k];num(t,['n','f','r','w','d']);t.r=Math.min(1,t.r)});
+  Object.keys(s.sk).forEach(k=>{const t=s.sk[k];if(!isObj(t))return delete s.sk[k];num(t,['n','f','r','w','d']);t.r=Math.min(1,t.r);t.h=String(t.h||'').replace(/[^01]/g,'').slice(-12)});
   Object.keys(s.wk).forEach(k=>{const w=s.wk[k];if(!/^\d{4}-\d\d-\d\d$/.test(k)||!isObj(w))return delete s.wk[k];Object.keys(w).forEach(i=>{if(!Array.isArray(w[i]))delete w[i];else w[i]=[+w[i][0]||0,+w[i][1]||0]})});
   Object.keys(s.trophies).forEach(k=>{let t=Math.min(4,Math.max(0,Math.round(+s.trophies[k])||0));if(oldTiers&&t===3)t=4;s.trophies[k]=t});s.owned=s.owned.filter(x=>typeof x==='string');s.edit=s.edit!==false;s.musStyle=s.musStyle==='calma'?'calma':'rock';
   /* a save from before the celebrations starts with one for each station that already has a medal */
   s.celes=s.celes>=0?Math.min(CELES.length,Math.round(+s.celes)||0):Math.min(CELES.length,Object.values(s.trophies).filter(v=>v>0).length+(s.champ?1:0));
-  if(CELES.findIndex(c=>c.k===s.cele)<0||CELES.findIndex(c=>c.k===s.cele)>=s.celes)s.cele='';return s}
+  if(CELES.findIndex(c=>c.k===s.cele)<0||CELES.findIndex(c=>c.k===s.cele)>=s.celes)s.cele='';
+  /* mission, rest, the last mistakes and the day log (which stations exist is checked when the mission is read: they are not known yet here) */
+  s.misOn=s.misOn!==false;s.restOn=s.restOn!==false;if(!isObj(s.mis))s.mis={};s.mis.n=Math.max(0,Math.round(+s.mis.n)||0);
+  s.mis.list=(Array.isArray(s.mis.list)?s.mis.list:[]).filter(isObj).slice(0,3).map(i=>({id:String(i.id||''),mi:Number.isInteger(i.mi)?i.mi:-1,done:!!i.done}));
+  if(!isObj(s.rest))s.rest={};Object.keys(s.rest).forEach(k=>{const r=s.rest[k];if(!isObj(r)||!Array.isArray(r.need))delete s.rest[k];else r.need=r.need.filter(x=>typeof x==='string')});
+  s.errs=(Array.isArray(s.errs)?s.errs:[]).filter(isObj).slice(-40).map(e=>({s:String(e.s||''),q:String(e.q||'').slice(0,40),r:+e.r||0,g:+e.g||0,d:+e.d||0}));
+  if(!isObj(s.days))s.days={};Object.keys(s.days).forEach(k=>{const d=s.days[k];if(!/^\d{4}-\d\d-\d\d$/.test(k)||!isObj(d))return delete s.days[k];['t','q','f','r','m'].forEach(x=>d[x]=Math.max(0,+d[x]||0));if(!isObj(d.st))d.st={}});return s}
 let S=normalize(readSave(PF.cur));
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const stat=id=>S.st[id]||(S.st[id]={level:1,rounds:0,first:0,total:0,stars:0});
@@ -310,9 +345,10 @@ function pickSkill(pre,list){const prev=prevPick[pre],due=list.filter(t=>t!==pre
   else{let c=list.filter(x=>x!==prev);if(!c.length)c=list;const w=c.map(x=>{const k=S.sk[pre+'.'+x];return k?1+(1-k.r)*1.5:1.6});let r=Math.random()*sum(w);t=c[c.length-1];for(let i=0;i<c.length;i++){r-=w[i];if(r<0){t=c[i];break}}}
   prevPick[pre]=t;return tag(pre,t)}
 /* the last wrong answers, each with its question, the right answer and the one given: the report shows what kind of mistake comes back */
-function noteErr(skill,q,r,g){if(!Array.isArray(S.errs))S.errs=[];S.errs.push({s:String(skill||''),q:String(q).slice(0,40),r:+r,g:+g,d:dayNum()});while(S.errs.length>40)S.errs.shift()}
+function noteErr(skill,q,r,g){S.errs.push({s:String(skill||''),q:String(q).slice(0,40),r:+r,g:+g,d:dayNum()});while(S.errs.length>40)S.errs.shift()}
 function record(id,first,skill){const s=stat(id);s.total++;if(first)s.first++;
-  if(skill){const k=S.sk[skill]||(S.sk[skill]={n:0,f:0,r:0,w:0,d:0});k.r=k.n?Math.round((k.r*.7+(first?.3:0))*1000)/1000:first?1:0;k.n++;if(first){k.f++;if(k.w>0)k.w--}else k.w=2;k.d=dayNum()}
+  if(skill){const k=S.sk[skill]||(S.sk[skill]={n:0,f:0,r:0,w:0,d:0,h:''});k.r=k.n?Math.round((k.r*.7+(first?.3:0))*1000)/1000:first?1:0;k.n++;if(first){k.f++;if(k.w>0)k.w--}else k.w=2;k.d=dayNum();k.h=((k.h||'')+(first?'1':'0')).slice(-12)}
+  const dy=DAY();dy.q++;if(first)dy.f++;flushTime();
   const wk=weekKey(),W=S.wk[wk]||(S.wk[wk]={}),a=W[id]||(W[id]=[0,0]);a[1]++;if(first)a[0]++;
   const ks=Object.keys(S.wk).sort();while(ks.length>12)delete S.wk[ks.shift()];save()}
 
@@ -460,7 +496,7 @@ function toast(msg,ms,say){const t=$('#toast');t.innerHTML=msg;t.classList.toggl
 /* Medal tiers kept per station: 1 bronze, 2 silver, 3 gold medal, 4 gold cup (gold medal earned at level 3). */
 const MEDAL=['','🥉','🥈','🥇','🏆'];
 const trophyCount=()=>Object.values(S.trophies).filter(v=>v===4).length+(S.champ?1:0);
-function hud(){$('#h-name').textContent=S.name||'Jogador';$('#h-coins').textContent=S.coins;$('#h-stars').textContent=S.stars;$('#h-troph').textContent=trophyCount();$('#b-sound').classList.toggle('off',!S.sound);$('#b-music').classList.toggle('off',!S.music);$('#b-music').textContent=S.musStyle==='calma'?'🎹':'🎸';$('#b-voice').classList.toggle('off',!S.voice);layoutTop()}
+function hud(){$('#h-name').textContent=S.name||'Jogador';$('#h-coins').textContent=S.coins;$('#h-stars').textContent=S.stars;$('#h-troph').textContent=trophyCount();$('#b-mis').hidden=!S.misOn;if(S.misOn)$('#h-mis').textContent=mission().filter(i=>i.done).length+'/3';$('#b-sound').classList.toggle('off',!S.sound);$('#b-music').classList.toggle('off',!S.music);$('#b-music').textContent=S.musStyle==='calma'?'🎹':'🎸';$('#b-voice').classList.toggle('off',!S.voice);layoutTop()}
 /* the mission panel sits right under the top bar, however many rows the bar wraps into */
 function layoutTop(){const h=$('.hud-top');if(h)document.documentElement.style.setProperty('--hudh',h.offsetHeight+'px')}
 function bump(id){const el=$(id);el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump')}
@@ -1179,7 +1215,7 @@ function drawSign(c,st){const g=c.getContext('2d'),s=stat(st.id);g.clearRect(0,0
   g.textAlign='center';g.fillStyle='#fff';g.strokeStyle=INK;g.lineWidth=7;
   fitText(g,st.name,460,58);g.strokeText(st.name,256,92);g.fillText(st.name,256,92);
   fitText(g,st.sub,460,34,600);g.lineWidth=5;g.strokeText(st.sub,256,150);g.fillText(st.sub,256,150);
-  const tr=MEDAL[S.trophies[st.id]||0],lv=`Nível ${s.level}   ★ ${s.stars||0} ${tr}`;fitText(g,lv,440,40);g.fillStyle=INK;rr(g,76,186,360,66,20);g.fill();g.fillStyle='#FFC83D';g.fillText(lv,256,233)}
+  const tr=MEDAL[S.trophies[st.id]||0],lv=`Nível ${s.level}   ★ ${s.stars||0} ${tr}${resting(st)?' 💤':''}`;fitText(g,lv,440,40);g.fillStyle=INK;rr(g,76,186,360,66,20);g.fill();g.fillStyle='#FFC83D';g.fillText(lv,256,233)}
 const SIGNS={};
 function updateSign(st){const s=SIGNS[st.id];drawSign(s.c,st);s.t.needsUpdate=true}
 STATIONS.forEach((st,i)=>{const W={x:1000+i*400,z:0};st.c=W;st.u={x:1,z:0};st.v={x:0,z:1};st.ang=0;
@@ -1415,7 +1451,7 @@ touch.addEventListener('pointermove',e=>{
 touch.addEventListener('lostpointercapture',endP);
 ['touchend','touchcancel'].forEach(t=>addEventListener(t,e=>{if(e.touches&&!e.touches.length){if(joyId!==null&&joyType==='touch')releaseJoy();if(camType==='touch')camId=null}},{capture:true,passive:true}));
 ['blur','pagehide'].forEach(t=>addEventListener(t,resetInput));
-document.addEventListener('visibilitychange',()=>{if(document.hidden)resetInput()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){resetInput();flushTime();save()}});
 addEventListener('contextmenu',e=>{if(!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))e.preventDefault()});
 touch.addEventListener('wheel',e=>{if(CH&&CH.fp)return scopeDrag(e.deltaX*.4,e.deltaY*.4);if(CH&&CH.fixCam)return;yaw-=e.deltaX*.004;pitch=clamp(pitch+e.deltaY*.002,.05,1.15)},{passive:true});
 $('#b-jump').addEventListener('pointerdown',e=>{e.preventDefault();input.jump=true});
@@ -1505,7 +1541,7 @@ function updateNear(){if(celeB.hidden!==!!CH)celeB.hidden=!!CH;let best=null,bd=
   if(best!==near){near=best;if(near){actB.hidden=false;actB.textContent=near.kind==='shop'?'🛍️ Abrir a loja':near.kind==='friend'?`💬 Falar com ${withArt(near.name)}`:`💬 Falar com ${withArt(near.st.npc.name)}`}else actB.hidden=true}}
 function act(){if(!near)return;sfx.tap();if(near.kind==='shop')openShop();else if(near.kind==='friend')friendTalk(near);else talk(near.st)}
 actB.onclick=act;
-function talk(st){const s=stat(st.id);
+function talk(st,viaMission){if(resting(st)&&!viaMission)return restSheet(st);const s=stat(st.id);
   openSheet(`<div class="dlg"><span class="dlg-name" style="--c:${st.color}">${st.npc.name}</span><p>${st.intro}</p>
     <div class="modes">${st.modes.map((m,i)=>[m,i]).sort((x,y)=>(x[0].o||3)-(y[0].o||3)).map(([m,i])=>`<button class="mode" data-i="${i}" style="--c:${st.color}"><span class="mi">${m.i}</span><span><b>${m.n}</b><small>${m.d}</small></span></button>`).join('')}</div>
     <div class="small">${st.sub} · Nível ${s.level} de 3 · ★ ${s.stars||0} · ${['Sem medalha ainda','Melhor medalha: bronze 🥉','Melhor medalha: prata 🥈','Melhor medalha: ouro 🥇','TAÇA DE OURO 🏆'][S.trophies[st.id]||0]}</div>
@@ -1530,6 +1566,57 @@ function friendTalk(f){if(f.cool>0){openSheet(`<div class="quiz"><p><b>${f.name}
     else{tries++;sfx.bad();shake(b);b.disabled=true;if(tries<2){$('#q-fb').textContent=tip;return}
       f.cool=20;$('#sheet').innerHTML=`<div class="quiz"><p><b>${f.name}:</b> Era <b>${q.ans}</b>: ${q.a} ${q.op} ${q.b} = ${q.ans}. Depois eu trago outra charada!</p><button class="btn go" id="q-x">Tudo bem!</button></div>`;$('#q-x').onclick=()=>closeSheet()}})}
 
+/* ================= MISSION AND REST =================
+   The mission is three rounds picked by the game: one of the sums games, one in the station where the child is weakest, and one of the
+   child's own choice. Each must end with at least one star. The three together give the one change in the shop and a few coins, and
+   the next mission starts. While the mission is on, it is the only way to earn that change.
+   Rest: a station where a round ended with the gold medal waits until the child wins a medal in each of the other stations. A game of
+   the mission can always be played, resting or not. Both can be switched off in the parents area. */
+const MIS_COINS=5;
+const resting=st=>!!(S.restOn&&S.rest[st.id]);
+function newMission(){const lv=stat('contas').level,C=STM.contas,pool=lv<3?['bus','line','bus','obby','line','kart']:['obby','bus','kart','line','shoot'],mi=C.modes.findIndex(x=>x.k===pool[S.mis.n%pool.length]);
+  /* the weakest station: one hardly played yet comes first, then the lowest share of answers right at the first try */
+  const prev=(S.mis.list[1]||{}).id,cand=STATIONS.filter(s=>s.id!=='contas'&&s.id!==prev),open=cand.filter(s=>!resting(s)),from=open.length?open:cand;
+  const score=s=>{const t=stat(s.id);return t.total<5?-1+t.rounds*.01:t.first/t.total},weak=from.slice().sort((a,b)=>score(a)-score(b))[0];
+  S.mis.list=[{id:'contas',mi,done:false},{id:weak.id,mi:-1,done:false},{id:'',mi:-1,done:false}]}
+function mission(){const L=S.mis.list;if(L.length!==3||L[0].id!=='contas'||!STM.contas.modes[L[0].mi]||!STM[L[1].id]||L[2].id||L.every(i=>i.done))newMission();return S.mis.list}
+/* a round that ended with stars: which item of the mission it fills (the named ones first, then the free one), and whether that completes it */
+function missionNote(st,mode,stars){if(!S.misOn||stars<1)return null;const L=mission(),mi=st.modes.indexOf(mode);
+  let k=L.findIndex(i=>!i.done&&i.id===st.id&&(i.mi<0||i.mi===mi));if(k<0)k=L.findIndex(i=>!i.done&&!i.id);if(k<0)return {hit:-1,done:false,left:L.filter(i=>!i.done).length};
+  L[k].done=true;const done=L.every(i=>i.done);if(done){S.mis.n++;S.coins+=MIS_COINS;S.edit=true;DAY().m++;newMission()}
+  return {hit:k,done,left:done?0:L.filter(i=>!i.done).length}}
+/* a round that ended: stations that were waiting for a medal here may come back, and a gold medal sends this one to rest */
+function restNote(st,stars){const out={back:[],rest:false};if(!S.restOn)return out;
+  if(stars>0)Object.keys(S.rest).forEach(id=>{if(id===st.id)return;const r=S.rest[id];r.need=r.need.filter(x=>x!==st.id&&STM[x]);if(!r.need.length){delete S.rest[id];if(STM[id])out.back.push(STM[id])}});
+  if(stars===3&&!S.rest[st.id]){const need=STATIONS.filter(s=>s.id!==st.id&&!S.rest[s.id]).map(s=>s.id);if(need.length){S.rest[st.id]={need};out.rest=true}}
+  out.back.concat(out.rest?[st]:[]).forEach(updateSign);return out}
+/* go and play: travel to the station when needed, then start the game (or open the list of its games) */
+function goPlay(st,mode){closeSheet();const go=()=>{if(mode){quit3D(true);startMode(st,mode)}else talk(st,true)};
+  if(WORLD===st)return go();enterWorld(st);setTimeout(()=>{if(WORLD===st&&!CH&&$('#ov').hidden)go()},800)}
+function openMission(){const L=mission(),left=L.filter(i=>!i.done).length,md=i=>STM[i.id].modes[i.mi];
+  const name=i=>!i.id?'🎲 Um jogo à sua escolha':i.mi>=0?`${md(i).i} ${md(i).n}`:`Um jogo em: ${STM[i.id].name}`,sub=i=>!i.id?'Qualquer um, em qualquer mundo':i.mi>=0?STM[i.id].name:STM[i.id].sub;
+  openSheet(`<div class="menu"><div class="shop-h" style="padding:0"><span class="h2">🎯 Missão</span><span class="chip" style="background:var(--ink)">${3-left} de 3</span><button class="xbtn" id="mi-x" aria-label="Fechar">✕</button></div>
+    <p class="mhow">Termine as 3 rodadas, cada uma com pelo menos <b>1 ⭐</b>, e ganhe <b>1 troca na Loja</b> e <b>${MIS_COINS} 🪙</b>.</p>
+    <div class="mlist">${L.map((i,k)=>`<div class="mrow${i.done?' done':''}"><span class="mn">${i.done?'✓':k+1}</span><span class="mt"><b>${name(i)}</b><small>${sub(i)}</small></span>${i.done?'<span class="st">Feito</span>':i.id?`<button class="btn go" data-k="${k}">▶ Jogar</button>`:''}</div>`).join('')}</div>
+    <p class="small" style="margin:0">Missões completas: ${S.mis.n}</p></div>`);
+  $('#mi-x').onclick=()=>{sfx.tap();closeSheet()};
+  $$('.mrow .btn').forEach(b=>b.onclick=()=>{sfx.tap();const i=L[+b.dataset.k];goPlay(STM[i.id],i.mi>=0?md(i):null)})}
+/* the station is resting: say so, and show where a medal is still needed */
+function restSheet(st){const need=S.rest[st.id].need.filter(x=>STM[x]),k=mission().findIndex(i=>!i.done&&i.id===st.id);
+  openSheet(`<div class="dlg"><span class="dlg-name" style="--c:${st.color}">${st.npc.name}</span><p>💤 Você ganhou <b>ouro</b> aqui! Agora este jogo está descansando. Ele volta quando você ganhar uma medalha em:</p>
+    <div class="travel">${need.map(id=>`<button data-id="${id}" style="--c:${STM[id].color}">${STM[id].name}<small>${STM[id].sub}</small></button>`).join('')}</div>
+    <div class="btns">${S.misOn&&k>=0?'<button class="btn gold" id="rs-mis">🎯 Jogar pela missão</button>':''}<button class="btn" id="d-no">Entendi</button></div></div>`);
+  $('#d-no').onclick=()=>{sfx.tap();closeSheet()};$$('.travel button').forEach(b=>b.onclick=()=>{sfx.tap();closeSheet();enterWorld(STM[b.dataset.id])});
+  if($('#rs-mis'))$('#rs-mis').onclick=()=>{sfx.tap();const i=mission()[k];goPlay(st,i.mi>=0?st.modes[i.mi]:null)};
+  speak('Você ganhou ouro aqui! Este jogo está descansando. Jogue os outros para ele voltar.',null,false,st.npc.name)}
+
+/* ================= THE DAY LOG (for the report) ================= */
+const dKey=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+/* today's line: seconds played, answers, answers right at the first try, rounds, missions, rounds per station. Sixty days are kept. */
+function DAY(){const k=dKey(new Date());if(!S.days[k]){S.days[k]={t:0,q:0,f:0,r:0,m:0,st:{}};const ks=Object.keys(S.days).sort();while(ks.length>60)delete S.days[ks.shift()]}return S.days[k]}
+let dayT=0;
+function flushTime(){if(dayT>=1){DAY().t+=Math.floor(dayT);dayT-=Math.floor(dayT)}}
+
 /* ================= SCORING + TROPHIES ================= */
 function checkTrophies(st,lvl,stars){const old=S.trophies[st.id]||0,medal=stars===3&&lvl===3?4:stars;
   let gained=0;if(medal>old){S.trophies[st.id]=medal;gained=medal;S.coins+=MEDAL_COINS[medal]}
@@ -1541,9 +1628,14 @@ function finishChallenge(st,first,n,coins,lvl,mode,lost,silent){
   const s=stat(st.id),pct=n?first/n:0,stars=starsFor(first,n,lost),bonus=ROUND_BONUS[stars];lvl=lvl||1;
   S.stars+=stars;s.stars=(s.stars||0)+stars;s.rounds++;S.coins+=bonus;coins+=bonus;
   let msg='';if(pct>=.8&&!lost&&s.level<3){s.level++;msg=`🚀 Subiu para o nível ${s.level}!`}else if(pct<.4&&s.level>1){s.level--;msg=`Vamos treinar mais no nível ${s.level}.`}
-  const freed=stars>0&&!S.edit;if(freed)S.edit=true;
+  const dy=DAY();dy.r++;dy.st[st.id]=(dy.st[st.id]||0)+1;flushTime();
+  /* the change in the shop: with the mission on it comes from a finished mission, otherwise from any round with a star */
+  const had=S.edit,mn=missionNote(st,mode,stars);if(!S.misOn&&stars>0)S.edit=true;const freed=!had&&S.edit,rs=restNote(st,stars);
   const tr=checkTrophies(st,lvl,stars);let newCele=null;[tr.gained,tr.champ].forEach(won=>{if(won&&S.celes<CELES.length){newCele=CELES[S.celes++];S.cele=newCele.k}});save();hud();updateSign(st);
-  if(silent){toast(`Rodada guardada: <b>${first} de ${n}</b> de primeira ${MEDAL[tr.medal]}`,3200);return}
+  if(silent){toast(`Rodada guardada: <b>${first} de ${n}</b> de primeira ${MEDAL[tr.medal]}${mn&&mn.done?' · 🎯 missão completa!':''}`,3200);return}
+  const misMsg=!mn?'':mn.done?`🎯 <b>Missão completa!</b> +${MIS_COINS} 🪙${freed?' e <b>1 troca</b> na Loja':had?' (a troca da Loja já estava guardada)':''}. Já tem missão nova.`:mn.hit>=0?`🎯 Valeu para a missão! ${mn.left>1?`Faltam <b>${mn.left}</b> rodadas`:'Falta <b>1</b> rodada'}.`:'🎯 A missão pede outros jogos agora. Toque em <b>Missão</b> para ver quais.';
+  const restMsg=(rs.rest?'💤 <b>Ouro!</b> Este jogo vai descansar. Ele volta quando você ganhar uma medalha em cada um dos outros.':'')+(rs.back.length?`${rs.rest?'<br>':''}🎈 ${rs.back.map(x=>`<b>${x.name}</b>`).join(', ')} ${rs.back.length>1?'voltaram':'voltou'} a abrir!`:'');
+  const again=!resting(st)||(S.misOn&&mission().some(i=>!i.done&&i.id===st.id&&(i.mi<0||i.mi===st.modes.indexOf(mode))));
   const owed=Object.keys(S.sk).filter(k=>k.startsWith(st.id+'.')&&S.sk[k].w>0).sort((a,b)=>S.sk[b].d-S.sk[a].d).slice(0,2).map(skillName);
   sfx.win();confetti(tr.gained||tr.champ?80:stars?40:12);
   /* the medal of this round, why it was earned, and what the next one takes */
@@ -1552,13 +1644,13 @@ function finishChallenge(st,first,n,coins,lvl,mode,lost,silent){
     {k:'medal',t:'🥇 Medalha de Ouro',why:'Tudo certo de primeira!',next:`Faça isso no nível 3 e ganhe a TAÇA 🏆. Você jogou no nível ${lvl}.`},
     {k:'copa',t:`🏆 TAÇA DE OURO: ${st.name}`,why:'Tudo certo de primeira no nível 3, o mais difícil!',next:''}][tr.medal];
   openSheet(`<div class="result"><h2>${stars===3?'Incrível!':stars===2?'Muito bom!':stars===1?'Você conseguiu!':'Vamos treinar mais!'}</h2><div class="bigstars">${[1,2,3].map(k=>`<span class="${k<=stars?'':'off'}">⭐</span>`).join('')}</div>
-    <p>${mode?mode.n:st.name}: acertou <b>${first} de ${n}</b> de primeira.</p><p>Ganhou <b>${coins} 🪙</b>${bonus?` (com o bônus de ${bonus})`:''} e <b>${stars} ⭐</b>.</p>${msg?`<div class="pillmsg">${msg}</div>`:''}${freed?'<div class="pillmsg">✏️ Troca liberada na Loja: compre ou troque <b>uma</b> coisa!</div>':''}${newCele?`<div class="pillmsg">🎉 Comemoração nova: <b>${newCele.n}</b> (${newCele.who}). Toque no 🎉 para escolher e comemorar!</div>`:''}${owed.length?`<p class="small">Vai aparecer de novo para treinar: ${owed.join(' · ')}</p>`:''}
+    <p>${mode?mode.n:st.name}: acertou <b>${first} de ${n}</b> de primeira.</p><p>Ganhou <b>${coins} 🪙</b>${bonus?` (com o bônus de ${bonus})`:''} e <b>${stars} ⭐</b>.</p>${msg?`<div class="pillmsg">${msg}</div>`:''}${misMsg?`<div class="pillmsg">${misMsg}</div>`:''}${freed&&!(mn&&mn.done)?'<div class="pillmsg">✏️ Troca liberada na Loja: compre ou troque <b>uma</b> coisa!</div>':''}${restMsg?`<div class="pillmsg">${restMsg}</div>`:''}${newCele?`<div class="pillmsg">🎉 Comemoração nova: <b>${newCele.n}</b> (${newCele.who}). Toque no 🎉 para escolher e comemorar!</div>`:''}${owed.length?`<p class="small">Vai aparecer de novo para treinar: ${owed.join(' · ')}</p>`:''}
     ${tr.champ?`<div class="award"><canvas id="aw-ch" width="320" height="320"></canvas><b>🏆 TAÇA DOS CAMPEÕES!</b><span>Você ganhou a taça de ouro em TODAS as estações! +${CHAMP_COINS} 🪙</span></div>`:''}
     ${M?`<div class="award"><canvas id="aw-cv" width="320" height="320"></canvas><b>${M.t}${tr.medal===4?'!':''}</b><span>${M.why}</span>${tr.gained?`<span>É a sua melhor medalha aqui! +${MEDAL_COINS[tr.gained]} 🪙</span>`:''}${M.next?`<small>${M.next}</small>`:''}<small>A melhor medalha de cada estação fica na Sala de Troféus.</small></div>`
       :'<p class="small">Sem medalha desta vez. Acerte pelo menos uma pergunta de primeira para ganhar o bronze 🥉.</p>'}
-    <div class="btns"><button class="btn go" id="r-again">▶ De novo</button><button class="btn gold" id="r-go">🏃 Explorar</button></div></div>`);
+    <div class="btns">${again?'<button class="btn go" id="r-again">▶ De novo</button>':''}${S.misOn?'<button class="btn" id="r-mis">🎯 Missão</button>':''}<button class="btn gold" id="r-go">🏃 Explorar</button></div></div>`);
   if(M)drawCupArt($('#aw-cv'),M.k);if(tr.champ)drawCupArt($('#aw-ch'),'champions');if(tr.gained===4)speak(M.t);else if(tr.champ)speak('Taça dos Campeões!');
-  $('#r-again').onclick=()=>{sfx.tap();closeSheet();startMode(st,mode||st.modes[0])};$('#r-go').onclick=()=>{sfx.tap();closeSheet()}}
+  if($('#r-again'))$('#r-again').onclick=()=>{sfx.tap();closeSheet();startMode(st,mode||st.modes[0])};if($('#r-mis'))$('#r-mis').onclick=()=>{sfx.tap();openMission()};$('#r-go').onclick=()=>{sfx.tap();closeSheet()}}
 
 /* ================= CHALLENGE FRAMEWORK ================= */
 let CH=null;const mis=$('#mission');
@@ -2260,7 +2352,7 @@ function openShop(){const k=NPCS.find(n=>n.kind==='shop');if(k&&Math.hypot(P.x-k
 function renderShop(){if(shopTab==='cele')return openCeles(true);const items=CAT[shopTab],slot=slotOf(shopTab),prev=t=>shopTab==='kit'?`<img class="jr" src="${kitURL(t)}" alt="">`:shopTab==='hair'?`<img class="jr" src="${hairURL(t)}" alt="">`:shopTab==='shirt'||shopTab==='pants'||shopTab==='skin'?`<span class="sw" style="--k:${t.c}"></span>`:t.e;
   const inUse=t=>owns(shopTab,t.k)&&(shopTab==='power'||S.look[slot]===t.k),free=shopTab==='skin';
   openSheet(`<div class="shop-h"><span class="h2">🛍️ Loja</span><span class="chip" style="background:var(--ink)">Você tem 🪙 ${S.coins}</span><button class="xbtn" id="s-x" aria-label="Fechar">✕</button></div>
-    <div class="pass ${S.edit||free?'on':'off'}" id="s-pass">${free?'🎨 A cor da pele pode ser trocada <b>sempre</b>.':S.edit?'✏️ <b>1 troca liberada:</b> compre ou troque <b>uma</b> coisa.':'🔒 <b>Troca já usada.</b> Jogue um joguinho para liberar outra.'}</div>
+    <div class="pass ${S.edit||free?'on':'off'}" id="s-pass">${free?'🎨 A cor da pele pode ser trocada <b>sempre</b>.':S.edit?'✏️ <b>1 troca liberada:</b> compre ou troque <b>uma</b> coisa.':`🔒 <b>Troca já usada.</b> ${S.misOn?'Complete a missão 🎯':'Jogue um joguinho'} para liberar outra.`}</div>
     <div class="tabs">${TABS.map(([k,l])=>`<button class="tab${k===shopTab?' on':''}" data-t="${k}">${l}</button>`).join('')}</div>
     <div class="items${S.edit||free?'':' shut'}">${items.map(t=>{const own=owns(shopTab,t.k),eq=inUse(t),poor=!own&&S.coins<t.p;
       return `<button class="item${eq?' eq':''}${poor?' poor':''}" data-k="${t.k}"><span class="pv">${prev(t)}</span><span>${t.n}</span>${t.d?`<small>${t.d}</small>`:''}<span class="st${own?'':' price'}">${eq?(shopTab==='power'?'Ativo ✓':'Usando ✓'):own?'Usar':'🪙 '+t.p}</span></button>`}).join('')}</div>`,'bottom');
@@ -2271,12 +2363,12 @@ function renderShop(){if(shopTab==='cele')return openCeles(true);const items=CAT
     if(free){sfx.tap();S.look[slot]=t.k;buildPlayer();save();shopY=$('#sheet').scrollTop;renderShop();return}
     /* a football kit comes with its own shorts, so other trousers would not show: do not let the change (or the coins) be spent on them */
     if(shopTab==='pants'&&kitOf(S.look.shirt)){sfx.bad();shake(b);toast('A camisa de futebol já vem com o calção. Para usar outra calça, troque de camisa primeiro.',4200);return}
-    if(!S.edit){sfx.bad();shake(b);toast('🔒 Você já usou a sua troca. <b>Jogue um joguinho</b> para liberar outra!',3600);return}
+    if(!S.edit){sfx.bad();shake(b);toast(`🔒 Você já usou a sua troca. <b>${S.misOn?'Complete a missão 🎯':'Jogue um joguinho'}</b> para liberar outra!`,3600);return}
     if(!owns(shopTab,t.k)&&S.coins<t.p){sfx.bad();toast(`Faltam ${t.p-S.coins} moedas: ${t.p} − ${S.coins} = ${t.p-S.coins}. Faça mais desafios!`,3000);return}
     shopY=$('#sheet').scrollTop;sfx.tap();if(owns(shopTab,t.k))wearAsk(t);else buyQuiz(t)})}
 /* putting on something already owned costs no coins, but it is the one change of the round: ask before spending it */
 function wearAsk(t){const tab=shopTab,lab=TABS.find(x=>x[0]===tab)[1];
-  openSheet(`<div class="quiz"><div class="h2">Trocar agora?</div><p>${lab}: <b>${t.n}</b></p><p class="small">Esta é a sua <b>única troca</b>. Para trocar outra coisa, você vai precisar jogar um joguinho.</p>
+  openSheet(`<div class="quiz"><div class="h2">Trocar agora?</div><p>${lab}: <b>${t.n}</b></p><p class="small">Esta é a sua <b>única troca</b>. Para trocar outra coisa, você vai precisar ${S.misOn?'completar outra missão 🎯':'jogar um joguinho'}.</p>
     <div class="btns"><button class="btn go" id="w-ok">✓ Trocar</button><button class="btn" id="w-back">Voltar</button></div></div>`,'bottom');
   $('#w-back').onclick=()=>{sfx.tap();renderShop()};
   $('#w-ok').onclick=()=>{if(!S.edit)return renderShop();S.look[slotOf(tab)]=t.k;S.edit=false;buildPlayer();save();hud();sfx.coin();playAnim('cheer');renderShop();toast(`Pronto! ${lab}: <b>${t.n}</b>.`,2600)}}
@@ -2289,15 +2381,74 @@ function buyQ(t){const have=S.coins,left=have-t.p;
   return {change:false,ans:q.ans,eq:`${q.a} ${q.op} ${q.b} = ${q.ans}`,html:`Para liberar <b>${t.n}</b>, resolva a conta:<br><b class="sum">${q.a} ${q.op} ${q.b} = ?</b>`,
     say:`Quanto é ${q.a} ${q.op==='+'?'mais':'menos'} ${q.b}?`,opts:optNums(q.ans,[q.ans+1,q.ans-1,q.ans+2,q.ans-2,q.ans+10,q.ans-10,alt],0,999,5)}}
 function buyQuiz(t){const tab=shopTab,Q=buyQ(t);
-  openSheet(`<div class="quiz"><div class="h2">Antes de comprar...</div><p>${Q.html}</p><p class="small">Só vale <b>uma</b> resposta: se errar, só depois de outro joguinho. Pense com calma!</p>
+  openSheet(`<div class="quiz"><div class="h2">Antes de comprar...</div><p>${Q.html}</p><p class="small">Só vale <b>uma</b> resposta: se errar, só depois de ${S.misOn?'outra missão':'outro joguinho'}. Pense com calma!</p>
     <div class="btns">${Q.opts.map(v=>`<button class="btn big" data-v="${v}">${v}</button>`).join('')}</div><div class="btns"><button class="btn" id="q-back">Voltar</button><button class="btn icon" id="q-spk" aria-label="Ouvir">🗣️</button></div></div>`);
   $('#q-back').onclick=()=>{sfx.tap();renderShop()};$('#q-spk').onclick=()=>speak(Q.say,null,true,'Lojista');speak(Q.say,null,false,'Lojista');
   $$('.quiz .btn.big').forEach(b=>b.onclick=()=>{if(!S.edit||owns(tab,t.k)||S.coins<t.p)return renderShop();buySum=null;
     if(+b.dataset.v===Q.ans){S.coins-=t.p;S.owned.push(tab+':'+t.k);if(tab!=='power'){S.look[slotOf(tab)]=t.k;buildPlayer()}S.edit=false;save();hud();sfx.coin();confetti(20);renderShop();playAnim('cheer');toast(`Comprou: <b>${t.n}</b>! ${Q.eq} ✓`,4000,true);return}
     /* a wrong answer: nothing is bought, and the pass is spent - the next try comes after another round (by then the coins, and so the change, are different) */
     S.edit=false;save();sfx.bad();playAnim('sad');
-    $('#sheet').innerHTML=`<div class="quiz"><div class="h2">Não foi dessa vez</div><p>A conta era <b>${Q.eq}</b>.</p><p class="small">A compra não foi liberada. Jogue um joguinho para <b>tentar de novo</b>.</p><div class="btns"><button class="btn go" id="q-x">Entendi</button></div></div>`;
+    $('#sheet').innerHTML=`<div class="quiz"><div class="h2">Não foi dessa vez</div><p>A conta era <b>${Q.eq}</b>.</p><p class="small">A compra não foi liberada. ${S.misOn?'Complete outra missão 🎯':'Jogue um joguinho'} para <b>tentar de novo</b>.</p><div class="btns"><button class="btn go" id="q-x">Entendi</button></div></div>`;
     $('#q-x').onclick=()=>{sfx.tap();renderShop()}})}
+
+/* ================= THE REPORT (parents area): how the child is doing, in teaching terms =================
+   For each skill the situation comes from the latest answers (up to twelve are kept), so it follows what the child can do now:
+   0 not practised yet · 1 hardly practised (fewer than 5 answers) · 2 needs help (under 60% right at the first try) ·
+   3 getting there (60% to 84%) · 4 mastered (85% or more, with at least 8 answers). */
+const REP_ST=[['#C9CED6','Ainda não praticou'],['#C9CED6','Pouco praticado'],['#E53935','Precisa de ajuda'],['#FFC83D','Em progresso'],['#22B35E','Domina']];
+function skillState(k){if(!k||!k.n)return 0;if(k.n<5)return 1;const h=k.h||'',rate=h.length>=5?(h.split('1').length-1)/h.length:k.f/k.n;return rate>=.85&&k.n>=8?4:rate>=.6?3:2}
+/* the sums skills, from understanding (objects in sight) to working out (the written sum) */
+const REP_SUMS=[['contas.juntar','Entender'],['contas.tirar','Entender'],['contas.retamais','Entender'],['contas.retamenos','Entender'],['contas.falta','Pensar ao contrário'],['contas.soma','Calcular'],['contas.sub','Calcular'],['contas.decompor','Calcular'],['n100.conta','Aplicar'],['dinheiro.troco','Aplicar']];
+function reportData(){const days=n=>{const out=[];for(let i=0;i<n;i++){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-i);out.push(dKey(d))}return out};
+  flushTime();const agg=ks=>ks.reduce((a,k)=>{const d=S.days[k];if(d&&(d.q||d.r||d.t>=60)){a.days++;a.t+=d.t;a.q+=d.q;a.f+=d.f;a.r+=d.r;a.m+=d.m}return a},{days:0,t:0,q:0,f:0,r:0,m:0}),d14=days(14);
+  const R={name:S.name||'Jogador',week:agg(d14.slice(0,7)),prev:agg(d14.slice(7)),last7:d14.slice(0,7).reverse().map(k=>[k,S.days[k]||null])};
+  R.sums=REP_SUMS.map(([id,step])=>{const k=S.sk[id]||{n:0,f:0,h:''};return {id,step,k,s:skillState(k)}});
+  R.areas=STATIONS.map(st=>{const t=stat(st.id),sk=Object.keys(SKN).filter(id=>id.startsWith(st.id+'.')).map(id=>({id,k:S.sk[id],s:skillState(S.sk[id])}));
+    return {st,t,sk,help:sk.filter(x=>x.s===2),ok:sk.filter(x=>x.s===4).length,seen:sk.filter(x=>x.s>0).length}});
+  /* mistakes in the sums: how far from the answer, and whether adding and taking away were swapped */
+  const errs=S.errs.filter(e=>e.s.startsWith('contas.')),P=errs.map(e=>{const m=/^(\d+) ([+−]) (\d+)$/.exec(e.q);return {e,by1:Math.abs(e.g-e.r)===1,swap:!!m&&e.g===(m[2]==='+'?+m[1]-+m[3]:+m[1]+ +m[3]),first:!!m&&e.g===+m[1]}});
+  R.errs=errs.slice(-8).reverse();R.pat={n:P.length,by1:P.filter(p=>p.by1).length,swap:P.filter(p=>p.swap).length,first:P.filter(p=>p.first&&!p.by1).length};
+  const max=Math.max(1,...R.areas.map(a=>a.t.rounds));R.play=R.areas.slice().sort((a,b)=>b.t.rounds-a.t.rounds);R.avoid=R.areas.filter(a=>a.t.rounds<max*.2&&max>=5);
+  /* what to do next, the most useful first */
+  const tips=[],sm=id=>R.sums.find(x=>x.id===id).s,und=['contas.juntar','contas.tirar','contas.retamais','contas.retamenos'],total=sum(R.areas.map(a=>a.t.total));
+  if(total<10)tips.push('Ainda há poucas respostas para tirar conclusões. Depois de alguns dias de jogo este relatório fica mais preciso.');
+  if(und.every(id=>sm(id)<2))tips.push('Comece pelo <b>Ônibus dos Números</b> e pelos <b>Pulos na Reta</b> (mundo Obby das Contas). Eles mostram o que é somar e tirar antes da conta escrita.');
+  else if(und.some(id=>sm(id)===2))tips.push(`No Ônibus ou na Reta ainda há dificuldade em: <b>${und.filter(id=>sm(id)===2).map(skillName).join('</b>, <b>')}</b>. Jogue junto e peça para contar em voz alta quem está no ônibus, ou cada pulo. Em casa, repita com objetos (tampinhas, feijões).`);
+  if(und.some(id=>sm(id)>=3)&&(sm('contas.soma')===2||sm('contas.sub')===2))tips.push('Com objetos e pulos vai bem, mas a <b>conta escrita</b> ainda trava. Antes de responder, peça para dizer: "vai ficar mais ou vai ficar menos?" e para contar a partir do primeiro número.');
+  if(R.pat.n>=4&&R.pat.by1/R.pat.n>=.4)tips.push('Muitos erros são <b>por 1</b>. É comum quando a criança conta o número de partida: na reta, conte os <b>pulos</b>, não as casas.');
+  if(R.pat.n>=4&&R.pat.swap/R.pat.n>=.25)tips.push('Às vezes <b>soma quando era para tirar</b> (ou o contrário). Vale ler o sinal em voz alta antes de calcular.');
+  if(R.avoid.length)tips.push(`Quase não joga: <b>${R.avoid.slice(0,3).map(a=>a.st.name).join('</b>, <b>')}</b>${R.avoid.length>3?` e mais ${R.avoid.length-3}`:''}. A missão 🎯 traz esses jogos; vale acompanhar as primeiras rodadas.`);
+  const hard=R.areas.flatMap(a=>a.help).filter(x=>!x.id.startsWith('contas.')).sort((a,b)=>b.k.n-a.k.n).slice(0,3);if(hard.length)tips.push(`Fora das contas, o que mais pede ajuda: <b>${hard.map(x=>skillName(x.id)).join('</b>, <b>')}</b>.`);
+  if(total>=10&&R.week.days<3)tips.push(`Jogou em ${R.week.days} ${R.week.days===1?'dia':'dias'} nos últimos 7. Pouco e sempre rende mais: uns 15 minutos por dia, 4 ou 5 dias na semana.`);
+  if(!tips.length)tips.push('Está indo bem em tudo o que praticou. Siga com a missão 🎯 para manter a variedade.');
+  R.tips=tips;return R}
+const pct=(f,n)=>n?Math.round(100*f/n)+'%':'—';
+/* the same report as plain text, to copy and send to someone */
+function reportText(R){const strip=h=>plain(h),L=[`Relatório de ${R.name} · Ilha dos Números · ${new Date().toLocaleDateString('pt-BR')}`,'',
+    `ÚLTIMOS 7 DIAS: ${R.week.days} dia(s) de jogo, ${Math.round(R.week.t/60)} min, ${R.week.r} rodada(s), ${R.week.q} resposta(s), ${pct(R.week.f,R.week.q)} de primeira (7 dias antes: ${pct(R.prev.f,R.prev.q)}).`,'','ADIÇÃO E SUBTRAÇÃO:',
+    ...R.sums.map(x=>`- [${x.step}] ${skillName(x.id)}: ${REP_ST[x.s][1]}${x.k.n?` (${x.k.f}/${x.k.n} de primeira)`:''}`),''];
+  if(R.errs.length)L.push('ERROS RECENTES NAS CONTAS:',...R.errs.map(e=>`- ${e.q}: respondeu ${e.g}, era ${e.r}`),'');
+  L.push('POR ÁREA:',...R.areas.map(a=>`- ${a.st.name} (${a.st.sub}): nível ${a.t.level}/3, ${a.t.rounds} rodada(s), ${pct(a.t.first,a.t.total)} de primeira${a.help.length?'; precisa de ajuda em: '+a.help.map(x=>skillName(x.id)).join(', '):''}`),'','O QUE FAZER AGORA:',...R.tips.map(t=>'- '+strip(t)));return L.join('\n')}
+function openReport(){const R=reportData(),dot=s=>`<span class="dot" style="background:${REP_ST[s][0]}"></span>${REP_ST[s][1]}`,hist=k=>(k.h||'').split('').map(c=>`<i class="${c==='1'?'y':'n'}"></i>`).join('');
+  const wd=k=>['dom','seg','ter','qua','qui','sex','sáb'][new Date(k+'T12:00:00').getDay()],tr=R.prev.q>=5&&R.week.q>=5?(R.week.f/R.week.q-R.prev.f/R.prev.q):null;
+  openSheet(`<div class="pad rep"><div class="shop-h" style="padding:0 0 8px"><span class="h2">📋 Relatório de ${esc(R.name)}</span><button class="xbtn" id="rp-x" aria-label="Fechar">✕</button></div>
+    <div class="sec" style="margin-top:0">O que fazer agora</div><ul class="tips">${R.tips.map(t=>`<li>${t}</li>`).join('')}</ul>
+    <div class="sec">Últimos 7 dias</div>
+    <p class="rp">Jogou em <b>${R.week.days}</b> ${R.week.days===1?'dia':'dias'}, <b>${Math.round(R.week.t/60)} min</b> no total: <b>${R.week.r}</b> rodadas, <b>${R.week.m}</b> ${R.week.m===1?'missão':'missões'}, <b>${R.week.q}</b> respostas, <b>${pct(R.week.f,R.week.q)}</b> de primeira${tr===null?'':tr>.05?' (↑ melhor que nos 7 dias antes)':tr<-.05?' (↓ abaixo dos 7 dias antes)':' (parecido com os 7 dias antes)'}.</p>
+    <div class="week">${R.last7.map(([k,d])=>`<div class="wd${d&&(d.q||d.r)?' on':''}"><b>${wd(k)}</b><span>${d&&(d.q||d.r)?Math.max(1,Math.round(d.t/60))+' min':'—'}</span><small>${d&&d.q?pct(d.f,d.q):''}</small></div>`).join('')}</div>
+    <div class="sec">Adição e subtração</div>
+    <p class="small" style="margin:0 0 6px">Do mais concreto ao mais abstrato: <b>entender</b> (ver gente subir e descer, pular na reta), <b>calcular</b> (a conta escrita) e <b>aplicar</b> (troco, dezenas). As bolinhas são as últimas respostas: cheia = certa de primeira.</p>
+    <div class="tbl"><table><thead><tr><th>Habilidade</th><th>De primeira</th><th>Últimas</th><th>Situação</th></tr></thead><tbody>${R.sums.map(x=>`<tr><td><small class="stp2">${x.step}</small>${esc(skillName(x.id))}</td><td>${x.k.n?`${x.k.f}/${x.k.n}`:'—'}</td><td class="hist">${hist(x.k)}</td><td>${dot(x.s)}</td></tr>`).join('')}</tbody></table></div>
+    ${R.errs.length?`<div class="sec">Erros recentes nas contas</div><div class="errs">${R.errs.map(e=>`<span><b>${esc(e.q)}</b> respondeu <b class="bad">${e.g}</b>, era <b>${e.r}</b></span>`).join('')}</div>
+      <p class="small" style="margin:6px 0 0">Dos ${R.pat.n} erros guardados: ${R.pat.by1} por 1 de diferença, ${R.pat.swap} trocando soma por subtração (ou o contrário), ${R.pat.first} repetindo o primeiro número da conta.</p>`:''}
+    <div class="sec">Todas as áreas</div>
+    <div class="tbl"><table><thead><tr><th>Área</th><th>Nível</th><th>Rodadas</th><th>De primeira</th><th>Habilidades</th><th>Precisa de ajuda em</th></tr></thead><tbody>${R.play.map(a=>`<tr><td><b>${a.st.name}</b><br><small>${a.st.sub}</small></td><td>${a.t.level}/3</td><td>${a.t.rounds}${resting(a.st)?' 💤':''}</td><td>${pct(a.t.first,a.t.total)}</td><td>${a.ok} dominadas, ${a.seen} praticadas de ${a.sk.length}</td><td>${a.help.length?a.help.map(x=>esc(skillName(x.id))).join('; '):'—'}</td></tr>`).join('')}</tbody></table></div>
+    <p class="small" style="line-height:1.45">A tabela está na ordem do que a criança mais joga. ${R.avoid.length?`Ela tem evitado: <b>${R.avoid.map(a=>a.st.name).join('</b>, <b>')}</b>.`:''} "Domina" pede pelo menos 8 respostas e 85% de acertos de primeira nas últimas; abaixo de 60% é "precisa de ajuda". Os tempos contam só o jogo aberto e sem painel na frente.</p>
+    <div class="btns" style="justify-content:flex-start"><button class="btn gold" id="rp-copy">📋 Copiar em texto</button><button class="btn" id="rp-back">Voltar</button></div></div>`);
+  $('#rp-x').onclick=()=>closeSheet();$('#rp-back').onclick=()=>{sfx.tap();parents()};
+  $('#rp-copy').onclick=()=>{const t=reportText(R);const done=()=>toast('Relatório copiado. É só colar numa mensagem.',3000);
+    try{if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t).then(done,()=>fallbackCopy(t,done))}catch(e){}fallbackCopy(t,done)}}
+function fallbackCopy(t,done){try{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();if(ok)return done()}catch(e){}toast('Não consegui copiar neste aparelho.',3000)}
 
 /* ================= VOICES: hear every character, and see which voices this device has ================= */
 function openVoices(){pickVoice();const n=ptVoices.length,used=new Set(Object.keys(VOICES).map(w=>voiceFor(w).voice)).size;
@@ -2314,7 +2465,7 @@ function openVoices(){pickVoice();const n=ptVoices.length,used=new Set(Object.ke
 /* ================= MENU / PARENTS / TUTORIAL ================= */
 function openMenu(){
   openSheet(`<div class="menu"><div class="shop-h" style="padding:0"><span class="h2">Menu</span><button class="xbtn" id="mn-x" aria-label="Fechar">✕</button></div><b>Ir pelo portal até:</b>
-    <div class="travel">${STATIONS.map(s=>`<button data-id="${s.id}" style="--c:${s.color}">${s.name}<small>${s.sub} · ★ ${stat(s.id).stars||0} ${MEDAL[S.trophies[s.id]||0]}</small></button>`).join('')}<button data-id="__city" style="--c:#5B6475">Cidade dos Números<small>Loja e Sala de Troféus</small></button></div>
+    <div class="travel">${STATIONS.map(s=>`<button data-id="${s.id}" style="--c:${s.color}">${s.name}<small>${s.sub} · ★ ${stat(s.id).stars||0} ${MEDAL[S.trophies[s.id]||0]}${resting(s)?' 💤':''}</small></button>`).join('')}<button data-id="__city" style="--c:#5B6475">Cidade dos Números<small>Loja e Sala de Troféus</small></button></div>
     <div class="btns" style="justify-content:flex-start"><button class="btn gold" id="mn-shop">🛍️ Loja</button><button class="btn" id="mn-cele">🎉 Comemorações</button><button class="btn" id="mn-voz">🗣️ Vozes</button><button class="btn" id="mn-pl">👥 Jogadores</button><button class="btn" id="mn-caps">🔠 ${S.caps?'Letras normais':'LETRAS MAIÚSCULAS'}</button><button class="btn" id="mn-gfx">✨ Visual: ${S.lite?'leve':'bonito'}</button><button class="btn" id="mn-help">❓ Como jogar</button><button class="btn" id="mn-par">👨 Área dos pais</button></div></div>`);
   $('#mn-pl').onclick=()=>{sfx.tap();openPlayers()};$('#mn-cele').onclick=()=>{sfx.tap();openCeles()};$('#mn-voz').onclick=()=>{sfx.tap();openVoices()};
   $('#mn-gfx').onclick=()=>{sfx.tap();S.lite=!S.lite;save();setQuality(S.lite?0:3);openMenu();toast(S.lite?'Visual leve: o jogo fica mais rápido em aparelhos antigos.':'Visual bonito ligado.',2600)};
@@ -2334,7 +2485,8 @@ function openTut(){openSheet(`<div class="pad"><div class="h2">Bem-vindo à Cida
     <span class="i">🌀</span><span>Entre nos <b>portais</b> para ir aos mundos. Lá, fale com o personagem do <b>!</b> e escolha o jogo.</span>
     <span class="i">🎮</span><span>Tem obby, tiro ao balão pela <b>luneta</b>, chão de lava, <b>kart</b>, construção, ajudar amigos e muito mais! No <b>Mestre Mandou</b> tem pega-pega, esconde-esconde e ordens de até 3 passos.</span>
     <span class="i">🔨⚽</span><span>Em muitas perguntas aparece um <b>botão amarelo de ação</b>: pintar, quebrar a caixa com o martelo, chutar a bola no gol, arremessar na cesta.</span>
-    <span class="i">🪙</span><span>Ganhe moedas acertando de primeira. Cada joguinho libera <b>uma</b> troca na <b>Loja</b>, e para comprar é preciso acertar uma conta.</span>
+    <span class="i">🪙</span><span>Ganhe moedas acertando de primeira. Para comprar na <b>Loja</b> é preciso acertar uma conta.</span>
+    <span class="i">🎯</span><span>A <b>missão</b> são 3 rodadas escolhidas pelo jogo. Completando as três, você ganha <b>uma</b> troca na Loja. Jogo com 🥇 ouro <b>descansa</b> 💤 até você ganhar medalha nos outros.</span>
     <span class="i">🎉</span><span>Cada <b>medalha nova</b> libera uma <b>comemoração</b> de gol. Para escolher, toque no botão <b>🎉</b> (ou na aba Comemorações da Loja).</span>
     <span class="i">🏆</span><span>Cada rodada vale uma medalha: <b>🥇 ouro</b> com tudo certo de primeira, <b>🥈 prata</b> com a metade ou mais, <b>🥉 bronze</b> por terminar. Ouro no <b>nível 3</b> vale a <b>TAÇA 🏆</b>.</span>
     <span class="i">🎸🗣️</span><span>No topo da tela: <b>🎸</b> liga ou desliga a música, e <b>🗣️</b> liga ou desliga a voz que lê as perguntas.</span>
@@ -2353,6 +2505,11 @@ function parents(){const nm=esc(S.name||'Jogador'),pc=(f,n)=>n?`${f}/${n} (${Mat
   const weak=sk.filter(x=>x.k.n>=3&&x.k.r<.5).slice(0,3),wks=[3,2,1,0].map(o=>weekKey(o)),any=wks.some(w=>S.wk[w]);
   openSheet(`<div class="pad"><div class="shop-h" style="padding:0 0 8px"><span class="h2">Progresso de ${nm}</span><button class="xbtn" id="p-x" aria-label="Fechar">✕</button></div>
     <p style="font-family:var(--fb);font-size:17px;line-height:1.45;margin:0">${weak.length?`Onde ${nm} mais precisa de ajuda agora: <b>${weak.map(x=>esc(skillName(x.id))).join('</b>, <b>')}</b>. Vale fazer junto, com objetos de verdade.`:sk.length?'Nenhuma habilidade em dificuldade no momento.':'Ainda não há respostas registradas.'}</p>
+    <div class="btns" style="justify-content:flex-start;margin-top:10px"><button class="btn gold" id="p-rep">📋 Relatório pedagógico</button></div>
+    <div class="sec">Rotina</div>
+    <label class="ck"><input type="checkbox" id="p-mis"${S.misOn?' checked':''}><span><b>Missão 🎯</b>: o jogo escolhe 3 rodadas (uma de contas, uma na área mais fraca, uma livre). Só a missão completa libera a troca da Loja. Desligada, qualquer rodada com estrela libera.</span></label>
+    <label class="ck"><input type="checkbox" id="p-rest"${S.restOn?' checked':''}><span><b>Descanso do ouro 💤</b>: a estação em que a criança ganha ouro numa rodada fica em espera até ela ganhar uma medalha em cada uma das outras. Os jogos da missão continuam liberados.</span></label>
+    <div class="btns" style="justify-content:flex-start"><button class="btn" id="p-free"${Object.keys(S.rest).length?'':' disabled'}>Liberar os jogos em descanso (${Object.keys(S.rest).length})</button></div>
     <div class="sec">Por estação</div>
     <div class="tbl"><table><thead><tr><th>Capítulo</th><th>Estação</th><th>Nível</th><th>Rodadas</th><th>De primeira</th><th>Troféu</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.s.sub}</td><td>${r.s.name}</td><td>${r.t.level}/3</td><td>${r.t.rounds}</td><td>${pc(r.t.first,r.t.total)}</td><td>${(MEDAL[S.trophies[r.s.id]||0]||'—')}</td></tr>`).join('')}</tbody></table></div>
     <div class="sec">Semana a semana (acertos de primeira)</div>
@@ -2367,7 +2524,10 @@ function parents(){const nm=esc(S.name||'Jogador'),pc=(f,n)=>n?`${f}/${n} (${Mat
     <div class="small" style="margin-bottom:8px">O progresso fica só neste aparelho. Salve uma cópia para não perder, ou para levar a outro aparelho.</div>
     <div class="btns" style="justify-content:flex-start"><button class="btn" id="p-ex">💾 Salvar cópia</button><button class="btn" id="p-im">📂 Restaurar cópia</button><input type="file" id="p-file" accept="application/json,.json" hidden></div>
     <div class="btns" style="justify-content:flex-start;margin-top:18px"><button class="btn" id="p-rs" style="background:var(--badbg)">Apagar progresso deste jogador</button>${PF.ids.length>1?'<button class="btn" id="p-del" style="background:var(--badbg)">Remover este jogador</button>':''}</div></div>`);
-  $('#p-x').onclick=()=>closeSheet();
+  $('#p-x').onclick=()=>closeSheet();$('#p-rep').onclick=()=>{sfx.tap();openReport()};
+  $('#p-mis').onchange=e=>{S.misOn=e.target.checked;save();hud();toast(S.misOn?'Missão ligada: só ela libera a troca da Loja.':'Missão desligada: qualquer rodada com estrela libera a troca.',3200)};
+  $('#p-rest').onchange=e=>{S.restOn=e.target.checked;save();STATIONS.forEach(updateSign);toast(S.restOn?'Descanso do ouro ligado.':'Descanso do ouro desligado: todos os jogos ficam abertos.',3200)};
+  $('#p-free').onclick=()=>{S.rest={};save();STATIONS.forEach(updateSign);parents();toast('Todos os jogos estão liberados.',2600)};
   $('#nm').onsubmit=e=>{e.preventDefault();const v=$('#nm-in').value.trim();if(v){S.name=v.slice(0,14);save();hud();buildPlayer();toast('Nome salvo!')}};
   $('#p-br').onchange=e=>{S.breakMin=+e.target.value;playT=0;save();toast(S.breakMin?`Aviso de pausa a cada ${S.breakMin} minutos.`:'Aviso de pausa desligado.')};
   $('#p-ex').onclick=()=>{try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({app:'ilha-dos-numeros',v:1,when:new Date().toISOString(),save:S})],{type:'application/json'}));
@@ -2387,6 +2547,7 @@ $('#b-sound').onclick=()=>{S.sound=!S.sound;save();hud();if(ambBus)ambBus.gain.s
 /* the music button goes round: rock, calm, off */
 $('#b-music').onclick=()=>{if(!S.music){S.music=true;S.musStyle='rock'}else if(S.musStyle!=='calma')S.musStyle='calma';else S.music=false;save();hud();ensureAudio();musicOn(S.music);toast(!S.music?'Música desligada':S.musStyle==='calma'?'Música calma 🎹':'Rock ligado 🎸',1600)};
 $('#b-cele').onclick=()=>{if(paused)return;sfx.tap();openCeles()};
+$('#b-mis').onclick=()=>{if(paused)return;sfx.tap();openMission()};
 $('#b-voice').onclick=()=>{S.voice=!S.voice;save();hud();if(!S.voice)try{speechSynthesis.cancel()}catch(e){}toast(S.voice?'A voz vai ler as perguntas 🗣️':'Voz desligada',1800,S.voice)};
 
 /* ================= LOOP ================= */
@@ -2396,9 +2557,10 @@ let last=performance.now(),qN=0,qT=0,autoQual=true;
 function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math.min(.05,raw);last=now;
   /* every 2.5 seconds of play: under 27 frames per second, step the picture quality down once (a long gap, such as a tab switch, restarts the count) */
   if(autoQual&&QUAL>0&&!document.hidden){if(raw>1){qN=0;qT=0}else{qT+=raw;qN++;if(qT>=2.5){if(T>3&&qN/qT<27)setQuality(QUAL-1);qN=0;qT=0}}}
+  if(!paused&&!document.hidden)dayT+=dt;
   updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();breakCheck(dt);renderer.render(scene,camera)}
 function boot(){if(S.lite)setQuality(0);resize();buildPlayer();hud();STATIONS.forEach(updateSign);updateHall();camera.position.set(P.x,P.y+5,P.z+10);requestAnimationFrame(tick);if(!S.tut)openTut()}
-window.__ilhaDebug={CAT,buyQ,speak,pickVoice,openVoices,openSiu,playSiu,get siu(){return siuData},camera,SCOPE,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
+window.__ilhaDebug={CAT,buyQ,speak,mission,newMission,missionNote,restNote,resting,openMission,talk,parents,openReport,reportData,reportText,skillState,DAY,noteErr,flushTime,set dayT(v){dayT=v},pickVoice,openVoices,openSiu,playSiu,get siu(){return siuData},camera,SCOPE,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
   aim:()=>CH&&CH.type==='shoot'?aimBalloon():null,set pitch(v){pitch=v},step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateCam(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
 const fontsReady=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('400 20px Andika')]):Promise.resolve();
 Promise.race([fontsReady,new Promise(r=>setTimeout(r,1800))]).then(()=>{OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));boot()}).catch(boot);

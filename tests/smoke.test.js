@@ -358,7 +358,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     const ctx = await browser.newContext({ viewport: { width: 800, height: 600 } }); const p = await ctx.newPage(); p.on('pageerror', e => errors.push(e.message));
     await p.addInitScript(() => { if (!localStorage.getItem('ilha-numeros-3d-v1')) localStorage.setItem('ilha-numeros-3d-v1', JSON.stringify({ name: 'Antigo', coins: 12, stars: 4, sound: true, music: true, voice: false, tut: true, look: { skin: 's1', shirt: 'azul', pants: 'jeans', hat: 'bone', pet: 'nenhum' }, owned: ['hat:bone'], st: { contas: { level: 2, rounds: 3, first: 9, total: 14, stars: 6 } }, trophies: { contas: 2, formas: 3 }, champ: false })); });
     await p.goto(base); await p.waitForFunction(() => window.__ilhaDebug);
-    eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.name, S.coins, S.st.contas.level, S.trophies.contas, S.trophies.formas, typeof S.sk, S.edit, S.celes, S.cele, document.querySelector('#ov').hidden]; }), ['Antigo', 12, 2, 2, 4, 'object', true, 2, '', true], 'old save (its gold cup, stored as 3, becomes 4; the shop pass starts available; one celebration for each station with a medal)');
+    eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.name, S.coins, S.st.contas.level, S.trophies.contas, S.trophies.formas, typeof S.sk, S.edit, S.celes, S.cele, S.misOn && S.restOn && Array.isArray(S.errs) && typeof S.days === 'object' && Object.keys(S.rest).length === 0, document.querySelector('#ov').hidden]; }), ['Antigo', 12, 2, 2, 4, 'object', true, 2, '', true, true], 'old save (its gold cup, stored as 3, becomes 4; the shop pass starts available; one celebration for each station with a medal)');
     await p.click('#b-menu'); await p.click('#mn-par');
     const [a, b] = await p.evaluate(() => document.querySelector('#gate p').textContent.match(/\d+/g).map(Number));
     await p.fill('#g-in', String(a * b)); await p.click('#gate .btn.gold'); await p.waitForSelector('#p-ex');
@@ -713,7 +713,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.click('.item[data-k="bone"]'); await p.click('#w-ok'); eq(await st(), [false, 'bone', 'azul', 90, 'pass off', false], 'wearing an owned cap spends the pass');
     await p.click('.item[data-k="nenhum"]'); await p.click('.tab[data-t="shirt"]'); await p.click('.item[data-k="vermelho"]');
     eq(await st(), [false, 'bone', 'azul', 90, 'pass off', false], 'with the pass spent, nothing can be changed or bought');
-    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), st = D.STM.formas, out = []; D.closeSheet();
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), st = D.STM.formas, out = []; D.closeSheet(); S.misOn = false; /* without the mission, any round with a star gives the change back */
       D.finishChallenge(st, 0, 5, 0, 1, null, false, true); out.push(S.edit); D.finishChallenge(st, 3, 5, 3, 1, null, false, true); out.push(S.edit); D.finishChallenge(st, 5, 5, 5, 1, null, false, true); out.push(S.edit); S.coins = 60; return out; });
     eq(r, [false, true, true], 'pass after a round with no star, a round with stars, and one more round');
     await p.evaluate(() => { const D = __ilhaDebug; D.P.set(0, 0, -5); for (let i = 0; i < 3; i++) D.step(1 / 60); });
@@ -884,6 +884,65 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), snd = Object.keys(D.celeSnd).sort(), keys = D.CELES.map(c => c.k).sort(); let threw = ''; try { for (const k of snd) D.celeSnd[k](); S.sound = false; for (const k of snd) D.celeSnd[k](); S.sound = true; } catch (e) { threw = String(e); }
       return { amb: D.amb, same: JSON.stringify(snd) === JSON.stringify(keys), threw }; });
     eq(r, { amb: true, same: true, threw: '' }, 'ambience and celebration sounds');
+    await p.context().close();
+  });
+
+  await test('mission: three rounds picked by the game (a sums game, the weakest station, a free one) give the change in the shop, and then a new mission starts', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), M = D.STM, out = {}, fin = (id, mi, first) => D.finishChallenge(M[id], first, 5, first, 1, mi == null ? null : M[id].modes[mi], false, true), L = () => D.mission().map(i => [i.id, i.mi, i.done]), done = () => L().filter(i => i[2]).length;
+      const l0 = L(), weak = l0[1][0], other = weak === 'formas' ? 'n10' : 'formas'; S.edit = false;
+      out.first = [l0.length, l0[0][0], M.contas.modes[l0[0][1]].k, weak !== 'contas' && !!M[weak], l0[2][0], document.querySelector('#h-mis').textContent, document.querySelector('#b-mis').hidden];
+      fin(other, 0, 0); out.noStar = done();                                                   // a round with no star fills nothing
+      fin(other, 0, 3); out.free = [L()[2][2], L()[1][2], S.edit];                              // a game the mission does not name fills the free item
+      fin(other, 0, 3); out.again = done();                                                     // and a second one fills nothing more
+      fin('contas', 2, 3); out.wrongGame = [L()[0][2], done()];                                 // the sums item wants its own game: the kart is not it
+      fin(weak, 1, 3); out.weak = [L()[1][2], S.edit, document.querySelector('#h-mis').textContent];
+      const coins = S.coins, day = D.DAY().m; fin('contas', l0[0][1], 3); const l1 = L();
+      out.done = [S.edit, S.mis.n, done(), S.coins - coins >= 5, D.DAY().m - day, M.contas.modes[l1[0][1]].k !== M.contas.modes[l0[0][1]].k, l1[1][0] !== weak, document.querySelector('#h-mis').textContent];
+      return out; });
+    eq(r, { first: [3, 'contas', 'bus', true, '', '0/3', false], noStar: 0, free: [true, false, false], again: 1, wrongGame: [false, 1], weak: [true, false, '2/3'], done: [true, 1, 0, true, 1, true, true, '0/3'] }, 'mission');
+    /* the mission sheet: three lines, and "Jogar" travels to the station and starts the game it names */
+    await p.click('#b-mis'); const want = await p.evaluate(() => { const D = __ilhaDebug, i = D.mission()[0]; return [document.querySelectorAll('.mrow').length, document.querySelectorAll('.mrow .btn').length, D.STM.contas.modes[i.mi].k]; });
+    eq(want.slice(0, 2), [3, 2], 'lines and play buttons'); await p.click('.mrow .btn[data-k="0"]');
+    await p.waitForFunction(k => __ilhaDebug.CH && __ilhaDebug.CH.type === k && __ilhaDebug.WORLD && __ilhaDebug.WORLD.id === 'contas', want[2], { timeout: 8000 });
+    /* switched off in the parents area: the old rule is back, and the button goes away */
+    eq(await p.evaluate(() => { const D = __ilhaDebug, S = D.S(); document.querySelector('#m-quit').click(); D.parents(); document.querySelector('#p-mis').click(); const off = [S.misOn, document.querySelector('#b-mis').hidden]; D.closeSheet(); S.edit = false; D.finishChallenge(D.STM.formas, 3, 5, 3, 1, null, false, true); return [...off, S.edit]; }), [false, true, true], 'mission off');
+    await p.context().close();
+  });
+
+  await test('rest: a station with a gold round waits for a medal in each of the others, mission games stay open, and parents can release it', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), M = D.STM, out = {}, ids = Object.keys(M), fin = (id, first, silent, mi) => D.finishChallenge(M[id], first, 5, first, 1, mi == null ? null : M[id].modes[mi], false, silent !== false), kinds = () => [document.querySelectorAll('.mode').length, document.querySelectorAll('.travel button').length];
+      fin('formas', 5, false); out.gold = [D.resting(M.formas), S.rest.formas.need.length, !!document.querySelector('#r-again'), /descansar/.test(document.querySelector('.result').textContent)]; D.closeSheet();
+      D.talk(M.formas); out.sheet = kinds(); D.closeSheet(); D.talk(M.formas, true); out.viaMission = kinds(); D.closeSheet();
+      fin('n10', 5); out.second = [D.resting(M.n10), S.rest.n10.need.length, S.rest.formas.need.length, S.rest.n10.need.includes('formas')];
+      fin('ordem', 0); out.noStar = S.rest.formas.need.includes('ordem');
+      const rest = ids.filter(id => id !== 'formas' && id !== 'n10'); rest.slice(0, -1).forEach(id => fin(id, 1)); out.almost = [D.resting(M.formas), S.rest.formas.need.join()];
+      fin(rest[rest.length - 1], 1); out.back = [D.resting(M.formas), D.resting(M.n10), Object.keys(S.rest).length]; D.talk(M.formas); out.open = kinds(); D.closeSheet();
+      /* a resting station that the mission asks for can be played from the mission */
+      const mi = D.mission()[0].mi, otherGame = mi === 2 ? 0 : 2; fin('contas', 5, true, otherGame); D.talk(M.contas); out.misBtn = [D.resting(M.contas), !!document.querySelector('#rs-mis'), document.querySelectorAll('.mode').length]; D.closeSheet();
+      /* the parents can switch it off, or release what is resting */
+      S.restOn = false; out.off = D.resting(M.contas); S.restOn = true; D.parents(); const btn = document.querySelector('#p-free'); out.btn = [btn.disabled, /\(1\)/.test(btn.textContent)]; btn.click(); out.released = [Object.keys(S.rest).length, D.resting(M.contas)]; D.closeSheet();
+      return out; });
+    eq(r, { gold: [true, 7, false, true], sheet: [0, 7], viaMission: [2, 0], second: [true, 6, 6, false], noStar: true, almost: [true, r.almost[1]], back: [false, false, 0], open: [2, 0], misBtn: [true, true, 0], off: false, btn: [false, true], released: [0, false] }, 'rest');
+    assert(r.almost[1].split(',').length === 1, `one station left before the rest ends: ${r.almost[1]}`);
+    await p.context().close();
+  });
+
+  await test('report: situation of each sums skill from the latest answers, the kinds of mistake, the week, what to do next, and the text to copy', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), rec = (skill, pattern) => [...pattern].forEach(c => D.record(skill.split('.')[0], c === '1', skill));
+      rec('contas.juntar', '1111101111'); rec('contas.sub', '010010'); rec('contas.soma', '110'); rec('n10.cont', '0100100');
+      [['9 − 4', 5, 6], ['8 − 3', 5, 4], ['6 − 2', 4, 5], ['7 − 2', 5, 9]].forEach(e => D.noteErr('contas.sub', ...e)); D.noteErr('n10.cont', 'quantos?', 3, 4);
+      D.dayT = 125.4; D.finishChallenge(D.STM.contas, 3, 5, 3, 1, null, false, true);
+      const R = D.reportData(), st = id => R.sums.find(x => x.id === id).s, text = D.reportText(R), day = D.DAY();
+      return { states: [st('contas.juntar'), st('contas.sub'), st('contas.soma'), st('contas.tirar')], hist: S.sk['contas.juntar'].h, pat: R.pat, week: [R.week.days, R.week.q, R.week.f, R.week.r, R.week.t >= 125 && R.week.t < 200], day: [day.q, day.f, day.r, day.t === R.week.t, day.st.contas],
+        tips: [R.tips.some(t => /por 1/.test(t)), R.tips.some(t => /conta escrita/.test(t)), R.tips.some(t => /Contar e achar o número/.test(t))], errs: R.errs.length,
+        text: [/ADIÇÃO E SUBTRAÇÃO/.test(text), /Subtração \(conta escrita\): Precisa de ajuda \(2\/6 de primeira\)/.test(text), /9 − 4: respondeu 6, era 5/.test(text), /O QUE FAZER AGORA/.test(text), /<b>|undefined|NaN/.test(text)] }; });
+    eq(r, { states: [4, 2, 1, 0], hist: '1111101111', pat: { n: 4, by1: 3, swap: 1, first: 0 }, week: [1, 26, 15, 1, true], day: [26, 15, 1, true, 1], tips: [true, true, true], errs: 4, text: [true, true, true, true, false] }, 'report data');
+    await p.evaluate(() => { __ilhaDebug.parents(); document.querySelector('#p-rep').click(); });
+    eq(await p.evaluate(() => [!!document.querySelector('.rep'), document.querySelectorAll('.rep .tbl')[0].querySelectorAll('tbody tr').length, document.querySelectorAll('.week .wd').length, document.querySelectorAll('.week .wd.on').length, document.querySelectorAll('.errs span').length, document.querySelectorAll('.rep .tbl')[1].querySelectorAll('tbody tr').length, document.querySelectorAll('.hist i').length >= 19]), [true, 10, 7, 1, 4, 8, true], 'report on screen');
+    await p.click('#rp-back'); eq(await p.evaluate(() => !!document.querySelector('#p-rep')), true, 'back to the parents area');
     await p.context().close();
   });
 

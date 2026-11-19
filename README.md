@@ -6,7 +6,7 @@ A criança controla um boneco de blocos numa **cidade central**. Os **portais** 
 
 | Mundo | Capítulo | Jogos |
 |---|---|---|
-| Obby das Contas | Adição e subtração | Obby sobre o mar, Estoura-Balão (tiro), Kart das Contas |
+| Obby das Contas | Adição e subtração | **Ônibus dos Números**, **Pulos na Reta**, Obby sobre o mar, Estoura-Balão (tiro), Kart das Contas |
 | Corrida dos Números | A ordem dos números | Corrida dos cubos, Chão de Lava |
 | Vila das Posições | Vocabulário fundamental | Circular, pular e pintar (inclui direita/esquerda e na frente/atrás); O Mestre Mandou (ordens de 1 a 3 passos, pega-pega, esconde-esconde) |
 | Fazenda do 10 | Números até 10 | Pintar, levar ao cesto, padrões, gráfico de colunas, "certeza, talvez, impossível"; Ajude os Amigos (dividir) |
@@ -28,6 +28,11 @@ A criança controla um boneco de blocos numa **cidade central**. Os **portais** 
 - No Obby, até 20, a placa mostra a conta também em **bolinhas** para contar. As plataformas têm espaço entre si, placas em pé com cada resposta, uma fileira revelada por vez e um portal no fim que leva de volta ao começo.
 - O Estoura-Balão é jogado em **primeira pessoa, pela luneta**: o boneco fica parado, o direcional (ou arrastar a tela, ou as setas) move a mira e o botão vermelho atira. A mira fica dourada e desacelera quando há um balão embaixo dela, e o tiro vai nesse balão.
 - **O Mestre Mandou** dá ordens de 1, 2 ou 3 passos (um passo por nível), que precisam ser feitas na ordem: ir a um lugar, pular N vezes, pisar no círculo de uma cor, tocar o sino, dar a volta em algo, pegar e levar um objeto, pegar um amigo (pega-pega), achar um amigo escondido, esconder-se do mestre, fugir do pegador e ficar como estátua. Às vezes a ordem vem sem "O mestre mandou", e aí o certo é não fazer.
+- **Ônibus dos Números** mostra o que é somar e tirar: gente sobe, gente desce. O ônibus tem 10 lugares em duas fileiras de 5. No nível 1 tudo fica à vista e dá para contar; no nível 2 as cortinas fecham antes de o pessoal subir ou descer; no nível 3 são dois andares (até 20) e a pergunta pode ser "quantos subiram?". Depois de um erro o jogo abre a cortina e conta um por um.
+- **Pulos na Reta**: somar é pular para a frente na reta numérica, tirar é pular para trás. Cada toque no botão de pular é um pulo (o direcional também pula, e desfaz um pulo a mais) e "Cheguei!" confere onde parou. No nível 3 a criança anda direto até o número da resposta.
+- No **Estoura-Balão das contas**, os níveis 1 e 2 têm uma conta só e 5 balões com resultados; o nível 3 pede todos os balões cuja conta dá um número.
+- **Missão 🎯**: o jogo escolhe 3 rodadas (uma de contas, uma na área mais fraca, uma livre). Cada uma precisa de pelo menos 1 estrela. A missão completa dá 5 moedas e a troca da Loja, e outra missão começa. Com a missão ligada, é só ela que libera a troca.
+- **Descanso do ouro 💤**: a estação em que a criança ganha ouro numa rodada fica em espera até ela ganhar uma medalha em cada uma das outras. Os jogos da missão continuam liberados. Missão e descanso podem ser desligados na Área dos pais, que também tem um botão para liberar o que está em descanso.
 - No **Kart das Contas**, para a frente acelera, para trás freia para pensar, e acertar portões seguidos liga o turbo.
 - O **painel de instruções** de cada jogo pode ser encolhido (toque nele ou no ▴) para ver o cenário inteiro; encolhido, ele abre sozinho por alguns segundos a cada pergunta nova.
 - No Chão de Lava, o botão **"Já sei!"** dispensa a espera do cronômetro, e encostar na lava antes da hora não tira coração.
@@ -41,6 +46,7 @@ A criança controla um boneco de blocos numa **cidade central**. Os **portais** 
   - **Uma troca por vez**: comprar uma coisa ou vestir algo que já tem gasta a troca. Ela só volta depois de um joguinho terminado com pelo menos 1 estrela, e não acumula (jogar 10 rodadas dá a mesma única troca). A cor da pele é a exceção: é de graça e pode ser trocada sempre.
   - **Para comprar é preciso acertar uma conta**, numa tentativa só e entre 5 opções. Enquanto as moedas cabem em 100, a conta é o troco ("quantas moedas vão sobrar?"); com mais moedas, é uma conta do nível da criança. Errou, a compra não sai e a troca é gasta: para tentar de novo, só depois de outro joguinho (assim chutar não adianta).
 - **Troféus**: a melhor medalha de cada estação, a taça de ouro e a Taça dos Campeões ficam expostas na Sala de Troféus.
+- **Relatório pedagógico** (Área dos pais): o que fazer agora, os últimos 7 dias (dias jogados, minutos, rodadas, acertos de primeira), a situação de cada habilidade de adição e subtração do concreto ao abstrato (entender, calcular, aplicar) com as últimas respostas, os erros recentes nas contas e o tipo de erro (por 1, troca de soma por subtração), todas as áreas na ordem do que a criança mais joga, e um botão para copiar tudo em texto.
 - **Área dos pais**, protegida por uma conta: desempenho por estação, **semana a semana** e **por habilidade**, aviso de pausa opcional e **cópia de segurança** do progresso (salvar e restaurar um arquivo).
 - **Visual**: céu em degradê com sol, mar com ondas, sombras nítidas, flores, arbustos e pedras, e cabelo no boneco (aba Cabelo da Loja). O jogo mede a velocidade do aparelho e **reduz o visual sozinho** se ficar lento; no Menu ☰ dá para escolher **Visual leve**.
 - **Vários jogadores** no mesmo aparelho (Menu ☰ → Jogadores), cada um com seu progresso.
