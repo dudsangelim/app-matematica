@@ -58,7 +58,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
   const start = (page, id, mi, level) => page.evaluate(([id, mi, level]) => { const D = __ilhaDebug, st = D.STM[id]; D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); if (level) { D.S().st[id] = D.S().st[id] || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; D.S().st[id].level = level; } D.startMode(st, st.modes[mi]); return D.CH && D.CH.type; }, [id, mi, level]);
   const STATION_IDS = ['contas', 'ordem', 'vocab', 'n10', 'formas', 'dinheiro', 'n100', 'medidas'];
   /* how many games each station offers (the sums station also has the kart) */
-  const MODES = { contas: [0, 1, 2], ordem: [0, 1], vocab: [0, 1], n10: [0, 1], formas: [0, 1], dinheiro: [0, 1], n100: [0, 1], medidas: [0, 1] };
+  const MODES = { contas: [0, 1, 2, 3, 4], ordem: [0, 1], vocab: [0, 1], n10: [0, 1], formas: [0, 1], dinheiro: [0, 1], n100: [0, 1], medidas: [0, 1] };
 
   console.log('Ilha dos Números: smoke tests');
   const page = await open(1024, 768, { tutorial: false });
@@ -74,7 +74,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
   await test(`question generators: ${FUZZ} questions per generator and level are all answerable`, async () => {
     const bad = await page.evaluate(N => {
       const G = window.__ilha, out = [], note = (k, m, q) => { if (out.length < 12) out.push(`${k}: ${m} :: ${String(q && q.text || JSON.stringify(q)).slice(0, 140)}`); };
-      const val = s => { const m = String(s).match(/^(\d+) ([+−]) (\d+)$/); return m ? (m[2] === '+' ? +m[1] + +m[3] : +m[1] - +m[3]) : NaN; };
+      const val = s => { if (/^\d+$/.test(String(s))) return +s; const m = String(s).match(/^(\d+) ([+−]) (\d+)$/); return m ? (m[2] === '+' ? +m[1] + +m[3] : +m[1] - +m[3]) : NaN; };
       for (const L of [1, 2, 3]) for (let i = 0; i < N; i++) {
         for (const g of ['genVocab', 'genN10', 'genMoney', 'genN100', 'genMeasure']) {
           const k = `${g} L${L}`; let q; try { q = G[g](L); } catch (e) { note(k, 'threw ' + e.message); continue; }
@@ -85,7 +85,9 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
           else { if (!(Number.isInteger(q.ans) && q.ans >= 0 && q.ans < q.opts.length)) note(k, 'answer index ' + q.ans, q); if (q.opts.length < 3 && !/balança/.test(q.text)) note(k, 'fewer than 3 options', q); }
         }
         { const q = G.genArith(L); if (q.opts.length !== 3 || new Set(q.opts).size !== 3 || !q.opts.includes(q.ans) || [q.a, q.b, q.ans, ...q.opts].some(v => v < 0) || !/^contas\.(soma|sub)$/.test(q.skill)) note('genArith L' + L, 'options', q); }
-        { const q = G.genShootArith(L), ok = q.items.filter(x => x.ok); if (ok.length < 2 || ok.some(x => val(x.label) !== q.T) || q.items.some(x => !x.ok && val(x.label) === q.T) || q.items.some(x => isNaN(val(x.label))) || new Set(q.items.map(x => x.label)).size !== q.items.length) note('genShootArith L' + L, 'balloons', q); }
+        { const q = G.genShootArith(L), ok = q.items.filter(x => x.ok); if (ok.length !== (L < 3 ? 1 : 2) || q.items.length !== (L < 3 ? 5 : 6) || (L < 3 && (val(q.ask) !== q.T || q.items.some(x => !/^\d+$/.test(x.label)))) || ok.some(x => val(x.label) !== q.T) || q.items.some(x => !x.ok && val(x.label) === q.T) || q.items.some(x => isNaN(val(x.label))) || new Set(q.items.map(x => x.label)).size !== q.items.length) note('genShootArith L' + L, 'balloons', q); }
+        { const q = G.genBus(L), cap = L === 3 ? 20 : 10; if (q.opts.length !== 3 || new Set(q.opts).size !== 3 || !q.opts.includes(q.ans) || q.opts.some(v => v < 0) || q.a < 1 || q.b < 1 || q.end < 1 || q.a > cap || q.end > cap || q.end !== (q.add ? q.a + q.b : q.a - q.b) || q.ans !== (q.kind === 'chg' ? q.b : q.end) || (q.kind === 'chg' && L < 3) || (L < 3 && q.b > (L === 1 ? 3 : 5)) || !/^contas\.(juntar|tirar|falta)$/.test(q.skill) || /undefined|NaN/.test(q.text + q.eq + q.ask)) note('genBus L' + L, 'bus question', q); }
+        { const q = G.genLine(L); if (q.N !== (L === 1 ? 10 : 20) || q.a < 0 || q.a > q.N || q.ans < 0 || q.ans > q.N || q.b < 1 || q.ans !== (q.add ? q.a + q.b : q.a - q.b) || !/^contas\.(retamais|retamenos)$/.test(q.skill)) note('genLine L' + L, 'number line question', q); }
         { const q = G.genShootShapes(L); if (q.items.length !== 8 || !q.items.some(x => x.ok) || !q.items.some(x => !x.ok)) note('genShootShapes L' + L, 'balloons', q); }
         for (const g of ['genFloorOrder', 'genFloorN100']) { const q = G[g](L); if (q.labels.length !== 9 || !q.ok.some(Boolean) || q.ok.every(Boolean) || new Set(q.labels).size !== 9 || q.labels.some(l => +l < 0)) note(`${g} L${L}`, 'tiles', q); }
         for (const g of ['genShareN10', 'genShareMoney']) { const q = G[g](L); if (!q.check(q.sol.map(ix => ix.map(j => q.items[j].v))) || q.items.length > 17) note(`${g} L${L}`, 'solution or item count ' + q.items.length, q); }
@@ -97,7 +99,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     assert(!bad.length, bad.join('\n'));
   });
 
-  await test('all 17 game modes start at levels 1, 2 and 3 and run for a moment', async () => {
+  await test('all 19 game modes start at levels 1, 2 and 3 and run for a moment', async () => {
     eq(await page.evaluate(() => Object.fromEntries(Object.keys(__ilhaDebug.STM).map(id => [id, __ilhaDebug.STM[id].modes.map((m, i) => i)]))), MODES, 'games per station');
     const seen = new Set();
     for (const id of STATION_IDS) {
@@ -112,7 +114,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         seen.add(id + ':' + type);
       }
     }
-    eq(seen.size, 17, 'distinct station:mode pairs started');
+    eq(seen.size, 19, 'distinct station:mode pairs started');
     await page.evaluate(() => document.querySelector('#m-quit').click());
   });
 
@@ -466,6 +468,8 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         else if (C.type === 'shapes') { const q = C.qs[C.idx], sh = D.SHAPES.find(x => x.n === q.n); go(st.spawn.x, st.spawn.z); go(sh.x + (sh.flat ? 0 : sh.r + .5), sh.z); }
         else if (C.type === 'shoot') { const b = C.balloons.find(b => b.alive && b.it.ok); if (b) { const p = b.sp.position, dx = p.x - D.P.x, dz = p.z - D.P.z, dy = p.y - (D.P.y + D.SCOPE.eye); let a = Math.atan2(dx, dz) - C.a0; a = Math.atan2(Math.sin(a), Math.cos(a)); C.ax = a; C.ay = Math.atan2(dy, Math.hypot(dx, dz)) + .05; run(2); if (D.aim() === b) { D.fire(); for (let i = 0; i < 90 && b.alive; i++) D.step(1 / 60); } } }
         else if (C.type === 'floor') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const t = C.tiles.find(t => t.ok); go(t.p.cx, t.p.cz, 1); run(20); document.querySelector('#b-sure').click(); run(3); }
+        else if (C.type === 'bus') { if (C.ph !== 'ask') { run(30); return false; } run(2); const p = C.pads.find(p => p.v === C.q.ans); go(p.x, p.z); run(4); }
+        else if (C.type === 'line') { if (C.hop) { const n = Math.abs(C.q.ans - C.pos); for (let i = 0; i < n; i++) { D.jump(); run(24); } } else go(st.c.x + C.B0 + C.q.ans * C.w, st.c.z - C.fixCam.x); run(3); document.querySelector('#b-sure').click(); run(3); }
         else if (C.type === 'kart') { if (C.phase === 'ready') C.phase = 'go'; const g = C.gates[C.idx]; C.v = 8; if (g) C.lat = (C.qs[C.idx].ans - 1) * 4; D.P.x = (g ? g.x : C.endX) - .3; run(6); }
         else if (C.type === 'simon') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const q = C.q, s = q.steps[C.si], idx = C.si, press = () => { const bt = document.querySelector('#b-sure'); if (!bt.hidden) bt.click(); };
           const spot = { dentro: [11, 7], embaixo: [2, -6], perto: [10, -5.5], longe: [-4, 11.5], entre: [2, 8] }, live = () => D.CH === C && C.q === q && C.si === idx && !C.locked;
@@ -601,6 +605,58 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       return { coins: S.coins, shirt: S.look.shirt, owned: S.owned.includes('kit:bra'), chest: !!chest, using: document.querySelector('.item[data-k="bra"]').classList.contains('eq') }; });
     eq(r, { coins: 20, shirt: 'bra', owned: true, chest: true, using: true }, 'after buying the Brasil shirt for 80 with 100 coins');
     await p.context().close();
+  });
+
+  await test('bus game: people get on and off in sight, the curtains hide them from level 2, a miss brings help, and level 3 can ask how many got on', async () => {
+    await enter(page, 'contas');
+    const r = await page.evaluate(() => {
+      const D = __ilhaDebug, S = D.S(), st = D.STM.contas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, out = {}, quit = () => { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); };
+      const play = (L, want) => { let g = 0; do { quit(); S.st.contas = S.st.contas || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; S.st.contas.level = L; D.startMode(st, st.modes[3]); } while (want && !want(D.CH.q) && ++g < 300); return D.CH; };
+      const toAsk = C => { const seen = { a: C.seated.length, closedAtMove: null }; for (let i = 0; i < 1500 && C.ph !== 'ask'; i++) { D.step(1 / 60); if (C.ph === 'move' && seen.closedAtMove === null) seen.closedAtMove = C.closed; } run(3); return seen; };
+      const step = (C, v) => { const p = C.pads.find(p => p.v === v); D.P.set(p.x, 0, p.z); run(4); };
+      /* level 1, adding: everybody in sight; the wrong pad counts the people, the right one ends the question */
+      let C = play(1, q => q.add && q.kind === 'res'), q = C.q, e0 = (S.errs || []).length, seen = toAsk(C);
+      out.l1 = [C.type, seen.a === q.a, seen.closedAtMove, C.seated.length === q.end, C.wait.length === q.b, C.pads.map(p => p.v).join() === q.opts.join(), C.closed, !!C.fixCam, document.body.classList.contains('fix')];
+      const wrong = q.opts.find(v => v !== q.ans); step(C, wrong); out.miss = [C.tries, C.locked, !!C.count, (S.errs || []).length - e0, S.errs[S.errs.length - 1].q === q.ask && S.errs[S.errs.length - 1].g === wrong];
+      const f0 = C.first; step(C, q.ans); out.right = [C.locked, C.first - f0, C.ph]; /* right at the second try: it ends the question, but it is not a first-try answer */
+      /* level 1, taking away: those who got off stand at the stop */
+      C = play(1, q => !q.add); q = C.q; toAsk(C); out.sub = [C.seated.length === q.end, C.gone.length === q.b];
+      /* level 2: the curtains are shut while people move, and stay shut for the question; a miss opens them */
+      C = play(2, q => q.add); q = C.q; seen = toAsk(C); out.l2 = [seen.closedAtMove, C.closed, C.seated.length === q.end]; step(C, q.opts.find(v => v !== q.ans)); out.l2miss = [C.closed, C.tries];
+      step(C, q.opts.find(v => v !== q.ans && !C.pads.find(p => p.v === v).used)); out.l2fail = [C.locked, C.ph];
+      /* level 3: two decks, and sometimes the question is how many got on or off */
+      C = play(3, q => q.kind === 'chg'); q = C.q; toAsk(C); out.l3 = [C.seated.length === q.end, q.ans === q.b, C.closed, C.bus.userData.cur.length];
+      const f1 = C.first; step(C, q.ans); out.l3right = [C.locked, C.first - f1];
+      quit(); out.after = [document.body.classList.contains('fix'), D.CH === null];
+      return out;
+    });
+    eq(r, { l1: ['bus', true, false, true, true, true, false, true, true], miss: [1, false, true, 1, true], right: [true, 0, 'out'], sub: [true, true], l2: [true, true, true], l2miss: [false, 1], l2fail: [true, 'out'], l3: [true, true, false, 2], l3right: [true, 1], after: [true, true] }, 'bus game');
+    eq(await page.evaluate(() => { __ilhaDebug.step(1 / 60); return document.body.classList.contains('fix'); }), false, 'the still camera lets go when the game ends');
+  });
+
+  await test('number line: each press is one hop, the stick can undo a hop, "Cheguei!" checks where the player stopped, and level 3 is walked', async () => {
+    await enter(page, 'contas');
+    const r = await page.evaluate(() => {
+      const D = __ilhaDebug, S = D.S(), st = D.STM.contas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, out = {}, quit = () => { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); }, sure = document.querySelector('#b-sure');
+      const play = (L, want) => { let g = 0; do { quit(); S.st.contas.level = L; D.startMode(st, st.modes[4]); } while (want && !want(D.CH.q) && ++g < 300); run(3); return D.CH; };
+      const hop = n => { for (let i = 0; i < n; i++) { D.jump(); run(24); } };
+      let C = play(1, q => q.add && q.b >= 2 && q.ans < q.N), q = C.q;
+      out.start = [C.type, C.pos === q.a, !!C.hop, sure.hidden, C.tiles.length, Math.abs(D.P.x - (st.c.x + C.B0 + q.a * C.w)) < .01];
+      const p0 = D.P.x; D.input.jy = -1; run(20); D.input.jy = 0; out.noWalk = Math.abs(D.P.x - p0) < .01 && D.P.z === st.c.z - C.fixCam.x;
+      hop(q.b + 1); out.over = [C.pos === q.ans + 1, !sure.hidden]; D.input.jx = -1; run(24); D.input.jx = 0; run(4); out.undo = C.pos === q.ans;
+      const f0 = C.first; sure.click(); run(2); out.right = [C.locked, C.first - f0];
+      /* stopping one short is a miss: back to the first number, and the mistake is kept for the report */
+      C = play(1, q => !q.add && q.b >= 2); q = C.q; const e0 = (S.errs || []).length; hop(q.b - 1); sure.click(); run(2);
+      out.miss = [C.tries, C.locked, C.pos === q.a, S.errs.length - e0, S.errs[S.errs.length - 1].g === q.a - (q.b - 1)];
+      hop(q.b); sure.click(); run(2); out.second = [C.locked, C.first];
+      /* the ends of the line stop the hops */
+      C = play(1, q => q.add); C.pos = C.q.N; C.hop.from = C.hop.to = C.q.N; hop(1); out.end = C.pos === C.q.N;
+      /* level 3: no hops; the player walks to the number */
+      C = play(3); q = C.q; out.l3 = [C.hop === null, C.q.N];
+      D.P.set(st.c.x + C.B0 + q.ans * C.w, 0, st.c.z - C.fixCam.x); run(4); out.l3at = [C.pos === q.ans, !sure.hidden]; const f1 = C.first; sure.click(); run(2); out.l3right = [C.locked, C.first - f1];
+      quit(); return out;
+    });
+    eq(r, { start: ['line', true, true, true, 11, true], noWalk: true, over: [true, true], undo: true, right: [true, 1], miss: [1, false, true, 1, true], second: [true, 0], end: true, l3: [true, 20], l3at: [true, true], l3right: [true, 1] }, 'number line');
   });
 
   await test('balloon game: played through a scope - the player stands still, the stick moves the aim, and the shot goes to the balloon under the cross', async () => {

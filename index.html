@@ -98,6 +98,7 @@ input{user-select:text;-webkit-user-select:text}
 #scope.miss i{animation:scopemiss .5s}
 @keyframes scopemiss{0%,100%{box-shadow:inset 0 0 0 3px rgba(255,255,255,.5),inset 0 0 70px rgba(6,10,20,.5)}30%{box-shadow:inset 0 0 0 3px rgba(255,255,255,.5),inset 0 0 90px rgba(229,57,53,.85)}}
 body.fp #b-jump,body.fp .rot,body.fp #where{display:none}
+body.fix #b-rl,body.fix #b-rr{display:none}
 body.fp #toast{pointer-events:none;font-size:17px;padding:8px 14px}
 #b-jump:active,#b-fire:active,#b-act:active,#b-sure:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
 #b-sure{padding:13px 18px;border-radius:16px;background:var(--gold);border:4px solid var(--ink);font-weight:700;font-size:20px;box-shadow:0 5px 0 var(--ink)}
@@ -294,7 +295,8 @@ const SKN={'vocab.cima':'Em cima e embaixo','vocab.dentro':'Dentro e fora','voca
   'dinheiro.qt':'Somar notas e moedas','dinheiro.pague':'Pagar o valor exato','dinheiro.vale':'Comparar quantias','dinheiro.leve':'Montar um valor no caixa','dinheiro.troco':'Calcular o troco','dinheiro.compre':'O que dá para comprar','dinheiro.trocado':'Dar dinheiro trocado',
   'n100.dez':'Dezenas e unidades','n100.viz':'Vizinhos: antes, depois, entre','n100.maior':'Comparar números até 100','n100.fam':'Famílias das dezenas','n100.monte':'Montar número com barras de 10','n100.quadro':'Quadro do 100','n100.seq':'Contar de 2 em 2, 5 em 5, 10 em 10','n100.conta':'Somar com dezenas',
   'medidas.comp':'Comprimento','medidas.altura':'Altura','medidas.peso':'Peso','medidas.capac':'Cheio e vazio','medidas.tempo':'Manhã e noite','medidas.semana':'Dias da semana','medidas.clipes':'Medir com clipes','medidas.esc1':'Escada: contar degraus','medidas.esc2':'Escada: a mais e a menos','medidas.esc3':'Escada: entre duas alturas','medidas.esc4':'Escada: somar degraus',
-  'contas.soma':'Adição','contas.sub':'Subtração','contas.decompor':'Jeitos de formar um número',
+  'contas.juntar':'Juntar: quantos ficam quando sobem no ônibus','contas.tirar':'Tirar: quantos ficam quando descem do ônibus','contas.falta':'Descobrir quantos subiram ou desceram','contas.retamais':'Somar pulando para a frente na reta','contas.retamenos':'Subtrair pulando para trás na reta',
+  'contas.soma':'Adição (conta escrita)','contas.sub':'Subtração (conta escrita)','contas.decompor':'Jeitos de formar um número',
   'ordem.depois':'O número que vem depois','ordem.antes':'O número que vem antes','ordem.maior':'Achar um número maior','ordem.menor':'Achar um número menor','ordem.salto':'Contar pulando: 2, 5, 10','ordem.seq':'Sequência crescente','ordem.seqdec':'Sequência decrescente',
   'formas.tfig':'Figuras planas pelo nome','formas.tsol':'Sólidos pelo nome','formas.lados4':'Figuras de 4 lados','formas.lados3':'Figuras de 3 lados','formas.rolam':'Formas que rolam','formas.semcanto':'Figuras sem cantos'};
 const skillName=id=>SKN[id]||'Reconhecer: '+id.split('.')[1];
@@ -307,6 +309,8 @@ function pickSkill(pre,list){const prev=prevPick[pre],due=list.filter(t=>t!==pre
   if(due.length&&Math.random()<.5)t=pick(due);
   else{let c=list.filter(x=>x!==prev);if(!c.length)c=list;const w=c.map(x=>{const k=S.sk[pre+'.'+x];return k?1+(1-k.r)*1.5:1.6});let r=Math.random()*sum(w);t=c[c.length-1];for(let i=0;i<c.length;i++){r-=w[i];if(r<0){t=c[i];break}}}
   prevPick[pre]=t;return tag(pre,t)}
+/* the last wrong answers, each with its question, the right answer and the one given: the report shows what kind of mistake comes back */
+function noteErr(skill,q,r,g){if(!Array.isArray(S.errs))S.errs=[];S.errs.push({s:String(skill||''),q:String(q).slice(0,40),r:+r,g:+g,d:dayNum()});while(S.errs.length>40)S.errs.shift()}
 function record(id,first,skill){const s=stat(id);s.total++;if(first)s.first++;
   if(skill){const k=S.sk[skill]||(S.sk[skill]={n:0,f:0,r:0,w:0,d:0});k.r=k.n?Math.round((k.r*.7+(first?.3:0))*1000)/1000:first?1:0;k.n++;if(first){k.f++;if(k.w>0)k.w--}else k.w=2;k.d=dayNum()}
   const wk=weekKey(),W=S.wk[wk]||(S.wk[wk]={}),a=W[id]||(W[id]=[0,0]);a[1]++;if(first)a[0]++;
@@ -838,9 +842,14 @@ function mkExpr(v,L){const sub=Math.random()<(L===1?.3:.45);
   if(L<3){if(sub){const b=rnd(1,L===1?5:9),a=v+b;if(a>(L===1?10:20))return null;return `${a} − ${b}`}if(v<2)return null;const a=rnd(1,v-1);return `${a} + ${v-a}`}
   if(sub){const b=pick([10,20,1,2,3]),a=v+b;if(a>99)return null;return `${a} − ${b}`}
   const tens=Math.floor(v/10),u=v%10;if(Math.random()<.5&&tens>=2){const x=rnd(1,tens-1)*10;return `${x} + ${v-x}`}if(u>=1){const k=rnd(1,u);return `${v-k} + ${k}`}return `${v-10} + 10`}
-function genShootArith(L){tag('contas','decompor');const T=L===1?rnd(4,10):L===2?rnd(8,18):pick([20,30,40,50,60,70,80])+(Math.random()<.5?0:rnd(1,8));
-  const ok=new Set();let g=0;while(ok.size<3&&g<200){g++;const e=mkExpr(T,L);if(e)ok.add(e)}
-  const bad=new Set();g=0;while(bad.size<5&&g<400){g++;const v=T+pick(L===3?[-10,-2,-1,1,2,10]:[-2,-1,1,2,3]);if(v<1)continue;const e=mkExpr(v,L);if(e&&!ok.has(e))bad.add(e)}
+/* Levels 1 and 2: one sum, and balloons with numbers - a single thing to work out. Level 3 keeps the hunt for every sum that makes a number
+   (several sums to work out for one question), with fewer balloons than before. */
+function genShootArith(L){
+  if(L<3){const q=genArith(L),ask=`${q.a} ${q.op} ${q.b}`,nums=optNums(q.ans,[q.ans+1,q.ans-1,q.ans+2,q.ans-2,q.op==='+'?Math.abs(q.a-q.b):q.a+q.b,q.ans+10],0,30,5);
+    return {T:q.ans,ask,text:`Quanto é <b>${ask}</b>? Estoure o balão com a resposta`,items:nums.map(v=>({label:String(v),ok:v===q.ans})),explain:`${ask} = ${q.ans}`}}
+  tag('contas','decompor');const T=pick([20,30,40,50,60,70,80])+(Math.random()<.5?0:rnd(1,8));
+  const ok=new Set();let g=0;while(ok.size<2&&g<200){g++;const e=mkExpr(T,L);if(e)ok.add(e)}
+  const bad=new Set();g=0;while(bad.size<4&&g<400){g++;const v=T+pick([-10,-2,-1,1,2,10]);if(v<1)continue;const e=mkExpr(v,L);if(e&&!ok.has(e))bad.add(e)}
   const items=shuffle([...[...ok].map(l=>({label:l,ok:true})),...[...bad].map(l=>({label:l,ok:false}))]);
   return {T,text:`Estoure TODOS os balões que dão <b>${T}</b>`,items,explain:`Todos esses dão ${T}!`}}
 const FIGS=['círculo','quadrado','triângulo','retângulo'],SOLS=['esfera','cubo','cilindro','cone','pirâmide','bloco'];
@@ -899,7 +908,7 @@ function genBuild(L){
 /* ================= STATIONS / WORLDS ================= */
 const STATIONS=[
   {id:'contas',name:'Obby das Contas',sub:'Adição e subtração',color:'#E8413A',world:'Ilhas do Mar',sky:'#FFD9A8',ground:['#F2D99B','#E5C77F'],prop:'palm',npc:{name:'Rafa',skin:'#C98E5F',shirt:'#E8413A',pants:'#1F3F8A',hat:'bone'},
-    intro:'Eu sou o Rafa! Aqui no mar a gente faz contas de mais e de menos. Escolha o jogo:',modes:[{k:'obby',i:'⬆',n:'Obby das Contas',d:'Pule na plataforma com a resposta. Errou? Cai na água!'},{k:'shoot',gen:genShootArith,i:'🎯',n:'Estoura-Balão',d:'Mire e estoure os balões com a conta certa.'},{k:'kart',i:'🏎️',n:'Kart das Contas',d:'Acelere, freie para pensar e passe pelo portão com o resultado.'}]},
+    intro:'Eu sou o Rafa! Aqui no mar a gente faz contas de mais e de menos. Escolha o jogo:',modes:[{k:'obby',i:'⬆',n:'Obby das Contas',d:'Pule na plataforma com a resposta. Errou? Cai na água!'},{k:'shoot',gen:genShootArith,i:'🎯',n:'Estoura-Balão',d:'Mire e estoure os balões com a conta certa.'},{k:'kart',i:'🏎️',n:'Kart das Contas',o:5,d:'Acelere, freie para pensar e passe pelo portão com o resultado.'},{k:'bus',o:1,i:'🚌',n:'Ônibus dos Números',d:'Veja quem sobe e quem desce e descubra quantos ficaram.'},{k:'line',o:2,i:'🦘',n:'Pulos na Reta',d:'Somar é pular para a frente. Tirar é pular para trás.'}]},
   {id:'ordem',name:'Corrida dos Números',sub:'A ordem dos números',color:'#FF8A1F',world:'Estádio',sky:'#9FDBFF',ground:['#4CB84A','#43A743'],prop:'stand',npc:{name:'Juca',skin:'#FFD9B3',shirt:'#FF8A1F',pants:'#20242E',hat:'nenhum'},
     intro:'Oi, eu sou o Juca! Bem-vindo ao estádio dos números. Bora correr?',modes:[{k:'order',i:'🏃',n:'Corrida dos Cubos',d:'Pegue os cubos na ordem certa.'},{k:'floor',gen:genFloorOrder,i:'🌋',n:'Chão de Lava',d:'Fique no número certo antes do tempo acabar!'}]},
   {id:'vocab',name:'Vila das Posições',sub:'Vocabulário fundamental',color:'#2DB34A',world:'Vila',sky:'#BFE8FF',ground:['#7ED36B','#6CC25B'],prop:'house',npc:{name:'Bia',skin:'#8D5A3B',shirt:'#2DB34A',pants:'#5B6475',hat:'nenhum'},
@@ -918,7 +927,7 @@ const STATIONS=[
 const STM=Object.fromEntries(STATIONS.map(s=>[s.id,s]));
 STATIONS.forEach(s=>{s.npc.hair=({Rafa:'#1E1A1A',Juca:'#E8C15A',Bia:'#1E1A1A',Theo:'#5A3A22',Lia:'#C1502A','Seu Zé':'#B3BCC7',Duda:'#5A3A22',Nina:'#2A1C14'})[s.npc.name]});
 const withArt=name=>`${({'Bia':'a','Lia':'a','Duda':'a','Nina':'a','Ana':'a'})[name]||'o'} ${name}`;
-window.__ilha={genSimon,genVocab,genN10,genMoney,genN100,genMeasure,genArith,genShapeQ,genShootArith,genShootShapes,genFloorOrder,genFloorN100,genShareN10,genShareMoney,genBuild};
+window.__ilha={genBus,genLine,genSimon,genVocab,genN10,genMoney,genN100,genMeasure,genArith,genShapeQ,genShootArith,genShootShapes,genFloorOrder,genFloorN100,genShareN10,genShareMoney,genBuild};
 if(typeof THREE==='undefined'){document.body.insertAdjacentHTML('beforeend','<div id="err">Não consegui carregar o mundo 3D. Verifique a internet e abra a página de novo.</div>');return}
 
 /* ================= THREE BASICS ================= */
@@ -1401,14 +1410,14 @@ const endP=e=>{if(e.pointerId===joyId)releaseJoy();if(e.pointerId===camId)camId=
 touch.addEventListener('pointermove',e=>{
   if(e.pointerType==='mouse'&&e.buttons===0)return endP(e);
   if(e.pointerId===joyId){let dx=e.clientX-joyO.x,dy=e.clientY-joyO.y;const d=Math.hypot(dx,dy),m=55;if(d>m){dx*=m/d;dy*=m/d}knob.style.transform=`translate(${dx}px,${dy}px)`;input.jx=dx/m;input.jy=dy/m}
-  else if(e.pointerId===camId){const dx=e.clientX-camLast.x,dy=e.clientY-camLast.y;if(CH&&CH.fp)scopeDrag(dx,dy);else{yaw-=dx*.01;pitch=clamp(pitch+dy*.006,.05,1.15)}camLast={x:e.clientX,y:e.clientY}}});
+  else if(e.pointerId===camId){const dx=e.clientX-camLast.x,dy=e.clientY-camLast.y;if(CH&&CH.fp)scopeDrag(dx,dy);else if(!(CH&&CH.fixCam)){yaw-=dx*.01;pitch=clamp(pitch+dy*.006,.05,1.15)}camLast={x:e.clientX,y:e.clientY}}});
 ['pointerup','pointercancel'].forEach(t=>addEventListener(t,endP,true));
 touch.addEventListener('lostpointercapture',endP);
 ['touchend','touchcancel'].forEach(t=>addEventListener(t,e=>{if(e.touches&&!e.touches.length){if(joyId!==null&&joyType==='touch')releaseJoy();if(camType==='touch')camId=null}},{capture:true,passive:true}));
 ['blur','pagehide'].forEach(t=>addEventListener(t,resetInput));
 document.addEventListener('visibilitychange',()=>{if(document.hidden)resetInput()});
 addEventListener('contextmenu',e=>{if(!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))e.preventDefault()});
-touch.addEventListener('wheel',e=>{if(CH&&CH.fp)return scopeDrag(e.deltaX*.4,e.deltaY*.4);yaw-=e.deltaX*.004;pitch=clamp(pitch+e.deltaY*.002,.05,1.15)},{passive:true});
+touch.addEventListener('wheel',e=>{if(CH&&CH.fp)return scopeDrag(e.deltaX*.4,e.deltaY*.4);if(CH&&CH.fixCam)return;yaw-=e.deltaX*.004;pitch=clamp(pitch+e.deltaY*.002,.05,1.15)},{passive:true});
 $('#b-jump').addEventListener('pointerdown',e=>{e.preventDefault();input.jump=true});
 $('#b-fire').addEventListener('pointerdown',e=>{e.preventDefault();fire()});
 [['#b-rl',1],['#b-rr',-1]].forEach(([id,d])=>{const b=$(id);
@@ -1431,6 +1440,7 @@ function updatePlayer(dt){
   if(keys['a']||keys['arrowleft'])jx=-1;if(keys['d']||keys['arrowright'])jx=1;if(keys['w']||keys['arrowup'])jy=-1;if(keys['s']||keys['arrowdown'])jy=1;
   if(paused||(ANIM&&ANIM.lock)){jx=jy=0;input.jump=false}
   if(CH&&CH.fp){input.jump=false;scopeAim(dt,jx,jy);return}
+  if(CH&&CH.hop){lineMove(dt,jx);return}
   if(CH&&CH.type==='kart'){input.jump=false;kartDrive(dt,jx,jy);return}
   const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
   let mx=fx*(-jy)+rx*jx,mz=fz*(-jy)+rz*jx,m=Math.hypot(mx,mz);if(m>1){mx/=m;mz/=m;m=1}
@@ -1440,7 +1450,7 @@ function updatePlayer(dt){
     if(ea>0&&eb>0){if(ea<eb)a+=Math.sign(a||1)*ea;else b+=Math.sign(b||1)*eb;P.x=p.cx+a*p.ux+b*p.vx;P.z=p.cz+a*p.uz+b*p.vz}}
   if(m>.08)rotY=lerpA(rotY,Math.atan2(mx,mz),Math.min(1,dt*12));
   const rot=camRot||(keys['q']?1:keys['r']?-1:0);
-  if(rot)yaw+=rot*dt*2.3;else if(camId===null&&!paused&&m>.1&&-jy>.3&&camMode==='follow')yaw=lerpA(yaw,rotY+Math.PI,Math.min(1,dt*1.4*m));
+  if(CH&&CH.fixCam){}else if(rot)yaw+=rot*dt*2.3;else if(camId===null&&!paused&&m>.1&&-jy>.3&&camMode==='follow')yaw=lerpA(yaw,rotY+Math.PI,Math.min(1,dt*1.4*m));
   if(input.jump&&onGround){vy=hasPower('pulo')?11.5:8.6;onGround=false;jumpCount++;sfx.jump()}input.jump=false;
   const prevY=P.y;vy-=24*dt;P.y+=vy*dt;const g=groundAt(P.x,P.z,prevY);
   if(P.y<=g.h){P.y=g.h;vy=0;onGround=true;standing=g.on}else{onGround=false;standing=null}
@@ -1462,9 +1472,13 @@ function updatePet(dt){if(!PET)return;const bx=P.x-Math.sin(rotY)*1.6+Math.cos(r
 const tmpV=new THREE.Vector3(),tmpC=new THREE.Vector3();
 /* camLook is the height the camera aims at: raised when a question has a board, so the board shows below the mission panel */
 let camLook=1.7;
+let fixOn=false;
 function updateCam(dt){
   /* through the scope: the camera is the player's eye, turned by the aim (with a small kick up after a shot) */
   if(CH&&CH.fp){const a=CH.a0+CH.ax,e=CH.ay+CH.kick*.12,c=Math.cos(e),y=P.y+SCOPE.eye;camera.position.set(P.x,y,P.z);camera.lookAt(P.x+Math.sin(a)*c*10,y+Math.sin(e)*10,P.z+Math.cos(a)*c*10);return}
+  const fix=!!(CH&&CH.fixCam&&camMode==='follow');if(fix!==fixOn){fixOn=fix;document.body.classList.toggle('fix',fix)}
+  /* a view that stands still, in front of the scene of the game and far enough to show all of it whatever the shape of the screen */
+  if(fix){const f=CH.fixCam,c=CH.st.c,d=Math.max(f.min,f.len/(2*Math.tan(camera.fov*Math.PI/360)*camera.aspect*.92));tmpC.set(c.x+f.z,f.ly+d*f.up,c.z-f.x+d);camera.position.lerp(tmpC,1-Math.pow(.0005,dt));camera.lookAt(c.x+f.z,f.ly,c.z-f.x);return}
   let ty=yaw,dist=10,py=pitch,ly=camLook;if(camMode==='front'){ty=rotY;dist=6.5;py=.12;ly=.2}else if(camMode==='cele'){ty=rotY;dist=8.5;py=.12;ly=1.9}
   tmpC.set(P.x+Math.sin(ty)*Math.cos(py)*dist,Math.max(P.y,-1)+1.8+Math.sin(py)*dist,P.z+Math.cos(ty)*Math.cos(py)*dist);
   /* under the roof of the trophy hall the camera stays below the ceiling instead of sitting inside it */
@@ -1493,15 +1507,15 @@ function act(){if(!near)return;sfx.tap();if(near.kind==='shop')openShop();else i
 actB.onclick=act;
 function talk(st){const s=stat(st.id);
   openSheet(`<div class="dlg"><span class="dlg-name" style="--c:${st.color}">${st.npc.name}</span><p>${st.intro}</p>
-    <div class="modes">${st.modes.map((m,i)=>`<button class="mode" data-i="${i}" style="--c:${st.color}"><span class="mi">${m.i}</span><span><b>${m.n}</b><small>${m.d}</small></span></button>`).join('')}</div>
+    <div class="modes">${st.modes.map((m,i)=>[m,i]).sort((x,y)=>(x[0].o||3)-(y[0].o||3)).map(([m,i])=>`<button class="mode" data-i="${i}" style="--c:${st.color}"><span class="mi">${m.i}</span><span><b>${m.n}</b><small>${m.d}</small></span></button>`).join('')}</div>
     <div class="small">${st.sub} · Nível ${s.level} de 3 · ★ ${s.stars||0} · ${['Sem medalha ainda','Melhor medalha: bronze 🥉','Melhor medalha: prata 🥈','Melhor medalha: ouro 🥇','TAÇA DE OURO 🏆'][S.trophies[st.id]||0]}</div>
     <div class="btns"><button class="btn" id="d-no">Agora não</button><button class="btn icon" id="d-spk" aria-label="Ouvir">🗣️</button></div></div>`);
   $$('.mode').forEach(b=>b.onclick=()=>{sfx.tap();closeSheet();quit3D(true);startMode(st,st.modes[+b.dataset.i])});
-  const intro=st.intro+' '+st.modes.map(m=>m.n).join(', ou ')+'.';
+  const intro=st.intro+' '+st.modes.slice().sort((x,y)=>(x.o||3)-(y.o||3)).map(m=>m.n).join(', ou ')+'.';
   $('#d-no').onclick=()=>{sfx.tap();closeSheet()};$('#d-spk').onclick=()=>speak(intro,null,true,st.npc.name);speak(intro,null,false,st.npc.name)}
 function startMode(st,m){flushFin();const lvl=stat(st.id).level;
   if(m.k==='act')startAct(st,m.gen);else if(m.k==='obby')startObby(st);else if(m.k==='order')startOrder(st);else if(m.k==='shapes')startShapes(st);
-  else if(m.k==='shoot')startShoot(st,m.gen);else if(m.k==='floor')startFloor(st,m.gen);else if(m.k==='share')startShare(st,m.gen);else if(m.k==='build')startBuild(st,m.gen);else if(m.k==='simon')startSimon(st);else if(m.k==='kart')startKart(st,m.gen);
+  else if(m.k==='shoot')startShoot(st,m.gen);else if(m.k==='floor')startFloor(st,m.gen);else if(m.k==='share')startShare(st,m.gen);else if(m.k==='build')startBuild(st,m.gen);else if(m.k==='simon')startSimon(st);else if(m.k==='kart')startKart(st,m.gen);else if(m.k==='bus')startBus(st);else if(m.k==='line')startLine(st);
   if(CH){CH.mode=m;CH.level=lvl}}
 function friendTalk(f){if(f.cool>0){openSheet(`<div class="quiz"><p><b>${f.name}:</b> Valeu pela ajuda! Volte daqui a pouquinho que eu tenho outra charada. 😄</p><button class="btn go" id="q-x">Tchau!</button></div>`);$('#q-x').onclick=()=>closeSheet();return}
   const L=Math.max(stat('contas').level,stat('n10').level),q=genArith(L),thing=pick([['figurinhas','a'],['balas','a'],['carrinhos','o'],['bolinhas de gude','a'],['adesivos','o']]);
@@ -1782,7 +1796,7 @@ function updateShoot(dt){CH.cool-=dt;if(CH.kick>0)CH.kick=Math.max(0,CH.kick-dt)
     if(s.life<=0){drop(s.m);return false}return true})}
 function hitBalloon(b){if(!b.alive||CH.locked)return;b.alive=false;sfx.pop();
   if(b.it.ok){CH.left--;if(CH.left<=0)okRound(null,CH.q.explain,null,nextShoot);else{toast(`💥 Isso! Faltam ${CH.left}.`,1600);shootMission()}}
-  else{CH.tries++;toast(b.it.label?`Ops! ${b.it.label} não dá ${CH.q.T}.`:`Ops! Esse era ${['esfera','pirâmide'].includes(b.it.name)?'uma':'um'} ${b.it.name.toUpperCase()}.`,4200,true);sfx.bad();sfx.sad();
+  else{CH.tries++;if(CH.q.ask)noteErr(CH.skill,CH.q.ask,CH.q.T,+b.it.label);toast(b.it.label?(CH.q.ask?`Ops! ${CH.q.ask} não é ${b.it.label}.`:`Ops! ${b.it.label} não dá ${CH.q.T}.`):`Ops! Esse era ${['esfera','pirâmide'].includes(b.it.name)?'uma':'um'} ${b.it.name.toUpperCase()}.`,4200,true);sfx.bad();sfx.sad();
     const sc=$('#scope');sc.classList.remove('miss');void sc.offsetWidth;sc.classList.add('miss')}}
 function nextShoot(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadShootQ()}
 
@@ -1871,6 +1885,130 @@ function updateBuild(dt){updatePickups(CH.items,CH.held,dt,10);
       CH.chest={m:cm,x:w.x,z:w.z,y:k*.7,g};CH.chestT=40;playAnim('cheer');toast(`<b>${pick(CHEERS)}</b>${coinTxt(g)} Agora SUBA a escada e pegue o baú! 🎁`,4500,true);return}
     CH.tries++;if(CH.tries>=2)return failRound(`Sua escada tem ${n} degraus. ${CH.q.explain}`,null,nextBuild);hintBad(`Sua escada tem ${n} degraus. ${CH.q.hint}`)})}
 function nextBuild(){if(!CH||CH.type!=='build')return;CH.idx++;if(CH.idx>=CH.n)return done3D();loadBuildQ()}
+
+/* ---- 🚌 ÔNIBUS DOS NÚMEROS: adding is people getting on, taking away is people getting off ----
+   The bus has ten seats in two rows of five (a ten-frame); at level 3 it has a second deck with ten more.
+   Level 1: everything stays in sight, so the answer can be counted. Level 2: the curtains close before people get on or off, so it has
+   to be worked out. Level 3: bigger numbers, or the question is how many got on or off. The camera stands still, facing the bus stop. */
+/* The bus and the number-line games face the side of the island, away from the obby course: in their arena "ahead" is -z of the world
+   and "to the right" is +x (the arena group is turned a quarter). FW gives the place in the world of a spot of that arena. */
+const FW=(st,A,B)=>({x:st.c.x+B,z:st.c.z-A});
+const BUS={A:12,s:1.5,far:24,cols:[-2.6,-1.3,0,1.3,2.6],skin:['#FFD9B3','#E9B07F','#C98E5F','#8D5A3B'],shirt:['#E8413A','#2E8BF0','#2DB34A','#FF8A1F','#8B4CF0','#FF5FA2','#FFFFFF'],hair:['#1E1A1A','#5A3A22','#E8C15A','#C1502A']};
+/* seat i in the arena's space, for a bus standing at B: seats 0-4 are the near row, 5-9 the far row (a step higher), 10-19 the same on the upper deck */
+function busSeat(i,B){const deck=Math.floor(i/10),k=i%10,far=k>=5;return {x:BUS.A+(far?.62:-.62)*BUS.s,y:(1.15+(far?.32:0)+deck*2.05)*BUS.s,z:B+BUS.cols[k%5]*BUS.s}}
+const busSpot=i=>({x:BUS.A-3.4,y:0,z:-2.9+i*1.15});
+function genBus(L){const kind=L===3&&Math.random()<.45?'chg':'res',t=pickSkill('contas',kind==='chg'?['falta']:['juntar','tirar']),add=kind==='chg'?Math.random()<.6:t==='juntar';let a,b;
+  if(kind==='chg'){if(add){a=rnd(2,7);b=rnd(1,Math.min(4,10-a))}else{a=rnd(4,10);b=rnd(1,Math.min(4,a-1))}}
+  else if(L===1){if(add){a=rnd(1,6);b=rnd(1,Math.min(3,10-a))}else{a=rnd(3,8);b=rnd(1,Math.min(3,a-1))}}
+  else if(L===2){if(add){a=rnd(2,8);b=rnd(1,Math.min(5,10-a))}else{a=rnd(4,10);b=rnd(1,Math.min(5,a-1))}}
+  else if(add){a=rnd(6,14);b=rnd(2,Math.min(6,20-a))}else{a=rnd(9,20);b=rnd(2,6)}
+  const op=add?'+':'−',end=add?a+b:a-b,ans=kind==='chg'?b:end,eq=`${a} ${op} ${b} = ${end}`;
+  const text=kind==='chg'?`Tinha <b>${a}</b> no ônibus. Agora tem <b>${end}</b>. Quantos <b>${add?'SUBIRAM':'DESCERAM'}</b>?`:add?`Tinha <b>${a}</b> no ônibus e subiram <b>${b}</b>. Quantos estão no ônibus <b>agora</b>?`:`Tinha <b>${a}</b> no ônibus e desceram <b>${b}</b>. Quantos <b>ficaram</b> no ônibus?`;
+  return {a,b,op,add,kind,end,ans,eq,text,skill:lastSkill,ask:kind==='chg'?`${a} ${op} ? = ${end}`:`${a} ${op} ${b}`,opts:optNums(ans,kind==='chg'?[ans+1,ans-1,ans+2,end,a]:[ans+1,ans-1,ans+2,ans-2,add?a-b:a+b,a],0,20,3)}}
+function busPerson(){const g=new THREE.Group();g.add(mesh(BOX(.46,.62,.34),pick(BUS.shirt),0,.31,0),mesh(BOX(.4,.4,.4),pick(BUS.skin),0,.83,0),mesh(BOX(.42,.13,.42),pick(BUS.hair),0,1.07,0));g.scale.setScalar(BUS.s);return g}
+function buildBus(decks){const g=new THREE.Group(),Y='#FFC83D',D='#2A2F3A',top=1.15+decks*2.05+.7;
+  g.add(mesh(BOX(2.7,.8,7.6),Y,0,.75,0),mesh(BOX(2.74,.16,7.64),'#E53935',0,.62,0));
+  [[-1.36,-2.5],[1.36,-2.5],[-1.36,2.5],[1.36,2.5]].forEach(([x,z])=>{const w=mesh(new THREE.CylinderGeometry(.5,.5,.3,14),D,x,.5,z);w.rotation.z=Math.PI/2;g.add(w)});
+  g.add(mesh(BOX(2.7,1.45,.9),Y,0,1.87,4.25),mesh(BOX(2.3,.8,.1),'#BFE8FF',0,2.05,4.72),mesh(BOX(.5,.3,.12),'#FFF6C2',-.8,.9,3.82),mesh(BOX(.5,.3,.12),'#FFF6C2',.8,.9,3.82));
+  for(let d=0;d<decks;d++){const y=1.15+d*2.05;if(d)g.add(mesh(BOX(2.7,.16,7.6),Y,0,y-.08,0));g.add(mesh(BOX(1.3,.32,7.2),'#C99A1E',.64,y+.16,0))}
+  [[-1.27,-3.7],[1.27,-3.7],[-1.27,3.7],[1.27,3.7]].forEach(([x,z])=>g.add(mesh(BOX(.14,top-1.15,.14),D,x,(top+1.15)/2,z)));
+  g.add(mesh(BOX(2.9,.18,7.9),'#E53935',0,top+.09,0));
+  /* the curtains: one closed box per deck, just inside the pillars; while they are shut nobody on that deck can be seen */
+  const cur=[];for(let d=0;d<decks;d++){const y0=1.15+d*2.05,y1=d===decks-1?top:y0+2.05-.16,c=mesh(BOX(2.6,y1-y0,7.36),'#4C6FB8',0,(y0+y1)/2,0);c.visible=false;g.add(c);cur.push(c)}
+  g.userData.cur=cur;g.scale.setScalar(BUS.s);return g}
+const busCurtain=on=>{CH.closed=on;CH.bus.userData.cur.forEach(c=>c.visible=on)};
+/* the board over the stop: "+2", "−3", the running count, and the whole sum at the end */
+function busBoard(text,col){const C=CH,b=C.board,g=b.c.getContext('2d');g.clearRect(0,0,512,256);b.sp.visible=!!text;if(!text)return;g.fillStyle=col||'#FFFFFF';rr(g,10,34,492,188,44);g.fill();g.lineWidth=12;g.strokeStyle=INK;g.stroke();bigText(g,text,256,134,440,128,col?'#fff':INK);b.t.needsUpdate=true}
+function startBus(st){CH={type:'bus',st,n:5,idx:0,first:0,coins:0};loadBusQ()}
+function loadBusQ(){clearArena();const C=CH,G=beginArena(C.st);G.rotation.y=Math.PI/2;const lvl=stat(C.st.id).level,q=genBus(lvl),decks=lvl===3?2:1;
+  Object.assign(C,{q,lvl,skill:q.skill,tries:0,locked:false,ph:'in',t:0,busB:-BUS.far,seated:[],wait:[],gone:[],hops:[],pads:[],closed:false,moved:0,stepT:0,count:null});
+  G.add(mesh(BOX(5.6,.04,52),'#5B6475',BUS.A,.03,0,false),mesh(BOX(2.2,.05,15),'#D9D2C5',BUS.A-3.6,.03,0,false));
+  for(let k=-5;k<=5;k++)G.add(mesh(BOX(.2,.05,1.8),'#FFFFFF',BUS.A+2.4,.06,k*4.4,false));
+  G.add(mesh(BOX(.16,3.4,.16),'#5B6475',BUS.A-3.4,1.7,-6.4));
+  const sg=sprite(texOf(g=>{g.fillStyle='#2E8BF0';rr(g,28,28,200,200,36);g.fill();g.lineWidth=10;g.strokeStyle=INK;g.stroke();emo(g,'🚌',128,112,104);bigText(g,'PONTO',128,200,180,40,'#fff')}),2,2);sg.position.set(BUS.A-3.4,4.1,-6.4);G.add(sg);
+  C.bus=buildBus(decks);C.bus.position.set(BUS.A,0,C.busB);G.add(C.bus);
+  for(let i=0;i<q.a;i++){const p=busPerson();G.add(p);C.seated.push(p)}
+  if(q.kind==='res'&&q.add)for(let i=0;i<q.b;i++){const p=busPerson(),s=busSpot(i);p.position.set(s.x,0,s.z);G.add(p);C.wait.push(p)}
+  const bc=cv(512,256,()=>{}),bt=tex(bc);CHX.texs.push(bt);const bs=sprite(bt,4.6,2.3);bs.position.set(BUS.A-1,decks===2?7:4.9,9.7);bs.material.depthTest=false;bs.renderOrder=6;bs.visible=false;G.add(bs);C.board={c:bc,t:bt,sp:bs};
+  /* the camera stays put, far enough to show the whole bus on any screen; the player starts in front of the answer pads */
+  C.fixCam={x:BUS.A,z:1.6,ly:decks===2?3.9:3,len:20,min:15,up:decks===2?.2:.16};
+  const w=FW(C.st,BUS.A-8.1,1.95),f=FW(C.st,BUS.A,1.95);teleport(w.x,w.z,f.x,f.z);busPlace();
+  setMission(`<span class="vt">🚌 ÔNIBUS</span>${C.idx+1}/${C.n} · Lá vem o ônibus! Olhe bem quem está nele.`)}
+function busPlace(){const C=CH;C.bus.position.z=C.busB;C.seated.forEach((p,i)=>{if(p.userData.hop)return;const s=busSeat(i,C.busB);p.position.set(s.x,s.y,s.z)})}
+/* a person jumps in an arc from where they are to a spot (given as a function, because a seat moves with the bus) */
+function busHop(p,to,done){p.userData.hop=true;CH.hops.push({p,x:p.position.x,y:p.position.y,z:p.position.z,to,t:0,done})}
+function busPhase(ph){const C=CH,q=C.q;C.ph=ph;C.t=0;const head=`<span class="vt">🚌 ÔNIBUS</span>${C.idx+1}/${C.n} · `;
+  if(ph==='show'){setMission(`${head}Tem <b>${q.a}</b> no ônibus.`);speak(`Tem ${q.a} no ônibus.`)}
+  else if(ph==='close'){busCurtain(true);sfx.tap();setMission(`${head}Tinha <b>${q.a}</b>. As cortinas fecharam! 🙈`)}
+  else if(ph==='move'){C.stepT=.35;if(q.kind==='chg'){setMission(`${head}Tinha <b>${q.a}</b>. Alguém ${q.add?'subiu':'desceu'}, mas ninguém viu quantos...`);speak(q.add?'Subiu gente no ônibus.':'Desceu gente do ônibus.')}
+    else{setMission(`${head}Tinha <b>${q.a}</b>. Agora veja quem <b>${q.add?'sobe':'desce'}</b>!`);speak(q.add?'Veja quem sobe.':'Veja quem desce.')}}
+  else if(ph==='ask'){[-3.9,0,3.9].forEach((B,i)=>{const A=BUS.A-6,w=FW(C.st,A,B),v=q.opts[i];padSprite(C.G,String(v),A,B,['#E8413A','#2E8BF0','#8B4CF0'][i]);C.pads.push({v,A,B,x:w.x,z:w.z,used:false,markY:3.4})});
+    setMission(`${head}${q.text}<small>Pise na resposta certa.</small>`);sayQ(q.text)}}
+function updateBus(dt){const C=CH,q=C.q,ez=u=>u<=0?0:u>=1?1:u*u*(3-2*u);C.t+=dt;
+  if(C.ph==='in'){C.busB=-BUS.far*(1-ez(C.t/1.8));if(C.t>=1.8){C.busB=0;busPhase('show')}}
+  else if(C.ph==='show'){if(C.t>=(C.lvl===1?2:2.6))busPhase(C.lvl>1?'close':'move')}
+  else if(C.ph==='close'){if(C.t>=1)busPhase('move')}
+  else if(C.ph==='move'){
+    if(q.kind==='chg'){C.bus.rotation.x=Math.sin(C.t*22)*.012;
+      if(C.t>=1.9){C.bus.rotation.x=0;if(q.add)for(let i=0;i<q.b;i++){const p=busPerson();C.G.add(p);C.seated.push(p)}else for(let i=0;i<q.b;i++)drop(C.seated.pop());busCurtain(false);sfx.pop();C.ph='open';C.t=0;
+        setMission(`<span class="vt">🚌 ÔNIBUS</span>${C.idx+1}/${C.n} · Tinha <b>${q.a}</b>. Agora tem <b>${q.end}</b>.`)}}
+    else{C.stepT-=dt;if(C.stepT<=0&&C.moved<q.b){const k=C.moved++;C.stepT=.66;sfx.pop();busBoard((q.add?'+':'−')+C.moved);
+        if(q.add){const p=C.wait[k],i=q.a+k;busHop(p,()=>busSeat(i,C.busB),()=>C.seated.push(p))}
+        else{const p=C.seated.pop(),s=busSpot(k);busHop(p,()=>s,()=>C.gone.push(p))}}
+      if(C.moved>=q.b&&!C.hops.length&&C.stepT<=-.5)busPhase('ask')}}
+  else if(C.ph==='open'){if(C.t>=1.4)busPhase('ask')}
+  else if(C.ph==='ask'){if(!C.locked)C.pads.forEach((p,i)=>edge('pad'+i,!p.used&&onGround&&isNear(p,1.35),()=>busAnswer(p)));
+    /* help after a miss: everybody on the bus hops in turn while the board counts */
+    if(C.count){const K=C.count;K.t-=dt;if(K.t<=0&&K.i<C.seated.length){const p=C.seated[K.i++];p.userData.bob=.36;K.t=.5;sfx.tick();busBoard(String(K.i))}else if(K.t<=-1.2&&K.i>=C.seated.length)C.count=null}}
+  else if(C.ph==='out'){C.busB=BUS.far*ez((C.t-1.6)/2)}
+  C.hops=C.hops.filter(h=>{h.t+=dt;const u=Math.min(1,h.t/.5),e=h.to();h.p.position.set(h.x+(e.x-h.x)*u,h.y+(e.y-h.y)*u+Math.sin(u*Math.PI)*1.5,h.z+(e.z-h.z)*u);if(u<1)return true;h.p.userData.hop=false;h.done();return false});
+  busPlace();C.seated.forEach(p=>{if(p.userData.bob>0){p.userData.bob-=dt;p.position.y+=Math.sin(Math.max(0,p.userData.bob)/.36*Math.PI)*.5}})}
+function busAnswer(p){const C=CH,q=C.q;
+  if(p.v===q.ans){addMark(p,true);return busEnd(true)}
+  C.tries++;p.used=true;addMark(p,false);noteErr(C.skill,q.ask,q.ans,p.v);if(C.tries>=2)return busEnd(false);
+  if(q.kind==='chg')hintBad(`Não é ${p.v}. Tinha ${q.a} e agora tem ${q.end}: conte quantos ${q.add?'a mais':'a menos'}.`);
+  else{if(C.closed){busCurtain(false);hintBad(`Não é ${p.v}. Abri as cortinas: conte quem está no ônibus!`)}else hintBad(`Não é ${p.v}. Conte todo mundo que está no ônibus agora.`);C.count={i:0,t:.9}}}
+function busEnd(ok){const C=CH,q=C.q;busCurtain(false);C.count=null;busBoard(q.eq,ok?'#22B35E':'#E8413A');C.ph='out';C.t=0;
+  if(ok)okRound(null,`<b>${q.eq}</b>`,3800,nextBus);else failRound(`A resposta era <b>${q.ans}</b>: ${q.eq}.`,5200,nextBus)}
+function nextBus(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadBusQ()}
+
+/* ---- 🦘 PULOS NA RETA: adding is jumping forward on the number line, taking away is jumping back ----
+   Levels 1 and 2: the player stands on the first number and each press of the jump button is one hop (the stick hops too, either way,
+   so a hop too many can be undone); "Cheguei!" checks where they stopped. Level 1 counts the hops on screen, level 2 leaves the counting
+   to the child. Level 3: no hops - walk straight to the number of the answer. The camera stands still and shows the whole line. */
+const LINE={A:6};
+function genLine(L){const add=pickSkill('contas',['retamais','retamenos'])==='retamais',N=L===1?10:20;let a,b;
+  if(L===1){b=rnd(1,3);a=add?rnd(0,N-b):rnd(b,N)}else if(L===2){b=rnd(2,5);a=add?rnd(3,N-b):rnd(b+1,N)}else{b=rnd(3,8);a=add?rnd(4,N-b):rnd(b+2,N)}
+  const op=add?'+':'−',ans=add?a+b:a-b;return {a,b,op,add,N,ans,eq:`${a} ${op} ${b} = ${ans}`,ask:`${a} ${op} ${b}`,skill:lastSkill}}
+function startLine(st){CH={type:'line',st,n:5,idx:0,first:0,coins:0};loadLineQ()}
+function loadLineQ(){clearArena();const C=CH,G=beginArena(C.st);G.rotation.y=Math.PI/2;const lvl=stat(C.st.id).level,q=genLine(lvl),w=q.N===10?1.9:1.16,B0=-q.N*w/2;
+  Object.assign(C,{q,lvl,skill:q.skill,tries:0,locked:false,w,B0,pos:q.a,hop:lvl<3?{t:1,from:q.a,to:q.a}:null,stick:0,tiles:[]});
+  for(let i=0;i<=q.N;i++){const B=B0+i*w,m=mesh(BOX(2.2,.12,w-.12),i===q.a?'#FFC83D':i%2?'#BFE8FF':'#FFFFFF',LINE.A,.06,B,false);G.add(m);
+    const s=sprite(texOf(g=>{g.fillStyle=i%5===0?'#2E8BF0':'#1B2232';rr(g,24,44,208,168,40);g.fill();bigText(g,String(i),128,134,180,120,'#fff')}),Math.min(1.5,w*1.02),Math.min(1.5,w*1.02));s.position.set(LINE.A-1.95,.8,B);G.add(s);C.tiles.push({m,B})}
+  C.fixCam={x:LINE.A,z:0,ly:1.2,len:q.N*w+3,min:12,up:.3};
+  const p=FW(C.st,LINE.A,B0+q.a*w),f=FW(C.st,LINE.A+6,B0+q.a*w);teleport(p.x,p.z,f.x,f.z);rotY=q.add?Math.PI/2:-Math.PI/2;lineMission();
+  sayQ(lineText(),C.idx===0?(C.hop?'Cada toque no botão de pular é um pulo.':'Ande até o número da resposta.'):'')}
+const lineText=()=>{const q=CH.q;return CH.hop?`${q.ask}: você está no ${q.a}. Dê ${q.b} ${q.b>1?'pulos':'pulo'} para ${q.add?'a frente':'trás'} e toque em Cheguei!`:`${q.ask}: você está no ${q.a}. Ande até o número da resposta e toque em Cheguei!`};
+function lineMission(){const C=CH,q=C.q,n=Math.abs(C.pos-q.a);
+  setMission(`<span class="vt">🦘 PULAR</span>${C.idx+1}/${C.n} · <b>${q.ask}</b>: você está no <b>${q.a}</b>. ${C.hop?`Dê <b>${q.b}</b> ${q.b>1?'pulos':'pulo'} para ${q.add?'a frente ➡':'trás ⬅'}`:'Ande até o número da resposta'} e toque em <b>Cheguei!</b>${C.hop&&C.lvl===1?`<small>Pulos: ${n}</small>`:''}`)}
+/* hop mode: called every frame in place of walking */
+function lineMove(dt,jx){const C=CH,q=C.q,h=C.hop,xOf=i=>C.st.c.x+C.B0+i*C.w,dir=q.add?1:-1;
+  const flick=Math.abs(jx)>.6?Math.sign(jx):0,go=input.jump?dir:flick&&flick!==C.stick?flick:0;C.stick=flick;input.jump=false;
+  if(go&&h.t>=1&&!C.locked&&!paused){const to=C.pos+go;if(to>=0&&to<=q.N){h.from=C.pos;h.to=to;h.t=0;C.pos=to;rotY=go>0?Math.PI/2:-Math.PI/2;sfx.jump();const n=Math.abs(to-q.a);if(C.lvl===1&&n)toast(`<b>${n}</b>`,800);lineMission()}else sfx.bad()}
+  if(h.t<1)h.t=Math.min(1,h.t+dt/.3);
+  P.set(xOf(h.from)+(xOf(h.to)-xOf(h.from))*h.t,Math.sin(h.t*Math.PI)*1.15,C.st.c.z-LINE.A);vy=0;onGround=h.t>=1;
+  PL.g.position.copy(P);PL.g.rotation.y=rotY;const air=h.t<1;PL.legL.rotation.x=air?.4:0;PL.legR.rotation.x=air?-.4:0;PL.armL.rotation.x=PL.armR.rotation.x=air?Math.PI*.85:0;applyAnim(dt)}
+function updateLine(){const C=CH,q=C.q;if(C.locked)return hideSure();
+  if(!C.hop){const a=C.st.c.z-P.z,b=P.x-C.st.c.x;C.pos=Math.abs(a-LINE.A)<1.6?clamp(Math.round((b-C.B0)/C.w),0,q.N):-1}
+  if(C.pos>=0&&C.pos!==q.a&&(!C.hop||C.hop.t>=1))showSure('✓ Cheguei!',lineCheck);else hideSure()}
+function lineCheck(){const C=CH,q=C.q,at=C.pos,tile=i=>C.tiles[i].m.material=mat(i===q.ans?'#7CE3A0':'#FF8A80');hideSure();
+  if(at===q.ans){tile(at);return okRound(null,`<b>${q.eq}</b>`,3400,nextLine)}
+  C.tries++;noteErr(C.skill,q.ask,q.ans,at);
+  if(C.tries>=2){tile(q.ans);return failRound(`${q.eq}. Do ${q.a}, ${q.b} ${q.b>1?'pulos':'pulo'} para ${q.add?'a frente':'trás'} chegam no <b>${q.ans}</b>.`,5600,nextLine)}
+  hintBad(C.hop?`Você parou no ${at}. Volte ao ${q.a} e conte ${q.b} ${q.b>1?'pulos':'pulo'} para ${q.add?'a frente':'trás'}.`:`O ${at} não é a resposta. Comece no ${q.a} e conte ${q.b} para ${q.add?'a frente':'trás'}.`);
+  /* back to the first number for another try */
+  C.pos=q.a;if(C.hop){C.hop.from=C.hop.to=q.a;C.hop.t=1;rotY=q.add?Math.PI/2:-Math.PI/2}else{const p=FW(C.st,LINE.A,C.B0+q.a*C.w);P.set(p.x,0,p.z);vy=0}lineMission()}
+function nextLine(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadLineQ()}
 
 /* ---- 🗣️ O MESTRE MANDOU ----
    The master gives orders of 1, 2 or 3 steps that must be done in order, and each order is over as soon as its last step is done.
@@ -2008,7 +2146,7 @@ function updateObby(){if(!onGround||!standing||standing.row==null||standing.used
   if(p.correct){const first=CH.tries===0,gain=coinFor(first);if(CH.tries<2)record(CH.st.id,first,q.skill);if(first)CH.first++;CH.coins+=gain;addCoins(gain);
     platLabel(p,p.val,'#7CE3A0',true);drawBoard(CH.row,`${q.a} ${q.op} ${q.b} = ${q.ans}`,true,q);sfx.ok();confetti(14);checkpoint=OBBY.checkpoints[CH.row];CH.row++;CH.tries=0;if(CH.row<5)revealObby(CH.row);
     playAnim('cheer');if(CH.row>=5){setMission('🏆 Você chegou à taça! O portal vermelho leva de volta ao começo.');done3D()}else{toast(`${pick(CHEERS)}${coinTxt(gain)}`,2000);setTimeout(()=>{if(CH&&CH.type==='obby')obbyMission()},900)}}
-  else{CH.tries++;if(CH.tries===2)record(CH.st.id,false,q.skill);p.active=false;p.falling=true;p.sign.visible=false;platLabel(p,p.val,'#FF8A80',false);sfx.bad();toast(`Ops! ${q.a} ${q.op} ${q.b} não dá ${p.val}. Tente outra plataforma!`,4500,true)}}
+  else{CH.tries++;noteErr(q.skill,`${q.a} ${q.op} ${q.b}`,q.ans,p.val);if(CH.tries===2)record(CH.st.id,false,q.skill);p.active=false;p.falling=true;p.sign.visible=false;platLabel(p,p.val,'#FF8A80',false);sfx.bad();toast(`Ops! ${q.a} ${q.op} ${q.b} não dá ${p.val}. Tente outra plataforma!`,4500,true)}}
 const numTexCache={};
 function numTex(n,col){const k=n+col;return numTexCache[k]||(numTexCache[k]=tex(cv(128,128,g=>{g.fillStyle=col;g.fillRect(0,0,128,128);g.lineWidth=10;g.strokeStyle=INK;g.strokeRect(5,5,118,118);
   fitText(g,String(n),104,78);g.textAlign='center';g.textBaseline='middle';g.lineWidth=8;g.strokeText(String(n),64,70);g.fillStyle='#fff';g.fillText(String(n),64,70)})))}
@@ -2047,7 +2185,7 @@ function updateShapes(){const c=CH,t=shapeAt(!!SHAPE_INFO[c.qs[c.idx].n].flat);
 const KART={gap:96,lanes:[-4,0,4],first:56};
 /* one question for a gate: {text, labels[3], ans, explain, skill}. Sums come from genArith; the other stations reuse their lava-floor questions. */
 function kartQ(gen,L){
-  if(!gen){const q=genArith(L);return {text:`Passe pelo portão com o resultado de <b>${q.a} ${q.op} ${q.b}</b>`,labels:q.opts.map(String),ans:q.opts.indexOf(q.ans),explain:`${q.a} ${q.op} ${q.b} = ${q.ans}`,skill:q.skill}}
+  if(!gen){const q=genArith(L);return {text:`Passe pelo portão com o resultado de <b>${q.a} ${q.op} ${q.b}</b>`,labels:q.opts.map(String),ans:q.opts.indexOf(q.ans),explain:`${q.a} ${q.op} ${q.b} = ${q.ans}`,skill:q.skill,ask:`${q.a} ${q.op} ${q.b}`}}
   const f=gen(L),skill=lastSkill,ok=pick(f.labels.filter((l,i)=>f.ok[i])),labels=shuffle([ok,...sample(f.labels.filter((l,i)=>!f.ok[i]),2)]);
   let text=f.text.replace(/^Pise no /,'Passe pelo portão do ').replace(/^Pise em um /,'Passe pelo portão de um ');if(text===f.text)text='Passe pelo portão certo. '+f.text;
   return {text,labels,ans:labels.indexOf(ok),explain:f.explain||'',skill}}
@@ -2088,11 +2226,11 @@ function kartDrive(dt,jx,jy){const C=CH;yaw=-Math.PI/2;
 function kartGate(lane){const C=CH,q=C.qs[C.idx],g=C.gates[C.idx],ok=lane===q.ans;record(C.st.id,ok,q.skill);
   g.signs.forEach((s,i)=>{if(i===q.ans||i===lane){kartSign(q.labels[i],i===q.ans)(s.c.getContext('2d'));s.t.needsUpdate=true}});
   if(ok){const g=coinFor(true);C.first++;C.coins+=g;addCoins(g);C.boost=1.6;C.streak++;sfx.ok();confetti(10);toast(`<b>${pick(CHEERS)}</b>${coinTxt(g)}${C.streak>1?` · TURBO x${Math.min(3,C.streak)} 🔥`:''}`,1800)}
-  else{C.spin=.9;C.streak=0;sfx.dizzy();toast(`Era o portão <b>${q.labels[q.ans]}</b>. ${q.explain}`,4200,true)}
+  else{if(q.ask)noteErr(q.skill,q.ask,+q.labels[q.ans],+q.labels[lane]);C.spin=.9;C.streak=0;sfx.dizzy();toast(`Era o portão <b>${q.labels[q.ans]}</b>. ${q.explain}`,4200,true)}
   C.idx++;if(C.idx<C.n){kartMission();if(ok)speak(plain(C.qs[C.idx].text));else later(()=>speak(plain(C.qs[C.idx].text)),2600)}else setMission('<span class="vt">🏎️ KART</span>Agora é só cruzar a CHEGADA! 🏁')}
 function update3D(dt){if(!CH||paused)return;const t=CH.type;
   if(t==='obby')updateObby();else if(t==='order')updateOrder(dt);else if(t==='shapes')updateShapes();else if(t==='act')updateAct(dt);
-  else if(t==='shoot')updateShoot(dt);else if(t==='floor')updateFloor(dt);else if(t==='share')updateShare(dt);else if(t==='build')updateBuild(dt);else if(t==='simon')updateSimon(dt)}
+  else if(t==='shoot')updateShoot(dt);else if(t==='floor')updateFloor(dt);else if(t==='share')updateShare(dt);else if(t==='build')updateBuild(dt);else if(t==='simon')updateSimon(dt);else if(t==='bus')updateBus(dt);else if(t==='line')updateLine()}
 
 /* ================= WORLD ANIMATION ================= */
 let frameN=0;
