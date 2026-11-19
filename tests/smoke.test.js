@@ -677,6 +677,16 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       quit(); out.after = [D.CH === null, document.querySelector('#picks').hidden, document.querySelectorAll('#picks .pk').length, B.hidden, B.childNodes.length];
       return out;
     });
+    /* turning the screen in the middle of a question: the board and the scene change shape, and the question goes on with what was done */
+    { const p = await open(390, 780); await enter(p, 'contas');
+      const a = await p.evaluate(() => { const D = __ilhaDebug, st = D.STM.contas, B = document.querySelector('#board'); D.startMode(st, st.modes.find(m => m.k === 'gol')); const C = D.CH; for (let i = 0; i < 1500 && C.ph !== 'ask'; i++) D.step(1 / 60);
+        const q = C.q, wrong = q.opts.find(v => v !== q.ans), btn = v => [...document.querySelectorAll('#picks .pk')].find(b => +b.textContent === v); btn(wrong).click(); for (let i = 0; i < 400 && (C.ph === 'kick' || C.ph === 'back'); i++) D.step(1 / 60);
+        window.__q = q; return [B.className, C.wide, C.tries, C.bz0, B.getBoundingClientRect().width > 300]; });
+      await p.setViewportSize({ width: 780, height: 390 }); await p.waitForTimeout(300);
+      const b = await p.evaluate(() => { const D = __ilhaDebug, C = D.CH, B = document.querySelector('#board'), q = C.q; for (let i = 0; i < 5; i++) D.step(1 / 60); const r = B.getBoundingClientRect(), pk = document.querySelector('#picks').getBoundingClientRect(), bs = [...document.querySelectorAll('#picks .pk')];
+        const out = [B.className, C.wide, q === window.__q, C.tries, C.ph, C.bz0 < 0, r.bottom < pk.top && r.right <= innerWidth / 2 + 4, bs.filter(x => x.disabled).length, C.tg.filter(s => s.visible).length, C.bd.n1 === q.a || q.kind !== 'add'];
+        bs[q.opts.indexOf(q.ans)].click(); for (let i = 0; i < 400 && C.ph === 'kick'; i++) D.step(1 / 60); out.push(C.ph, C.gols); return out; });
+      eq([a, b], [['tall', false, 1, 0, true], ['wide', true, true, 1, 'ask', true, true, 1, 2, true, 'goal', 1]], 'screen turned in the middle of a question'); await p.context().close(); }
     eq(r, { start: ['gol', true, true, true, true, false, true], l1: [true, true, true, true, 'wide', true, true, 3], busy: 'kick', busy2: 'kick', miss: ['ask', 1, 1, 0, false, true, true, false, 1, true, true, true], counted: true,
       goal: ['goal', 1, true, 0, true, true, true, true], sub: [true, true, 0], first: [1, 1, 0, true], l2: [true, true, true], l2miss: [true, 1, 'ask'], l2fail: [true, 'saved', 2, true],
       dif: [true, true, true, true, 'contas.comparar'], need: [true, true, true, 'contas.falta'], l3: [true, 20, true], l3miss: [true, true], after: [true, true, 0, true, 0] }, 'football game');
@@ -1041,6 +1051,25 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     eq(r.kinds, ['around', 'bring', 'carry', 'color', 'flee', 'go', 'hide', 'jump', 'ring', 'seek', 'statue', 'tag', 'take'], 'kinds of step');
     eq(r.sizes, [[1], [2], [3]], 'steps per order at levels 1, 2, 3');
     assert(r.tricks[0] === 0 && r.tricks[1] > 80 && r.tricks[2] > 80, `tricks per level: ${r.tricks}`);
+  });
+
+  await test('master game: the catcher starts far from the player, wherever the player stands, and holds for a moment before running', async () => {
+    await enter(page, 'vocab');
+    const r = await page.evaluate(() => {
+      const D = __ilhaDebug, st = D.STM.vocab, G = window.__ilha.genSimon, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, out = { near: [], far: [], held: [] };
+      D.timeScale = .01; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[1]); const C = D.CH;
+      let q; do q = G(1); while (q.trick || q.steps[0].k !== 'flee');
+      /* the player stands still at each of these places when the order comes, the old starting spot of the catcher among them */
+      for (const [A, B] of [[12, -5], [10, -5.5], [12, 8], [-3, -9], [-3, 9], [5, 0], [11, 7], [2, -6]]) {
+        const w = D.L2W(st, A, B); D.P.set(w.x, 0, w.z); run(2); D.simonLoad(JSON.parse(JSON.stringify(q))); C.phase = 'play'; C.locked = false; const h = C.hearts; run(1);
+        const f = C.kids.find(f => f.chase), d0 = Math.hypot(f.x - D.P.x, f.z - D.P.z), x0 = f.x, z0 = f.z; run(30); out.held.push(Math.hypot(f.x - x0, f.z - z0) < .01); run(30);
+        out.far.push(d0 >= 9); out.near.push(C.hearts === h && Math.hypot(f.x - x0, f.z - z0) > .3); C.kids.forEach(f => f.chase = false);
+      }
+      /* and a player who never moves is still caught in the end */
+      const w = D.L2W(st, 5, 0); D.P.set(w.x, 0, w.z); D.simonLoad(JSON.parse(JSON.stringify(q))); C.phase = 'play'; C.locked = false; const h = C.hearts; run(60 * 6); out.caught = C.hearts === h - 1;
+      document.querySelector('#m-quit').click(); return out;
+    });
+    eq(r, { near: Array(8).fill(true), far: Array(8).fill(true), held: Array(8).fill(true), caught: true }, 'catcher');
   });
 
   await test('master game: steps count only in the order given, a wrong action costs a heart, and a trick must not be obeyed', async () => {

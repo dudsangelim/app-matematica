@@ -107,7 +107,7 @@ body.still #b-jump,body.still #b-cele,body.still #where,body.still #joy{display:
 #board{position:fixed;z-index:5;pointer-events:none;filter:drop-shadow(0 4px 0 rgba(10,16,32,.28))}
 #board canvas{display:block;width:100%;height:auto}
 #board.wide{left:calc(10px + env(safe-area-inset-left,0px));width:min(47vw,620px)}
-#board.tall{left:50%;transform:translateX(-50%);width:min(94vw,560px)}
+#board.tall{left:50%;transform:translateX(-50%);width:min(94vw,560px,max(220px,calc((100vh - 420px)*2.5)))}
 #board.count{right:calc(12px + env(safe-area-inset-right,0px));width:clamp(120px,17vw,200px)}
 body.still #toast:not(.up){bottom:calc(116px + env(safe-area-inset-bottom,0px))}
 #picks{position:fixed;z-index:6;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));display:flex;gap:14px}
@@ -2173,6 +2173,7 @@ function nextBus(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadBusQ()}
    Level 3: up to 20.
    The scoreboard is a board fixed on the screen, under the instructions: on a wide screen it takes the left half and the goal is on
    the right, with the kick coming from the side; on a tall one it goes across the top and the goal is under it, with a penalty kick.
+   Turning the screen in the middle of a question builds the scene again for the new shape, and the question goes on.
    The player stands still by the ball; a button on the screen picks the number, the player kicks at it, and the goalkeeper dives:
    the wrong way when the number is right (goal!), onto the ball when it is not. After a save the scoreboard counts ball by ball. */
 const GOL={A:13.5,w:4.5,h:3.4,spot:3.9,tz:[-3,0,3],ty:2.55,col:['#E8413A','#2E8BF0','#8B4CF0']};
@@ -2213,12 +2214,16 @@ function golBoard(){const C=CH,q=C.q,d=C.bd,b=C.board,g=b.c.getContext('2d'),W=1
       else slot(x,y,s,i<left-d.x?1:i<left?3:0,i<d.hi?i+1:0)}}
 }
 function startGol(st){CH={type:'gol',st,n:5,idx:0,first:0,coins:0,gols:0,defs:0,time:0,still:true};loadGolQ()}
-function loadGolQ(){clearArena();hideHud();const C=CH,G=beginArena(C.st);G.rotation.y=Math.PI/2;const lvl=stat(C.st.id).level,q=genGol(lvl),A=GOL.A,w=GOL.w,h=GOL.h,W='#F4F6FA';
+const golWide=()=>innerWidth>innerHeight*1.15||innerHeight<560;
+function loadGolQ(){hideHud();const C=CH,lvl=stat(C.st.id).level,q=genGol(lvl);
   Object.assign(C,{q,lvl,skill:q.skill,tries:0,locked:false,ph:'in',t:0,moved:0,stepT:0,count:null,kick:null,asked:false,
-    bd:{head:'⚽ PLACAR',n1:0,n2:0,x:0,gone:0,hi:0,col:null}});
+    bd:{head:'⚽ PLACAR',n1:0,n2:0,x:0,gone:0,hi:0,col:null},board:{c:cv(1000,400,()=>{})}});
+  golScene();golBoard();setMission(`${golHead()}Olhe o placar!`)}
+/* builds the scene of the question for the shape of the screen; it is built again, in the middle of a question, when the screen is turned */
+function golScene(){clearArena();const C=CH,q=C.q,G=beginArena(C.st),A=GOL.A,w=GOL.w,h=GOL.h,W='#F4F6FA';G.rotation.y=Math.PI/2;C.relay=false;
   /* a wide screen has the scoreboard on its left half and the goal on the right; a tall one has the scoreboard across the top and the
      goal under it. Everything of the goal (lines, nets, goalkeeper, ball, numbers) lives in a group centred on it. */
-  const wide=innerWidth>innerHeight*1.15,gz=wide?6.3:0,z0=wide?-6.2:0,sx=wide?2.6:GOL.spot,GG=new THREE.Group();GG.position.z=gz;G.add(GG);C.gz=gz;C.bz0=z0;C.sx=sx;
+  const wide=golWide(),gz=wide?6.3:0,z0=wide?-6.2:0,sx=wide?2.6:GOL.spot,GG=new THREE.Group();GG.position.z=gz;G.add(GG);C.gz=gz;C.bz0=z0;C.sx=sx;C.wide=wide;
   for(let k=0;k<6;k++){const m=mesh(BOX(3,.06,32),k&1?'#3FA650':'#49B55B',A-13.5+k*3,.03,0,false);m.receiveShadow=true;G.add(m)}
   G.add(mesh(BOX(.14,.02,32),W,A,.07,0,false));
   GG.add(mesh(BOX(.14,.02,17),W,A-7.6,.07,0,false),mesh(BOX(7.6,.02,.14),W,A-3.8,.07,-8.5,false),mesh(BOX(7.6,.02,.14),W,A-3.8,.07,8.5,false),
@@ -2230,15 +2235,15 @@ function loadGolQ(){clearArena();hideHud();const C=CH,G=beginArena(C.st);G.rotat
   GG.add(mesh(BOX(.2,.2,2*w+.2),W,A,h,0),mesh(BOX(.12,.12,2*w),W,A+1.5,h,0,false));
   const back=mesh(new THREE.PlaneGeometry(2*w,h),net(2*w,h),A+1.5,h/2,0,false);back.rotation.y=-Math.PI/2;const roof=mesh(new THREE.PlaneGeometry(1.5,2*w),net(1.5,2*w),A+.75,h,0,false);roof.rotation.x=-Math.PI/2;GG.add(back,roof);
   /* the scoreboard, fixed on the screen */
-  C.board={c:cv(1000,400,()=>{})};showBoard(C.board.c,wide?'wide':'tall');
+  showBoard(C.board.c,wide?'wide':'tall');
   /* the goalkeeper, the ball on the spot, and the three numbers in the goal (shown with the question) */
   C.kp=golKeeper();C.kp.position.set(A-.75,0,0);GG.add(C.kp);
   C.ball=mesh(new THREE.SphereGeometry(.34,14,10),new THREE.MeshLambertMaterial({map:texOf(c=>{c.fillStyle='#fff';c.fillRect(0,0,128,64);c.fillStyle='#1E1A1A';[[16,16],[48,44],[80,16],[112,44],[16,66],[80,66],[48,-6],[112,-6]].forEach(([x,y])=>{c.beginPath();c.arc(x,y,10,0,7);c.fill()})},128,64)}),A-sx,.34,z0);GG.add(C.ball);
   C.tg=q.opts.map((v,i)=>{const s=sprite(texOf(g=>{g.fillStyle='#fff';g.beginPath();g.arc(128,128,122,0,7);g.fill();g.fillStyle=GOL.col[i];g.beginPath();g.arc(128,128,104,0,7);g.fill();bigText(g,v,128,134,170,128,'#fff')}),1.8,1.8);s.position.set(A-.2,GOL.ty,GOL.tz[i]);s.visible=false;GG.add(s);return s});
+  if(C.asked){const bs=picksB.querySelectorAll('.pk');C.tg.forEach((s,i)=>s.visible=!(bs[i]&&bs[i].disabled))}
   /* the camera starts behind the kicker, with the goal clear of the scoreboard: on the right half of a wide screen, under it on a tall one */
   const foot=innerHeight<=430?80:104;C.fixCam=wide?{x:A,z:-2.25,ly:1.35,len:25,min:13.5,up:.09,hgt:4.8,foot}:{x:A,z:0,ly:1.1,len:12.5,min:12,up:.11,hgt:6.6,foot,under:true};
-  const p=wide?FW(C.st,A-sx-.25,gz+z0-1.7):FW(C.st,A-sx-1.6,-.5),f=wide?FW(C.st,A-1.2,gz):FW(C.st,A,0);teleport(p.x,p.z,f.x,f.z);C.p0=p;C.p1=wide?FW(C.st,A-sx-.15,gz+z0-.8):FW(C.st,A-sx-.8,-.3);
-  golBoard();setMission(`${golHead()}Olhe o placar!`)}
+  const p=wide?FW(C.st,A-sx-.25,gz+z0-1.7):FW(C.st,A-sx-1.6,-.5),f=wide?FW(C.st,A-1.2,gz):FW(C.st,A,0);teleport(p.x,p.z,f.x,f.z);C.p0=p;C.p1=wide?FW(C.st,A-sx-.15,gz+z0-.8):FW(C.st,A-sx-.8,-.3)}
 const golHead=()=>`<span class="vt">⚽ GOL DE PLACA</span>${CH.idx+1}/${CH.n} · `;
 const golAsk=()=>setMission(`${golHead()}${CH.q.text}<small>Toque no número certo para chutar · Você ${CH.gols} × ${CH.defs} Goleiro 🧤</small>`);
 function golPhase(ph){const C=CH,q=C.q,d=C.bd,h=golHead(),gs=q.a===1?'gol':'gols';C.ph=ph;C.t=0;
@@ -2257,7 +2262,10 @@ function golPick(i,b){const C=CH;if(!C||C.type!=='gol'||C.ph!=='ask'||C.locked)r
   /* the goalkeeper goes for the ball when the number is wrong, and for the farthest other number when it is right */
   const dz=ok?tz.filter((z,j)=>j!==i).sort((x,y)=>Math.abs(y-tz[i])-Math.abs(x-tz[i]))[0]:tz[i];
   C.ph='kick';C.t=0;C.kick={i,v,ok,b,dz,side:dz!==0,z0:C.kp.position.z,shot:false}}
-function updateGol(dt){const C=CH,q=C.q,d=C.bd,kp=C.kp,K=C.kick,A=GOL.A,ez=u=>u<=0?0:u>=1?1:u*u*(3-2*u);C.t+=dt;C.time+=dt;
+function updateGol(dt){
+  /* the screen was turned: once no kick is in the air, the scene is built again for the new shape (a question already over waits for the next) */
+  if(CH.relay&&CH.ph!=='kick'&&CH.ph!=='back'){CH.relay=false;if(golWide()!==CH.wide&&CH.ph!=='goal'&&CH.ph!=='saved')golScene()}
+  const C=CH,q=C.q,d=C.bd,kp=C.kp,K=C.kick,A=GOL.A,ez=u=>u<=0?0:u>=1?1:u*u*(3-2*u);C.t+=dt;C.time+=dt;
   if(C.ph==='in'){if(C.t>=.7)golPhase('show')}
   else if(C.ph==='show'){
     if(q.kind==='add'||q.kind==='sub'){const n=Math.min(q.a,Math.floor(C.t/.14)+1);if(n!==d.n1){d.n1=n;sfx.tick();golBoard()}if(C.t>=q.a*.14+2.3)golPhase('move')}
@@ -2403,7 +2411,7 @@ function simonMission(){const C=CH,q=C.q;
 function simonKids(dt){const C=CH,st=C.st,step=C.phase==='play'&&!C.locked?C.q.steps[C.si]:null,flee=step&&step.k==='tag',mid=L2W(st,5,0);
   for(const f of C.kids){const L=f.ch;if(f.hid){L.legL.rotation.x=L.legR.rotation.x=0;continue}
     const dx=P.x-f.x,dz=P.z-f.z,d=Math.hypot(dx,dz)||1e-3;let vx=0,vz=0,sp=0;
-    if(f.chase){vx=dx/d;vz=dz/d;sp=4.3}
+    if(f.chase){if(f.hold>0)f.hold-=dt;else{vx=dx/d;vz=dz/d;sp=4.3}}
     else if(flee&&d<7){const cx=mid.x-f.x,cz=mid.z-f.z,cd=Math.hypot(cx,cz)||1e-3,w=clamp((cd-6)/5,0,1)*1.4;vx=-dx/d+cx/cd*w;vz=-dz/d+cz/cd*w;const m=Math.hypot(vx,vz)||1;vx/=m;vz/=m;sp=4}
     else{const tx=f.tx-f.x,tz=f.tz-f.z,td=Math.hypot(tx,tz);f.wait-=dt;if(td<.6||f.wait<-9){if(f.wait<=0){const t=L2W(st,rnd(-1,13),rnd(-10,10));f.tx=t.x;f.tz=t.z;f.wait=rnd(1,4)}}else if(f.wait<=0){vx=tx/td;vz=tz/td;sp=1.6}}
     f.x+=vx*sp*dt;f.z+=vz*sp*dt;
@@ -2419,7 +2427,9 @@ let jumpCount=0;
 function simonStep(s,dt){const C=CH,st=C.st;let btn=null;
   if(!s.s){s.s={t:0,n:0,j0:jumpCount,acc:0,px:P.x,pz:P.z};
     if(s.k==='seek'){const f=C.kids.find(f=>f.c===s.c),h=pick(SM.hides),o=L2W(st,h.A,h.B),dx=o.x-P.x,dz=o.z-P.z,d=Math.hypot(dx,dz)||1;f.x=o.x+dx/d*(h.r+1.1);f.z=o.z+dz/d*(h.r+1.1);f.ch.g.position.set(f.x,0,f.z);f.hid=true}
-    if(s.k==='flee'){const f=C.kids[rnd(0,2)],o=L2W(st,12,-5);f.x=o.x;f.z=o.z;f.chase=true;s.s.f=f;toast(`O amigo de camisa <b>${f.n}</b> é o pegador! Corra! 💨`,2600)}
+    /* the catcher starts at the corner farthest from the player, and holds for a moment: wherever the player stands when the order comes,
+       there is time to run (it used to start at one fixed spot, and caught at once a player who happened to stand by it) */
+    if(s.k==='flee'){const f=C.kids[rnd(0,2)],far=p=>Math.hypot(p.x-P.x,p.z-P.z),o=[[12,-5],[12,8],[-3,-9],[-3,9]].map(p=>L2W(st,p[0],p[1])).sort((a,b)=>far(b)-far(a))[0];f.x=o.x;f.z=o.z;f.chase=true;f.hold=.8;s.s.f=f;toast(`O amigo de camisa <b>${f.n}</b> é o pegador! Corra! 💨`,2600)}
     if(s.k==='hide')toast('O mestre fechou os olhos e está contando... 🙈',2400)}
   const v=s.s;v.t+=dt;let res=null;
   if(s.k==='go'){v.n=s.ok()?v.n+dt:0;if(v.n>.35)res='ok'}
@@ -2783,7 +2793,7 @@ $('#b-mis').onclick=()=>{if(paused)return;sfx.tap();openMission()};
 $('#b-voice').onclick=()=>{S.voice=!S.voice;save();hud();if(!S.voice)try{speechSynthesis.cancel()}catch(e){}toast(S.voice?'A voz vai ler as perguntas 🗣️':'Voz desligada',1800,S.voice)};
 
 /* ================= LOOP ================= */
-function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();if(CH&&CH.fp)scopeFov();layoutTop()}
+function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();if(CH&&CH.fp)scopeFov();if(CH){CH.camTop=0;if(CH.type==='gol')CH.relay=true}layoutTop()}
 addEventListener('resize',resize);
 let last=performance.now(),qN=0,qT=0,autoQual=true;
 function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math.min(.05,raw);last=now;
