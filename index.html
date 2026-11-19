@@ -99,8 +99,16 @@ button.chip{border:0;font-family:inherit;cursor:pointer}
 #scope.miss i{animation:scopemiss .5s}
 @keyframes scopemiss{0%,100%{box-shadow:inset 0 0 0 3px rgba(255,255,255,.5),inset 0 0 70px rgba(6,10,20,.5)}30%{box-shadow:inset 0 0 0 3px rgba(255,255,255,.5),inset 0 0 90px rgba(229,57,53,.85)}}
 body.fp #b-jump,body.fp .rot,body.fp #where{display:none}
-body.fix #b-rl,body.fix #b-rr{display:none}
-body.still #b-jump,body.still .rot,body.still #where,body.still #joy{display:none}
+.zrow{display:none;position:fixed;z-index:5;left:calc(16px + env(safe-area-inset-left,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));gap:10px}
+body.fix .zrow{display:flex}
+.zm{font-size:34px;line-height:1}
+body.still #b-jump,body.still #b-cele,body.still #where,body.still #joy{display:none}
+@media(max-width:620px){body.still .hud-br,body.fix .zrow{bottom:calc(112px + env(safe-area-inset-bottom,0px))}}
+#board{position:fixed;z-index:5;pointer-events:none;filter:drop-shadow(0 4px 0 rgba(10,16,32,.28))}
+#board canvas{display:block;width:100%;height:auto}
+#board.wide{left:calc(10px + env(safe-area-inset-left,0px));width:min(47vw,620px)}
+#board.tall{left:50%;transform:translateX(-50%);width:min(94vw,560px)}
+#board.count{right:calc(12px + env(safe-area-inset-right,0px));width:clamp(120px,17vw,200px)}
 body.still #toast:not(.up){bottom:calc(116px + env(safe-area-inset-bottom,0px))}
 #picks{position:fixed;z-index:6;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));display:flex;gap:14px}
 .pk{min-width:96px;height:80px;padding:0 14px;border-radius:22px;border:4px solid var(--ink);color:#fff;font:inherit;font-weight:700;font-size:42px;line-height:1;box-shadow:0 6px 0 var(--ink);touch-action:manipulation}
@@ -108,7 +116,7 @@ body.still #toast:not(.up){bottom:calc(116px + env(safe-area-inset-bottom,0px))}
 .pk:active:not(:disabled){transform:translateY(4px);box-shadow:0 2px 0 var(--ink)}
 .pk.no{background:#9AA3B2;color:#E9EDF3;text-decoration:line-through;box-shadow:0 3px 0 var(--ink);transform:translateY(3px)}
 .pk.ok{background:#22B35E;box-shadow:0 6px 0 var(--ink),0 0 0 5px var(--gold)}
-@media(max-height:430px){body.still #toast:not(.up){bottom:calc(80px + env(safe-area-inset-bottom,0px));font-size:16px;padding:8px 14px}#picks{bottom:calc(10px + env(safe-area-inset-bottom,0px))}.pk{min-width:84px;height:60px;font-size:34px;border-radius:18px}}
+@media(max-height:430px){body.fix .zrow,body.still .hud-br{bottom:calc(14px + env(safe-area-inset-bottom,0px))}body.fix .rot{width:50px;height:50px}body.still #toast:not(.up){bottom:calc(80px + env(safe-area-inset-bottom,0px));font-size:16px;padding:8px 14px}#picks{bottom:calc(10px + env(safe-area-inset-bottom,0px))}.pk{min-width:84px;height:60px;font-size:34px;border-radius:18px}}
 @media(max-width:380px){#picks{gap:10px}.pk{min-width:86px}}
 body.fp #toast{pointer-events:none;font-size:17px;padding:8px 14px}
 #b-jump:active,#b-fire:active,#b-act:active,#b-sure:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
@@ -260,6 +268,11 @@ select{font-size:17px;padding:8px;border:3px solid var(--ink);border-radius:10px
 <div id="mission" hidden><span id="m-text" aria-live="polite"></span><button class="mb q" id="m-min" aria-label="Encolher as instruções" aria-expanded="true">▴</button><button class="mb q" id="m-spk" aria-label="Ouvir">🗣️</button><button class="mb" id="m-quit" aria-label="Sair do desafio">✕</button></div>
 <div id="where">Cidade dos Números</div>
 <div id="picks" hidden></div>
+<div id="board" hidden></div>
+<div class="zrow">
+  <button class="rot zm" id="b-zo" aria-label="Afastar a câmera">−</button>
+  <button class="rot zm" id="b-zi" aria-label="Aproximar a câmera">+</button>
+</div>
 <div class="hud-br">
   <button id="b-act" hidden></button>
   <button id="b-sure" hidden></button>
@@ -1295,7 +1308,7 @@ const SHAPES=[];
     const m=mesh(geo,col,p.x,.09,p.z,false);m.rotation.x=-Math.PI/2;if(n==='triângulo')m.rotation.z=o.rotation.z=Math.PI/2;scene.add(o,m);SHAPES.push({n,x:p.x,z:p.z,r:1.4,flat:true,mesh:m})})})();
 
 /* ================= PLAYER ================= */
-const P=new THREE.Vector3(SPAWN.x,0,SPAWN.z);let vy=0,onGround=true,standing=null,rotY=Math.PI,yaw=0,pitch=.38,camRot=0;
+const P=new THREE.Vector3(SPAWN.x,0,SPAWN.z);let vy=0,onGround=true,standing=null,rotY=Math.PI,yaw=0,pitch=.38,camRot=0,camZ=0,fixPts={};
 let PL=null,PET=null,checkpoint=null,tool=null,WORLD=null,portalCD=0;
 function look(){const kt=kitOf(S.look.shirt);return {skin:find('skin',S.look.skin).c,hair:find('hair',S.look.hair).c,hairSt:find('hair',S.look.hair),shirt:kt?kt.c[0]:find('shirt',S.look.shirt).c,kit:kt,pants:kt&&kt.short?kt.short:find('pants',S.look.pants).c,hat:S.look.hat}}
 /* the kart of a race in progress is moved over to the rebuilt player (the player is rebuilt when clothes or the name change) */
@@ -1448,31 +1461,43 @@ function joyHome(){joy.style.left='calc(95px + env(safe-area-inset-left,0px))';j
 joyHome();
 let joyId=null,joyO=null,joyType='',camId=null,camLast=null,camType='';
 function releaseJoy(){joyId=null;input.jx=input.jy=0;joyHome()}
-function resetInput(){releaseJoy();camId=null;camRot=0;for(const k in keys)keys[k]=false;$$('.rot').forEach(b=>b.classList.remove('on'))}
+function resetInput(){releaseJoy();camId=null;camRot=0;camZ=0;fixPts={};for(const k in keys)keys[k]=false;$$('.rot').forEach(b=>b.classList.remove('on'))}
 const touch=$('#touch');
 /* The stick must never stay "held" after the finger is gone. A release can go missing (switching apps, a system gesture,
    a notification, the release landing on another element), so it is watched for on the whole window and backed by other signals:
    - a new first finger (or mouse press) means every older contact of that kind has ended;
    - no finger left on the screen (touch events) means the stick is free;
    - leaving the page, or the page losing focus, frees everything. */
-addEventListener('pointerdown',e=>{if(!e.isPrimary)return;if(joyId!==null&&joyType===e.pointerType)releaseJoy();if(camId!==null&&camType===e.pointerType)camId=null},true);
+addEventListener('pointerdown',e=>{if(!e.isPrimary)return;if(joyId!==null&&joyType===e.pointerType)releaseJoy();if(camId!==null&&camType===e.pointerType)camId=null;fixPts={}},true);
+/* The still camera of a game (bus, goal, number line) can be handled: one finger (or the mouse) drags the view, two fingers pinch to come
+   closer or go back, and so do the wheel, the + and − buttons and keys; the turn buttons (and Q, R) go round the scene. */
+const fixCamOf=()=>CH.cam||(CH.cam={zm:1,ox:0,oy:0,ang:0});
+function fixZoom(k){const m=fixCamOf();m.zm=clamp(m.zm*k,.8,3.2);fixPan(0,0)}
+function fixPan(dx,dy){const m=fixCamOf(),f=CH.fixCam,u=2*(f.d||15)*Math.tan(camera.fov*Math.PI/360)/(innerHeight||1),room=Math.max(.12,1-.7/m.zm),c=Math.cos(m.ang)||1;
+  m.ox=clamp(m.ox-dx*u/c,-f.len*.5*room,f.len*.5*room);m.oy=clamp(m.oy+dy*u,-(f.hgt||7)*.5*room,(f.hgt||7)*.5*room)}
 touch.addEventListener('pointerdown',e=>{if(paused||(e.pointerType==='mouse'&&e.button!==0))return;try{touch.setPointerCapture(e.pointerId)}catch(_){}
+  if(CH&&CH.fixCam&&(CH.still||e.clientX>=innerWidth*.45)){fixPts[e.pointerId]={x:e.clientX,y:e.clientY};return}
   if(e.clientX<innerWidth*.45&&joyId===null){joyId=e.pointerId;joyType=e.pointerType;joyO={x:e.clientX,y:e.clientY};joy.style.left=e.clientX+'px';joy.style.top=e.clientY+'px'}
   else if(camId===null){camId=e.pointerId;camType=e.pointerType;camLast={x:e.clientX,y:e.clientY}}});
-const endP=e=>{if(e.pointerId===joyId)releaseJoy();if(e.pointerId===camId)camId=null};
+const endP=e=>{if(e.pointerId===joyId)releaseJoy();if(e.pointerId===camId)camId=null;delete fixPts[e.pointerId]};
 touch.addEventListener('pointermove',e=>{
   if(e.pointerType==='mouse'&&e.buttons===0)return endP(e);
+  const fp=fixPts[e.pointerId];if(fp){if(CH&&CH.fixCam){const o=Object.keys(fixPts).filter(k=>k!=e.pointerId).map(k=>fixPts[k])[0];
+      if(o){const d0=Math.hypot(fp.x-o.x,fp.y-o.y),d1=Math.hypot(e.clientX-o.x,e.clientY-o.y);if(d0>8&&d1>8)fixZoom(d1/d0)}else fixPan(e.clientX-fp.x,e.clientY-fp.y)}
+    fp.x=e.clientX;fp.y=e.clientY;return}
   if(e.pointerId===joyId){let dx=e.clientX-joyO.x,dy=e.clientY-joyO.y;const d=Math.hypot(dx,dy),m=55;if(d>m){dx*=m/d;dy*=m/d}knob.style.transform=`translate(${dx}px,${dy}px)`;input.jx=dx/m;input.jy=dy/m}
   else if(e.pointerId===camId){const dx=e.clientX-camLast.x,dy=e.clientY-camLast.y;if(CH&&CH.fp)scopeDrag(dx,dy);else if(!(CH&&CH.fixCam)){yaw-=dx*.01;pitch=clamp(pitch+dy*.006,.05,1.15)}camLast={x:e.clientX,y:e.clientY}}});
 ['pointerup','pointercancel'].forEach(t=>addEventListener(t,endP,true));
 touch.addEventListener('lostpointercapture',endP);
-['touchend','touchcancel'].forEach(t=>addEventListener(t,e=>{if(e.touches&&!e.touches.length){if(joyId!==null&&joyType==='touch')releaseJoy();if(camType==='touch')camId=null}},{capture:true,passive:true}));
+['touchend','touchcancel'].forEach(t=>addEventListener(t,e=>{if(e.touches&&!e.touches.length){if(joyId!==null&&joyType==='touch')releaseJoy();if(camType==='touch')camId=null;fixPts={}}},{capture:true,passive:true}));
 ['blur','pagehide'].forEach(t=>addEventListener(t,resetInput));
 document.addEventListener('visibilitychange',()=>{if(document.hidden){resetInput();flushTime()}});
 addEventListener('contextmenu',e=>{if(!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))e.preventDefault()});
-touch.addEventListener('wheel',e=>{if(CH&&CH.fp)return scopeDrag(e.deltaX*.4,e.deltaY*.4);if(CH&&CH.fixCam)return;yaw-=e.deltaX*.004;pitch=clamp(pitch+e.deltaY*.002,.05,1.15)},{passive:true});
+touch.addEventListener('wheel',e=>{if(CH&&CH.fp)return scopeDrag(e.deltaX*.4,e.deltaY*.4);if(CH&&CH.fixCam)return fixZoom(Math.exp(-e.deltaY*.0015));yaw-=e.deltaX*.004;pitch=clamp(pitch+e.deltaY*.002,.05,1.15)},{passive:true});
 $('#b-jump').addEventListener('pointerdown',e=>{e.preventDefault();input.jump=true});
 $('#b-fire').addEventListener('pointerdown',e=>{e.preventDefault();fire()});
+[['#b-zi',1],['#b-zo',-1]].forEach(([id,d])=>{const b=$(id);b.addEventListener('pointerdown',e=>{e.preventDefault();camZ=d;b.classList.add('on');try{b.setPointerCapture(e.pointerId)}catch(_){}});
+  const up=()=>{camZ=0;b.classList.remove('on')};b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up)});
 [['#b-rl',1],['#b-rr',-1]].forEach(([id,d])=>{const b=$(id);
   b.addEventListener('pointerdown',e=>{e.preventDefault();camRot=d;b.classList.add('on');try{b.setPointerCapture(e.pointerId)}catch(_){}});
   const up=()=>{camRot=0;b.classList.remove('on')};b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up)});
@@ -1531,13 +1556,19 @@ function updateCam(dt){
   if(CH&&CH.fp){const a=CH.a0+CH.ax,e=CH.ay+CH.kick*.12,c=Math.cos(e),y=P.y+SCOPE.eye;camera.position.set(P.x,y,P.z);camera.lookAt(P.x+Math.sin(a)*c*10,y+Math.sin(e)*10,P.z+Math.cos(a)*c*10);return}
   const fix=!!(CH&&CH.fixCam&&camMode==='follow');if(fix!==fixOn){fixOn=fix;document.body.classList.toggle('fix',fix)}
   const still=!!(CH&&CH.still);if(still!==stillOn){stillOn=still;document.body.classList.toggle('still',still)}
-  /* a view that stands still, in front of the scene of the game and far enough to show all of it whatever the shape of the screen
-     (on a tall screen it has to stand far back, so it also rises, to look over the palm trees in between) */
-  if(fix){const f=CH.fixCam,c=CH.st.c,tn=Math.tan(camera.fov*Math.PI/360);let d=Math.max(f.min,f.len/(2*tn*camera.aspect*.92)),s=0;
-    /* a tall scene (hgt) also has to fit between the instructions at the top and the answer buttons at the foot (foot, in pixels);
-       the tallest the instructions have been in this game counts, so that the view does not go back and forth with each sentence */
-    if(f.hgt){CH.camTop=Math.max(CH.camTop||0,mis.hidden?0:mis.getBoundingClientRect().bottom);const H=innerHeight||1,tp=Math.min(.5,CH.camTop/H),ft=Math.min(.3,(f.foot||0)/H);d=Math.max(d,f.hgt/(2*tn*(1-tp-ft)*.94));s=(tp-ft)*d*tn}
-    tmpC.set(c.x+f.z,f.ly+s+d*(f.up+Math.min(.14,Math.max(0,(d-22)*.008))),c.z-f.x+d);camera.position.lerp(tmpC,1-Math.pow(.0005,dt));camera.lookAt(c.x+f.z,f.ly+s,c.z-f.x);return}
+  /* a view that stands in front of the scene of the game, far enough to show all of it whatever the shape of the screen (on a tall
+     screen it has to stand far back, so it also rises, to look over the palm trees in between); the player can then handle it */
+  if(!boardEl.hidden){const tp=Math.round(mis.hidden?8:mis.getBoundingClientRect().bottom+6);if(tp!==boardTop){boardTop=tp;boardEl.style.top=tp+'px'}}
+  if(fix){const f=CH.fixCam,c=CH.st.c,m=fixCamOf(),tn=Math.tan(camera.fov*Math.PI/360);let d=Math.max(f.min,f.len/(2*tn*camera.aspect*.92)),s=0;
+    /* a tall scene (hgt) also has to fit between what is at the top (the instructions, and the board when the scene goes under it) and the
+       answer buttons at the foot (foot, in pixels); the tallest the top has been in this game counts, so that the view does not go back
+       and forth with each sentence */
+    if(f.hgt){const top=Math.max(mis.hidden?0:mis.getBoundingClientRect().bottom,f.under&&!boardEl.hidden?boardEl.getBoundingClientRect().bottom:0);CH.camTop=Math.max(CH.camTop||0,top);
+      const H=innerHeight||1,tp=Math.min(.64,CH.camTop/H),ft=Math.min(.3,(f.foot||0)/H);d=Math.max(d,f.hgt/(2*tn*Math.max(.2,1-tp-ft)*.94));f.tf=tp-ft}
+    /* what the player did to the view: closer or farther, moved, turned */
+    const rot=paused?0:camRot||(keys['q']?1:keys['r']?-1:0),zk=paused?0:camZ||(keys['+']||keys['=']?1:keys['-']||keys['_']?-1:0);if(rot)m.ang=clamp(m.ang+rot*dt*1.1,-.95,.95);if(zk)fixZoom(Math.exp(zk*dt*1.4));
+    const up=f.up+Math.min(.14,Math.max(0,(d-22)*.008));d/=m.zm;f.d=d;s=(f.tf||0)*d*tn;const lx=c.x+f.z+m.ox,ly=f.ly+s+m.oy,lz=c.z-f.x;
+    tmpC.set(lx+d*Math.sin(m.ang),ly+d*up,lz+d*Math.cos(m.ang));camera.position.lerp(tmpC,1-Math.pow(.0005,dt));camera.lookAt(lx,ly,lz);return}
   let ty=yaw,dist=10,py=pitch,ly=camLook;if(camMode==='front'){ty=rotY;dist=6.5;py=.12;ly=.2}else if(camMode==='cele'){ty=rotY;dist=8.5;py=.12;ly=1.9}
   tmpC.set(P.x+Math.sin(ty)*Math.cos(py)*dist,Math.max(P.y,-1)+1.8+Math.sin(py)*dist,P.z+Math.cos(ty)*Math.cos(py)*dist);
   /* under the roof of the trophy hall the camera stays below the ceiling instead of sitting inside it */
@@ -1694,12 +1725,12 @@ function quit3D(silent){if(!CH)return;
   if(CH.type==='order')CH.cubes.forEach(c=>drop(c.m));
   if(CH.type==='obby')resetObby();
   if(CH.type==='kart')leaveKart();
-  clearArena();checkpoint=null;leaveScope();hideSure();hidePicks();camLook=1.7;
+  clearArena();checkpoint=null;leaveScope();hideSure();hideHud();camLook=1.7;
   CH=null;mis.hidden=true;if(!silent)toast('Desafio encerrado. Fale com o personagem para jogar de novo!')}
 /* The result sheet opens a moment after the round ends. If the player starts something else first, the round is still scored (quietly). */
 let pendFin=null;
 function flushFin(){if(!pendFin)return;const p=pendFin;clearTimeout(p.t);p.fn(true)}
-function done3D(lost){const c=CH;clearArena();CH=null;mis.hidden=true;checkpoint=null;leaveScope();hideSure();hidePicks();camLook=1.7;
+function done3D(lost){const c=CH;clearArena();CH=null;mis.hidden=true;checkpoint=null;leaveScope();hideSure();hideHud();camLook=1.7;
   const fn=silent=>{pendFin=null;finishChallenge(c.st,c.first,c.n,c.coins,c.level,c.mode,lost,silent===true)};
   if(lost)playAnim('sad');else{playAnim('win');toast(`<b>Fim da rodada!</b> 🎉`,2400)}
   pendFin={fn,t:setTimeout(fn,(lost?1900:ANIM&&ANIM.type==='cele'?ANIM.dur*1000+200:2700)*TS)}}
@@ -1709,9 +1740,14 @@ function hideSure(){sureFn=null;if(!sureB.hidden)sureB.hidden=true}
 function sure(){if(!sureFn||paused)return;sfx.tap();const f=sureFn;hideSure();f()}
 sureB.onclick=sure;
 /* answers to tap: a row of big buttons at the foot of the screen, for the games where the player does not walk to the answer */
+/* a board that stays on the screen, under the instructions, whatever the camera does: the scoreboard of the goals, the count of the bus */
+const boardEl=$('#board');let boardTop=-1;
+function showBoard(cnv,cls){boardEl.textContent='';boardEl.appendChild(cnv);boardEl.className=cls;boardEl.hidden=false;boardTop=-1}
+function hideBoard(){boardEl.hidden=true;boardEl.textContent=''}
 const picksB=$('#picks');let pickFn=null;
 function showPicks(vals,fn){pickFn=fn;picksB.innerHTML=vals.map((v,i)=>`<button class="pk pk${i}" data-i="${i}">${v}</button>`).join('');picksB.hidden=false}
 function hidePicks(){pickFn=null;if(!picksB.hidden){picksB.hidden=true;picksB.innerHTML=''}}
+function hideHud(){hidePicks();hideBoard()}
 function lockPicks(){picksB.querySelectorAll('.pk').forEach(b=>b.disabled=true)}
 picksB.onclick=e=>{const b=e.target.closest('.pk');if(!b||b.disabled||!pickFn||paused)return;sfx.tap();pickFn(+b.dataset.i,b)};
 function teleport(x,z,lookX,lookZ){P.set(x,0,z);vy=0;pitch=.38;camLook=1.7;PL.g.position.copy(P);if(lookX!=null){yaw=Math.atan2(x-lookX,z-lookZ);rotY=Math.atan2(lookX-x,lookZ-z)}
@@ -2011,7 +2047,8 @@ function nextBuild(){if(!CH||CH.type!=='build')return;CH.idx++;if(CH.idx>=CH.n)r
    The bus has ten seats in two rows of five (a ten-frame); at level 3 it has a second deck with ten more.
    Level 1: everything stays in sight, so the answer can be counted. Level 2: the curtains close before people get on or off, so it has
    to be worked out. Level 3: bigger numbers, or the question is how many got on or off. The camera stands still, facing the bus stop,
-   the player waits at the stop without walking, and the answer is a button on the screen. */
+   the player waits at the stop without walking, the answer is a button on the screen, and the camera can be brought close to look
+   at each passenger. */
 /* The bus and the number-line games face the side of the island, away from the obby course: in their arena "ahead" is -z of the world
    and "to the right" is +x (the arena group is turned a quarter). FW gives the place in the world of a spot of that arena. */
 const FW=(st,A,B)=>({x:st.c.x+B,z:st.c.z-A});
@@ -2070,25 +2107,25 @@ function buildBus(decks){const g=new THREE.Group(),Y='#FFC83D',R='#E53935',D='#2
   for(let d=0;d<decks;d++){const y0=F+d*H,y1=d===decks-1?top:y0+H-.16,c=mesh(BOX(2.54,y1-y0,7.38),cm,0,(y0+y1)/2,-.26);c.visible=false;g.add(c);cur.push(c)}
   g.userData.cur=cur;g.userData.wheels=wheels;g.scale.setScalar(BUS.s);return g}
 const busCurtain=on=>{CH.closed=on;CH.bus.userData.cur.forEach(c=>c.visible=on)};
-/* the board over the stop: "+2", "−3", the running count, and the whole sum at the end */
-function busBoard(text,col){const C=CH,b=C.board,g=b.c.getContext('2d');g.clearRect(0,0,512,256);b.sp.visible=!!text;if(!text)return;g.fillStyle=col||'#FFFFFF';rr(g,10,34,492,188,44);g.fill();g.lineWidth=12;g.strokeStyle=INK;g.stroke();bigText(g,text,256,134,440,128,col?'#fff':INK);b.t.needsUpdate=true}
+/* the board at the top of the screen: "+2", "−3", the running count, and the whole sum at the end */
+function busBoard(text,col){const C=CH,b=C.board,g=b.c.getContext('2d');g.clearRect(0,0,512,256);boardEl.hidden=!text;if(!text)return;g.fillStyle=col||'#FFFFFF';rr(g,10,34,492,188,44);g.fill();g.lineWidth=12;g.strokeStyle=INK;g.stroke();bigText(g,text,256,134,440,128,col?'#fff':INK)}
 function startBus(st){CH={type:'bus',st,n:5,idx:0,first:0,coins:0};loadBusQ()}
 function loadBusQ(){clearArena();const C=CH,G=beginArena(C.st);G.rotation.y=Math.PI/2;const lvl=stat(C.st.id).level,q=genBus(lvl),decks=lvl===3?2:1;
-  Object.assign(C,{q,lvl,skill:q.skill,tries:0,locked:false,ph:'in',t:0,busB:-BUS.far,seated:[],wait:[],gone:[],hops:[],closed:false,moved:0,stepT:0,count:null,still:true});hidePicks();
+  Object.assign(C,{q,lvl,skill:q.skill,tries:0,locked:false,ph:'in',t:0,busB:-BUS.far,seated:[],wait:[],gone:[],hops:[],closed:false,moved:0,stepT:0,count:null,still:true});hideHud();
   /* the street: asphalt with a dashed line, kerbs, the pavement of the stop with its yellow line, and a hedge with flowers on the far side */
   G.add(mesh(BOX(5.8,.04,52),'#4C5364',BUS.A,.03,0,false),mesh(BOX(.24,.16,52),'#E3E6EC',BUS.A+3,.08,0,false),mesh(BOX(2.6,.1,24),'#D9D2C5',BUS.A-4.1,.05,1,false),mesh(BOX(.24,.16,24),'#F4F6FA',BUS.A-2.92,.08,1,false),mesh(BOX(.16,.11,24),'#FFC83D',BUS.A-3.3,.06,1,false));
   for(let k=-5;k<=5;k++)G.add(mesh(BOX(.2,.05,1.8),'#FFFFFF',BUS.A+2.45,.06,k*4.4,false));
   for(let k=-4;k<=4;k++){G.add(mesh(BOX(1.1,.8+(k&1)*.2,2.9),k&1?'#2F9E4F':'#3BB25E',BUS.A+3.9,.4+(k&1)*.1,k*3.2,false));
     [-.8,.1,.9].forEach((o,j)=>G.add(mesh(BOX(.22,.22,.22),['#FF5FA2','#FFFFFF','#FFC83D'][(j+k+8)%3],BUS.A+3.4,.75+(k&1)*.2,k*3.2+o,false)))}
-  /* the sign of the stop on its post, and the post of the board */
-  G.add(mesh(BOX(.16,3.4,.16),'#5B6475',BUS.A-3.6,1.7,-6.9),mesh(BOX(.5,.12,.5),'#3A4252',BUS.A-3.6,.06,-6.9,false),mesh(BOX(.16,3.5,.16),'#5B6475',BUS.A+3.5,1.75,12,false));
+  /* the sign of the stop on its post */
+  G.add(mesh(BOX(.16,3.4,.16),'#5B6475',BUS.A-3.6,1.7,-6.9),mesh(BOX(.5,.12,.5),'#3A4252',BUS.A-3.6,.06,-6.9,false));
   const sg=sprite(texOf(g=>{g.fillStyle='#2E8BF0';rr(g,28,28,200,200,36);g.fill();g.lineWidth=10;g.strokeStyle=INK;g.stroke();emo(g,'🚌',128,112,104);bigText(g,'PONTO',128,200,180,40,'#fff')}),2,2);sg.position.set(BUS.A-3.6,4.1,-6.9);G.add(sg);
   C.bus=buildBus(decks);C.bus.position.set(BUS.A,0,C.busB);G.add(C.bus);
   for(let i=0;i<q.a;i++){const p=busPerson();G.add(p);C.seated.push(p)}
   if(q.kind==='res'&&q.add)for(let i=0;i<q.b;i++){const p=busPerson(),s=busSpot(i);p.position.set(s.x,0,s.z);G.add(p);C.wait.push(p)}
-  const bc=cv(512,256,()=>{}),bt=tex(bc);CHX.texs.push(bt);const bs=sprite(bt,4,2);bs.position.set(BUS.A+3.5,4.4,12);bs.material.depthTest=false;bs.renderOrder=6;bs.visible=false;G.add(bs);C.board={c:bc,t:bt,sp:bs};
-  /* the camera stays put, far enough to show the whole bus on any screen; the player waits at the stop, behind the back of the bus */
-  C.fixCam={x:BUS.A,z:1.2,ly:decks===2?3.9:2.6,len:22,min:decks===2?17.5:15,up:decks===2?.2:.16,hgt:decks===2?10.4:6.8,foot:innerHeight<=430?80:104};
+  C.board={c:cv(512,256,()=>{})};showBoard(C.board.c,'count');boardEl.hidden=true;
+  /* the camera starts far enough to show the whole bus on any screen, and can be brought closer; the player waits at the stop */
+  C.fixCam={x:BUS.A,z:.3,ly:decks===2?3.9:2.6,len:18.6,min:decks===2?14:11,up:decks===2?.2:.16,hgt:decks===2?10.4:6.8,foot:innerHeight<=430?80:104};
   const w=FW(C.st,BUS.A-3.9,-5.4),f=FW(C.st,BUS.A,-5.4);teleport(w.x,w.z,f.x,f.z);busPlace();
   setMission(`<span class="vt">🚌 ÔNIBUS</span>${C.idx+1}/${C.n} · Lá vem o ônibus! Olhe bem quem está nele.`)}
 function busPlace(){const C=CH,a=C.busB/(.5*BUS.s);C.bus.position.z=C.busB;C.bus.userData.wheels.forEach(w=>w.rotation.x=a);C.seated.forEach((p,i)=>{if(p.userData.hop)return;const s=busSeat(i,C.busB);p.position.set(s.x,s.y,s.z)})}
@@ -2132,10 +2169,10 @@ function nextBus(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadBusQ()}
    The scoreboard over the goal holds the goals as balls in frames of ten (two rows of five). Four stories, each one a meaning of adding
    or taking away: the goals of the two halves put together; goals the referee disallows taken away; how many more goals than the rival
    (two rows side by side); how many goals are missing to reach the cup (empty places to fill).
-   Level 1: joining and taking away with every ball in sight. Level 2: the scoreboard goes dark before the change, and the two other
-   stories come in, with their balls in sight. Level 3: up to 20; comparing and missing show numbers only, until a miss brings the balls.
-   On a wide screen the scoreboard stands beside the goal and the kick comes from the side, in front of the gap between the two; on a
-   tall one the scoreboard is over the goal and the kick is a penalty. Either way the balls are as big as the screen allows.
+   The balls are always in sight, to be counted. Level 1: joining and taking away up to 10. Level 2: the two other stories come in.
+   Level 3: up to 20.
+   The scoreboard is a board fixed on the screen, under the instructions: on a wide screen it takes the left half and the goal is on
+   the right, with the kick coming from the side; on a tall one it goes across the top and the goal is under it, with a penalty kick.
    The player stands still by the ball; a button on the screen picks the number, the player kicks at it, and the goalkeeper dives:
    the wrong way when the number is right (goal!), onto the ball when it is not. After a save the scoreboard counts ball by ball. */
 const GOL={A:13.5,w:4.5,h:3.4,spot:3.9,tz:[-3,0,3],ty:2.55,col:['#E8413A','#2E8BF0','#8B4CF0']};
@@ -2166,44 +2203,41 @@ function golBoard(){const C=CH,q=C.q,d=C.bd,b=C.board,g=b.c.getContext('2d'),W=1
     if(st!==1&&st!==3){g.fillStyle=st===2?'#FFC83D':st===5?'#E8413A':'#2E8BF0';g.beginPath();g.arc(x,y,s*.47,0,7);g.fill()}
     g.globalAlpha=st===3?.5:1;emo(g,'⚽',x,y+2,s*.72);g.globalAlpha=1;
     if(st===3){g.strokeStyle='#FF3B30';g.lineWidth=s*.12;g.lineCap='round';g.beginPath();g.moveTo(x-s*.3,y-s*.3);g.lineTo(x+s*.3,y+s*.3);g.moveTo(x+s*.3,y-s*.3);g.lineTo(x-s*.3,y+s*.3);g.stroke()}};
-  if(d.num){const dif=q.kind==='dif';bigText(g,dif?`${q.a}  ×  ${q.b}`:`${q.a}  →  ${q.end}`,W/2,228,720,180,'#fff');bigText(g,dif?'SEU TIME':'TEM',250,348,320,40,'#7FB6FF');bigText(g,dif?'RIVAL':'PRECISA 🏆',750,348,320,40,dif?'#FF8A80':'#FFC83D')}
-  else if(q.kind==='dif'){const m=Math.max(q.a,q.b),s=m>10?42:82,x0=m>10?128:140;
+  if(q.kind==='dif'){const m=Math.max(q.a,q.b),s=m>10?42:82,x0=m>10?128:140;
     [[d.n1,170,'🔵',6],[d.n2,300,'🔴',5]].forEach(([n,y,e,st],r)=>{emo(g,e,72,y+2,54);for(let i=0;i<n;i++)slot(x0+i*s+s/2,y,s,st,!r&&i>=q.b&&i<q.b+d.hi?i-q.b+1:0)})}
   else{const fr=q.cap/10,s=fr===1?126:88,fw=5*s,gap=40,tot=fr*fw+(fr-1)*gap,x0=(W-tot)/2,y0=fr===1?108:138,left=d.n1-d.gone;
     for(let f=0;f<fr;f++){g.strokeStyle='rgba(255,255,255,.55)';g.lineWidth=4;rr(g,x0+f*(fw+gap)-8,y0-8,fw+16,2*s+16,18);g.stroke()}
     for(let i=0;i<q.cap;i++){const f=Math.floor(i/10),k=i%10,x=x0+f*(fw+gap)+(k%5+.5)*s,y=y0+(Math.floor(k/5)+.5)*s;
       if(q.kind==='need'){slot(x,y,s,i<q.a?1:i<q.end?4:0,i>=q.a&&i<q.a+d.hi?i-q.a+1:0);if(i===q.end-1)emo(g,'🏆',x+s*.3,y-s*.3,s*.36)}
       else if(q.kind==='add')slot(x,y,s,i<d.n1?1:i<d.n1+d.n2?2:0,i<d.hi?i+1:0);
-      else slot(x,y,s,i<left-d.x?1:i<left?3:0,i<d.hi?i+1:0)}
-    if(d.cover){g.fillStyle='#0B1326';rr(g,x0-16,y0-16,tot+32,2*s+32,22);g.fill();g.strokeStyle='#FFC83D';g.lineWidth=5;g.stroke();bigText(g,d.big,W/2,y0+s+6,tot-80,s*1.5,d.big[0]==='+'?'#7CE3A0':d.big[0]==='−'?'#FF8A80':'#fff')}}
-  b.t.needsUpdate=true}
+      else slot(x,y,s,i<left-d.x?1:i<left?3:0,i<d.hi?i+1:0)}}
+}
 function startGol(st){CH={type:'gol',st,n:5,idx:0,first:0,coins:0,gols:0,defs:0,time:0,still:true};loadGolQ()}
-function loadGolQ(){clearArena();hidePicks();const C=CH,G=beginArena(C.st);G.rotation.y=Math.PI/2;const lvl=stat(C.st.id).level,q=genGol(lvl),A=GOL.A,w=GOL.w,h=GOL.h,W='#F4F6FA';
+function loadGolQ(){clearArena();hideHud();const C=CH,G=beginArena(C.st);G.rotation.y=Math.PI/2;const lvl=stat(C.st.id).level,q=genGol(lvl),A=GOL.A,w=GOL.w,h=GOL.h,W='#F4F6FA';
   Object.assign(C,{q,lvl,skill:q.skill,tries:0,locked:false,ph:'in',t:0,moved:0,stepT:0,count:null,kick:null,asked:false,
-    bd:{head:'⚽ PLACAR',n1:0,n2:0,x:0,gone:0,hi:0,cover:false,big:'?',col:null,num:lvl===3&&(q.kind==='dif'||q.kind==='need')}});
-  /* a wide screen has the scoreboard on the left and the goal on the right; a tall one has the scoreboard over the goal.
-     Everything of the goal (lines, nets, goalkeeper, ball, numbers) lives in a group centred on it. */
-  const wide=innerWidth>innerHeight*1.15,gz=wide?6.3:0,bw=wide?10.6:13,bh=bw*.4,bz=wide?-6.6:0,by=wide?.3+bh/2:h+.5+bh/2,bx=wide?A+.4:A+2.3,z0=wide?-5.7:0,GG=new THREE.Group();GG.position.z=gz;G.add(GG);C.gz=gz;C.bz0=z0;
+    bd:{head:'⚽ PLACAR',n1:0,n2:0,x:0,gone:0,hi:0,col:null}});
+  /* a wide screen has the scoreboard on its left half and the goal on the right; a tall one has the scoreboard across the top and the
+     goal under it. Everything of the goal (lines, nets, goalkeeper, ball, numbers) lives in a group centred on it. */
+  const wide=innerWidth>innerHeight*1.15,gz=wide?6.3:0,z0=wide?-6.2:0,sx=wide?2.6:GOL.spot,GG=new THREE.Group();GG.position.z=gz;G.add(GG);C.gz=gz;C.bz0=z0;C.sx=sx;
   for(let k=0;k<6;k++){const m=mesh(BOX(3,.06,32),k&1?'#3FA650':'#49B55B',A-13.5+k*3,.03,0,false);m.receiveShadow=true;G.add(m)}
   G.add(mesh(BOX(.14,.02,32),W,A,.07,0,false));
   GG.add(mesh(BOX(.14,.02,17),W,A-7.6,.07,0,false),mesh(BOX(7.6,.02,.14),W,A-3.8,.07,-8.5,false),mesh(BOX(7.6,.02,.14),W,A-3.8,.07,8.5,false),
-    mesh(BOX(.14,.02,11.6),W,A-2.6,.07,0,false),mesh(BOX(2.6,.02,.14),W,A-1.3,.07,-5.8,false),mesh(BOX(2.6,.02,.14),W,A-1.3,.07,5.8,false),mesh(new THREE.CylinderGeometry(.22,.22,.02,14),W,A-GOL.spot,.07,z0,false));
+    mesh(BOX(.14,.02,11.6),W,A-2.6,.07,0,false),mesh(BOX(2.6,.02,.14),W,A-1.3,.07,-5.8,false),mesh(BOX(2.6,.02,.14),W,A-1.3,.07,5.8,false),mesh(new THREE.CylinderGeometry(.22,.22,.02,14),W,A-sx,.07,z0,false));
   if(!wide)[[-10.4,'#2E8BF0'],[-7.4,'#FFC83D'],[7.4,'#E8413A'],[10.4,'#8B4CF0']].forEach(([z,c])=>G.add(mesh(BOX(.2,.9,2.8),c,A+1.2,.45,z,false),mesh(BOX(.22,.3,2.2),W,A+1.19,.5,z,false)));
   /* the goal: posts, crossbar and nets */
   const net=(nw,nh)=>new THREE.MeshBasicMaterial({map:texOf((c,cw,ch)=>{c.strokeStyle='rgba(255,255,255,.8)';c.lineWidth=2;for(let x=1;x<cw;x+=10){c.beginPath();c.moveTo(x,0);c.lineTo(x,ch);c.stroke()}for(let y=1;y<ch;y+=10){c.beginPath();c.moveTo(0,y);c.lineTo(cw,y);c.stroke()}},Math.round(nw*26),Math.round(nh*26)),transparent:true,side:THREE.DoubleSide,depthWrite:false});
   [-w,w].forEach(z=>GG.add(mesh(BOX(.2,h,.2),W,A,h/2,z),mesh(BOX(.12,h,.12),W,A+1.5,h/2,z,false),mesh(BOX(1.5,.12,.12),W,A+.75,h,z,false),mesh(new THREE.PlaneGeometry(1.5,h),net(1.5,h),A+.75,h/2,z,false)));
   GG.add(mesh(BOX(.2,.2,2*w+.2),W,A,h,0),mesh(BOX(.12,.12,2*w),W,A+1.5,h,0,false));
   const back=mesh(new THREE.PlaneGeometry(2*w,h),net(2*w,h),A+1.5,h/2,0,false);back.rotation.y=-Math.PI/2;const roof=mesh(new THREE.PlaneGeometry(1.5,2*w),net(1.5,2*w),A+.75,h,0,false);roof.rotation.x=-Math.PI/2;GG.add(back,roof);
-  /* the scoreboard on its two posts */
-  [-1,1].forEach(k=>G.add(mesh(BOX(.3,by,.3),'#5B6475',bx+.45,by/2,bz+k*(bw/2-.9),false)));
-  const bc=cv(1000,400,()=>{}),bt=tex(bc);CHX.texs.push(bt);const bs=sprite(bt,bw,bh);bs.position.set(bx,by,bz);G.add(bs);C.board={c:bc,t:bt,sp:bs};
+  /* the scoreboard, fixed on the screen */
+  C.board={c:cv(1000,400,()=>{})};showBoard(C.board.c,wide?'wide':'tall');
   /* the goalkeeper, the ball on the spot, and the three numbers in the goal (shown with the question) */
   C.kp=golKeeper();C.kp.position.set(A-.75,0,0);GG.add(C.kp);
-  C.ball=mesh(new THREE.SphereGeometry(.34,14,10),new THREE.MeshLambertMaterial({map:texOf(c=>{c.fillStyle='#fff';c.fillRect(0,0,128,64);c.fillStyle='#1E1A1A';[[16,16],[48,44],[80,16],[112,44],[16,66],[80,66],[48,-6],[112,-6]].forEach(([x,y])=>{c.beginPath();c.arc(x,y,10,0,7);c.fill()})},128,64)}),A-GOL.spot,.34,z0);GG.add(C.ball);
+  C.ball=mesh(new THREE.SphereGeometry(.34,14,10),new THREE.MeshLambertMaterial({map:texOf(c=>{c.fillStyle='#fff';c.fillRect(0,0,128,64);c.fillStyle='#1E1A1A';[[16,16],[48,44],[80,16],[112,44],[16,66],[80,66],[48,-6],[112,-6]].forEach(([x,y])=>{c.beginPath();c.arc(x,y,10,0,7);c.fill()})},128,64)}),A-sx,.34,z0);GG.add(C.ball);
   C.tg=q.opts.map((v,i)=>{const s=sprite(texOf(g=>{g.fillStyle='#fff';g.beginPath();g.arc(128,128,122,0,7);g.fill();g.fillStyle=GOL.col[i];g.beginPath();g.arc(128,128,104,0,7);g.fill();bigText(g,v,128,134,170,128,'#fff')}),1.8,1.8);s.position.set(A-.2,GOL.ty,GOL.tz[i]);s.visible=false;GG.add(s);return s});
-  /* the camera stays put, behind the kicker, and shows the goal and the scoreboard on any screen */
-  const foot=innerHeight<=430?80:104;C.fixCam=wide?{x:A,z:-.45,ly:1.45,len:25.2,min:13,up:.09,hgt:6.5,foot}:{x:A,z:0,ly:3.7,len:16.5,min:15,up:.11,hgt:11.2,foot};
-  const p=FW(C.st,A-GOL.spot-1.6,gz+z0-.5),f=FW(C.st,A,gz+z0*.25);teleport(p.x,p.z,f.x,f.z);C.p0=p;
+  /* the camera starts behind the kicker, with the goal clear of the scoreboard: on the right half of a wide screen, under it on a tall one */
+  const foot=innerHeight<=430?80:104;C.fixCam=wide?{x:A,z:-2.25,ly:1.35,len:25,min:13.5,up:.09,hgt:4.8,foot}:{x:A,z:0,ly:1.1,len:12.5,min:12,up:.11,hgt:6.6,foot,under:true};
+  const p=wide?FW(C.st,A-sx-.25,gz+z0-1.7):FW(C.st,A-sx-1.6,-.5),f=wide?FW(C.st,A-1.2,gz):FW(C.st,A,0);teleport(p.x,p.z,f.x,f.z);C.p0=p;C.p1=wide?FW(C.st,A-sx-.15,gz+z0-.8):FW(C.st,A-sx-.8,-.3);
   golBoard();setMission(`${golHead()}Olhe o placar!`)}
 const golHead=()=>`<span class="vt">⚽ GOL DE PLACA</span>${CH.idx+1}/${CH.n} · `;
 const golAsk=()=>setMission(`${golHead()}${CH.q.text}<small>Toque no número certo para chutar · Você ${CH.gols} × ${CH.defs} Goleiro 🧤</small>`);
@@ -2214,9 +2248,8 @@ function golPhase(ph){const C=CH,q=C.q,d=C.bd,h=golHead(),gs=q.a===1?'gol':'gols
     else if(q.kind==='dif'){d.head=`SEU TIME ${q.a} × ${q.b} RIVAL`;d.n1=q.a;d.n2=q.b;setMission(`${h}Seu time fez <b>${q.a}</b> e o rival fez <b>${q.b}</b>.`)}
     else{d.head=`TEM ${q.a} · PRECISA DE ${q.end} 🏆`;setMission(`${h}Seu time tem <b>${q.a}</b> ${gs}. Para ganhar a taça precisa de <b>${q.end}</b>.`)}
     golBoard()}
-  else if(ph==='cover'){d.cover=true;d.big='?';sfx.tap();golBoard();setMission(`${h}Tinha <b>${q.a}</b> ${gs}. O placar apagou! 🙈`)}
   else if(ph==='move'){C.stepT=.5;if(q.kind==='add'){setMission(`${h}Tinha <b>${q.a}</b>. Agora veja os gols do <b>2º tempo</b>!`);speak('Veja os gols do segundo tempo.')}else{setMission(`${h}Tinha <b>${q.a}</b>. Agora veja os gols que o juiz <b>anulou</b>!`);speak('Veja os gols que o juiz anulou.')}}
-  else if(ph==='ask'){if(C.asked)return golAsk();C.asked=true;if(q.kind==='add'||q.kind==='sub'){d.head=`${q.ask} = ?`;if(d.cover)d.big='?';golBoard()}
+  else if(ph==='ask'){if(C.asked)return golAsk();C.asked=true;if(q.kind==='add'||q.kind==='sub'){d.head=`${q.ask} = ?`;golBoard()}
     C.tg.forEach(s=>s.visible=true);showPicks(q.opts,golPick);golAsk();sayQ(q.text)}}
 /* where the ball is while the goalkeeper holds it: over his head when he lies stretched, at his chest when he stands */
 function golHold(){const C=CH,kp=C.kp,r=kp.rotation.x;if(r)C.ball.position.set(kp.position.x-.3,kp.position.y+2.05*Math.cos(r)+.15,kp.position.z+2.05*Math.sin(r));else C.ball.position.set(kp.position.x-.5,kp.position.y+1.2,kp.position.z)}
@@ -2227,18 +2260,17 @@ function golPick(i,b){const C=CH;if(!C||C.type!=='gol'||C.ph!=='ask'||C.locked)r
 function updateGol(dt){const C=CH,q=C.q,d=C.bd,kp=C.kp,K=C.kick,A=GOL.A,ez=u=>u<=0?0:u>=1?1:u*u*(3-2*u);C.t+=dt;C.time+=dt;
   if(C.ph==='in'){if(C.t>=.7)golPhase('show')}
   else if(C.ph==='show'){
-    if(q.kind==='add'||q.kind==='sub'){const n=Math.min(q.a,Math.floor(C.t/.14)+1);if(n!==d.n1){d.n1=n;sfx.tick();golBoard()}if(C.t>=q.a*.14+(C.lvl===1?2.3:2.6))golPhase(C.lvl>1?'cover':'move')}
+    if(q.kind==='add'||q.kind==='sub'){const n=Math.min(q.a,Math.floor(C.t/.14)+1);if(n!==d.n1){d.n1=n;sfx.tick();golBoard()}if(C.t>=q.a*.14+2.3)golPhase('move')}
     else if(C.t>=2.4)golPhase('ask')}
-  else if(C.ph==='cover'){if(C.t>=1)golPhase('move')}
   else if(C.ph==='move'){C.stepT-=dt;
-    if(C.stepT<=0&&C.moved<q.b){C.moved++;C.stepT=.62;if(q.kind==='add'){d.n2=C.moved;d.big='+'+C.moved;d.head=`2º TEMPO: +${C.moved}`;sfx.pop()}else{d.x=C.moved;d.big='−'+C.moved;d.head=`ANULADO: −${C.moved}`;sfx.tap()}golBoard()}
+    if(C.stepT<=0&&C.moved<q.b){C.moved++;C.stepT=.62;if(q.kind==='add'){d.n2=C.moved;d.head=`2º TEMPO: +${C.moved}`;sfx.pop()}else{d.x=C.moved;d.head=`ANULADO: −${C.moved}`;sfx.tap()}golBoard()}
     if(C.moved>=q.b&&C.stepT<=-.55){if(q.kind==='sub'){d.gone=q.b;d.x=0}golPhase('ask')}}
   else if(C.ph==='kick'){
     /* the run to the ball, the kick, and the ball flying to the number while the goalkeeper dives */
-    const run=Math.min(1,C.t/.3),s=C.p0,e=FW(C.st,A-GOL.spot-.8,C.gz+C.bz0-.3);P.x=s.x+(e.x-s.x)*run;P.z=s.z+(e.z-s.z)*run;PL.g.position.copy(P);
+    const run=Math.min(1,C.t/.3),s=C.p0,e=C.p1;P.x=s.x+(e.x-s.x)*run;P.z=s.z+(e.z-s.z)*run;PL.g.position.copy(P);
     if(run<1){PL.legL.rotation.x=Math.sin(C.t*32)*.7;PL.legR.rotation.x=-Math.sin(C.t*32)*.7}else PL.legR.rotation.x=C.t<.56?-1.3:0;
     if(run>=1&&!K.shot){K.shot=true;sfx.shot()}
-    const u=Math.min(1,Math.max(0,(C.t-.3)/.5)),x0=A-GOL.spot,tx=A-.35,tz=GOL.tz[K.i],v=ez(u);
+    const u=Math.min(1,Math.max(0,(C.t-.3)/.5)),x0=A-C.sx,tx=A-.35,tz=GOL.tz[K.i],v=ez(u);
     if(K.shot){C.ball.position.set(x0+(tx-x0)*u,.34+(GOL.ty-.34)*u+Math.sin(u*Math.PI)*.5,C.bz0+(tz-C.bz0)*u);C.ball.rotation.z-=dt*14;
       kp.position.z=K.z0+((K.side?K.dz-Math.sign(K.dz)*1.6:0)-K.z0)*v;kp.position.y=Math.sin(v*Math.PI/2)*(K.side?1.2:1.05);kp.rotation.x=K.side?Math.sign(K.dz)*v:0}
     if(u>=1){PL.legR.rotation.x=0;if(K.ok)golGoal();else golSave()}}
@@ -2246,16 +2278,16 @@ function updateGol(dt){const C=CH,q=C.q,d=C.bd,kp=C.kp,K=C.kick,A=GOL.A,ez=u=>u<
   else if(C.ph==='saved'){kp.position.y+=((K.side?.3:0)-kp.position.y)*Math.min(1,dt*7);golHold()}
   else if(C.ph==='back'){
     /* after a save: the goalkeeper lands with the ball, then gets up and gives it back, and the player returns to the mark */
-    const e=FW(C.st,A-GOL.spot-.8,C.gz+C.bz0-.3),r=Math.min(1,C.t/.3);P.x=e.x+(C.p0.x-e.x)*r;P.z=e.z+(C.p0.z-e.z)*r;PL.g.position.copy(P);
+    const e=C.p1,r=Math.min(1,C.t/.3);P.x=e.x+(C.p0.x-e.x)*r;P.z=e.z+(C.p0.z-e.z)*r;PL.g.position.copy(P);
     if(C.t<.9){kp.position.y+=((K.side?.3:0)-kp.position.y)*Math.min(1,dt*7);golHold();K.z1=kp.position.z;K.y1=kp.position.y;K.r1=kp.rotation.x}
-    else{const v=ez((C.t-.9)/.5);kp.position.z=K.z1*(1-v);kp.position.y=K.y1*(1-v);kp.rotation.x=K.r1*(1-v);C.ball.position.set(A-GOL.spot,.34,C.bz0);if(C.t>=1.45){C.time=0;golPhase('ask')}}}
+    else{const v=ez((C.t-.9)/.5);kp.position.z=K.z1*(1-v);kp.position.y=K.y1*(1-v);kp.rotation.x=K.r1*(1-v);C.ball.position.set(A-C.sx,.34,C.bz0);if(C.t>=1.45){C.time=0;golPhase('ask')}}}
   /* while he waits, the goalkeeper sways from side to side */
   if(C.ph!=='kick'&&C.ph!=='goal'&&C.ph!=='saved'&&C.ph!=='back'){kp.position.z=Math.sin(C.time*1.4)*1.5;kp.position.y=Math.abs(Math.sin(C.time*2.8))*.12}
   /* help after a save: the scoreboard numbers the balls one by one */
   if(C.count){const N=C.count;N.t-=dt;if(N.t<=0&&N.i<N.n){N.i++;N.t=.5;d.hi=N.i;sfx.tick();golBoard()}else if(N.i>=N.n&&N.t<=-1)C.count=null}}
-function golGoal(){const C=CH,q=C.q,d=C.bd;C.gols++;C.ph='goal';C.t=0;C.count=null;C.kick.b.classList.add('ok');lockPicks();Object.assign(d,{head:q.eq,col:'#22B35E',cover:false,num:false});golBoard();crowd(2,.5);
+function golGoal(){const C=CH,q=C.q,d=C.bd;C.gols++;C.ph='goal';C.t=0;C.count=null;C.kick.b.classList.add('ok');lockPicks();Object.assign(d,{head:q.eq,col:'#22B35E'});golBoard();crowd(2,.5);
   okRound(null,`⚽ GOOOL! <b>${q.eq}</b>`,3800,nextGol)}
-function golSave(){const C=CH,q=C.q,d=C.bd,K=C.kick;C.defs++;C.tries++;C.t=0;K.b.disabled=true;K.b.classList.add('no');C.tg[K.i].visible=false;noteErr(C.skill,q.ask,q.ans,K.v);Object.assign(d,{cover:false,num:false});
+function golSave(){const C=CH,q=C.q,d=C.bd,K=C.kick;C.defs++;C.tries++;C.t=0;K.b.disabled=true;K.b.classList.add('no');C.tg[K.i].visible=false;noteErr(C.skill,q.ask,q.ans,K.v);
   if(C.tries>=2){C.ph='saved';C.count=null;lockPicks();const rb=picksB.querySelectorAll('.pk')[q.opts.indexOf(q.ans)];if(rb)rb.classList.add('ok');d.head=q.eq;d.col='#E8413A';golBoard();
     return failRound(`🧤 O goleiro pegou! A resposta era <b>${q.ans}</b>: ${q.eq}.`,5200,nextGol)}
   C.ph='back';d.hi=0;C.count={i:0,t:1.2,n:q.ans};golBoard();
