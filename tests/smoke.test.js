@@ -58,7 +58,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
   const start = (page, id, mi, level) => page.evaluate(([id, mi, level]) => { const D = __ilhaDebug, st = D.STM[id]; D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); if (level) { D.S().st[id] = D.S().st[id] || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; D.S().st[id].level = level; } D.startMode(st, st.modes[mi]); return D.CH && D.CH.type; }, [id, mi, level]);
   const STATION_IDS = ['contas', 'ordem', 'vocab', 'n10', 'formas', 'dinheiro', 'n100', 'medidas'];
   /* how many games each station offers (the sums station also has the kart) */
-  const MODES = { contas: [0, 1, 2, 3, 4], ordem: [0, 1], vocab: [0, 1], n10: [0, 1], formas: [0, 1], dinheiro: [0, 1], n100: [0, 1], medidas: [0, 1] };
+  const MODES = { contas: [0, 1, 2, 3, 4, 5], ordem: [0, 1], vocab: [0, 1], n10: [0, 1], formas: [0, 1], dinheiro: [0, 1], n100: [0, 1], medidas: [0, 1] };
 
   console.log('Ilha dos Números: smoke tests');
   const page = await open(1024, 768, { tutorial: false });
@@ -87,6 +87,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         { const q = G.genArith(L); if (q.opts.length !== 3 || new Set(q.opts).size !== 3 || !q.opts.includes(q.ans) || [q.a, q.b, q.ans, ...q.opts].some(v => v < 0) || !/^contas\.(soma|sub)$/.test(q.skill)) note('genArith L' + L, 'options', q); }
         { const q = G.genShootArith(L), ok = q.items.filter(x => x.ok); if (ok.length !== (L < 3 ? 1 : 2) || q.items.length !== (L < 3 ? 5 : 6) || (L < 3 && (val(q.ask) !== q.T || q.items.some(x => !/^\d+$/.test(x.label)))) || ok.some(x => val(x.label) !== q.T) || q.items.some(x => !x.ok && val(x.label) === q.T) || q.items.some(x => isNaN(val(x.label))) || new Set(q.items.map(x => x.label)).size !== q.items.length) note('genShootArith L' + L, 'balloons', q); }
         { const q = G.genBus(L), cap = L === 3 ? 20 : 10; if (q.opts.length !== 3 || new Set(q.opts).size !== 3 || !q.opts.includes(q.ans) || q.opts.some(v => v < 0) || q.a < 1 || q.b < 1 || q.end < 1 || q.a > cap || q.end > cap || q.end !== (q.add ? q.a + q.b : q.a - q.b) || q.ans !== (q.kind === 'chg' ? q.b : q.end) || (q.kind === 'chg' && L < 3) || (L < 3 && q.b > (L === 1 ? 3 : 5)) || !/^contas\.(juntar|tirar|falta)$/.test(q.skill) || /undefined|NaN/.test(q.text + q.eq + q.ask)) note('genBus L' + L, 'bus question', q); }
+        { const q = G.genGol(L), cap = L === 3 ? 20 : 10, plus = q.kind === 'add' || q.kind === 'need'; if (q.opts.length !== 3 || new Set(q.opts).size !== 3 || !q.opts.includes(q.ans) || q.opts.some(v => v < 1 || v > cap) || q.a < 1 || q.b < 1 || q.end < 1 || q.a > cap || q.end > cap || q.cap !== cap || q.end !== (plus ? q.a + q.b : q.a - q.b) || q.ans !== (q.kind === 'need' ? q.b : q.end) || (L === 1 && !/^(add|sub)$/.test(q.kind)) || (L === 1 && q.b > 3) || q.skill !== 'contas.' + { add: 'juntar', sub: 'tirar', dif: 'comparar', need: 'falta' }[q.kind] || /undefined|NaN/.test(q.text + q.eq + q.ask)) note('genGol L' + L, 'football question', q); }
         { const q = G.genLine(L); if (q.N !== (L === 1 ? 10 : 20) || q.a < 0 || q.a > q.N || q.ans < 0 || q.ans > q.N || q.b < 1 || q.ans !== (q.add ? q.a + q.b : q.a - q.b) || !/^contas\.(retamais|retamenos)$/.test(q.skill)) note('genLine L' + L, 'number line question', q); }
         { const q = G.genShootShapes(L); if (q.items.length !== 8 || !q.items.some(x => x.ok) || !q.items.some(x => !x.ok)) note('genShootShapes L' + L, 'balloons', q); }
         for (const g of ['genFloorOrder', 'genFloorN100']) { const q = G[g](L); if (q.labels.length !== 9 || !q.ok.some(Boolean) || q.ok.every(Boolean) || new Set(q.labels).size !== 9 || q.labels.some(l => +l < 0)) note(`${g} L${L}`, 'tiles', q); }
@@ -99,7 +100,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     assert(!bad.length, bad.join('\n'));
   });
 
-  await test('all 19 game modes start at levels 1, 2 and 3 and run for a moment', async () => {
+  await test('all 20 game modes start at levels 1, 2 and 3 and run for a moment', async () => {
     eq(await page.evaluate(() => Object.fromEntries(Object.keys(__ilhaDebug.STM).map(id => [id, __ilhaDebug.STM[id].modes.map((m, i) => i)]))), MODES, 'games per station');
     const seen = new Set();
     for (const id of STATION_IDS) {
@@ -114,7 +115,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         seen.add(id + ':' + type);
       }
     }
-    eq(seen.size, 19, 'distinct station:mode pairs started');
+    eq(seen.size, 20, 'distinct station:mode pairs started');
     await page.evaluate(() => document.querySelector('#m-quit').click());
   });
 
@@ -468,7 +469,8 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         else if (C.type === 'shapes') { const q = C.qs[C.idx], sh = D.SHAPES.find(x => x.n === q.n); go(st.spawn.x, st.spawn.z); go(sh.x + (sh.flat ? 0 : sh.r + .5), sh.z); }
         else if (C.type === 'shoot') { const b = C.balloons.find(b => b.alive && b.it.ok); if (b) { const p = b.sp.position, dx = p.x - D.P.x, dz = p.z - D.P.z, dy = p.y - (D.P.y + D.SCOPE.eye); let a = Math.atan2(dx, dz) - C.a0; a = Math.atan2(Math.sin(a), Math.cos(a)); C.ax = a; C.ay = Math.atan2(dy, Math.hypot(dx, dz)) + .05; run(2); if (D.aim() === b) { D.fire(); for (let i = 0; i < 90 && b.alive; i++) D.step(1 / 60); } } }
         else if (C.type === 'floor') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const t = C.tiles.find(t => t.ok); go(t.p.cx, t.p.cz, 1); run(20); document.querySelector('#b-sure').click(); run(3); }
-        else if (C.type === 'bus') { if (C.ph !== 'ask') { run(30); return false; } run(2); const p = C.pads.find(p => p.v === C.q.ans); go(p.x, p.z); run(4); }
+        else if (C.type === 'bus') { if (C.ph !== 'ask') { run(30); return false; } run(2); document.querySelectorAll('#picks .pk')[C.q.opts.indexOf(C.q.ans)].click(); run(4); }
+        else if (C.type === 'gol') { if (C.ph !== 'ask') { run(30); return false; } run(2); document.querySelectorAll('#picks .pk')[C.q.opts.indexOf(C.q.ans)].click(); run(60); }
         else if (C.type === 'line') { if (C.hop) { const n = Math.abs(C.q.ans - C.pos); for (let i = 0; i < n; i++) { D.jump(); run(24); } } else go(st.c.x + C.B0 + C.q.ans * C.w, st.c.z - C.fixCam.x); run(3); document.querySelector('#b-sure').click(); run(3); }
         else if (C.type === 'kart') { if (C.phase === 'ready') C.phase = 'go'; const g = C.gates[C.idx]; C.v = 8; if (g) C.lat = (C.qs[C.idx].ans - 1) * 4; D.P.x = (g ? g.x : C.endX) - .3; run(6); }
         else if (C.type === 'simon') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const q = C.q, s = q.steps[C.si], idx = C.si, press = () => { const bt = document.querySelector('#b-sure'); if (!bt.hidden) bt.click(); };
@@ -607,31 +609,72 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.context().close();
   });
 
-  await test('bus game: people get on and off in sight, the curtains hide them from level 2, a miss brings help, and level 3 can ask how many got on', async () => {
+  await test('football game: the goals are balls on the scoreboard, a button kicks at a number, the goalkeeper saves a wrong one and the board counts, and levels 2 and 3 compare and ask what is missing', async () => {
+    await enter(page, 'contas');
+    const r = await page.evaluate(() => {
+      const D = __ilhaDebug, S = D.S(), st = D.STM.contas, mi = st.modes.findIndex(m => m.k === 'gol'), run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, out = {}, quit = () => { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); };
+      const play = (L, want) => { let g = 0; do { quit(); S.st.contas = S.st.contas || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; S.st.contas.level = L; D.startMode(st, st.modes[mi]); } while (want && !want(D.CH.q) && ++g < 400); return D.CH; };
+      const toAsk = C => { const seen = { cover: false, max: 0 }; for (let i = 0; i < 1500 && C.ph !== 'ask'; i++) { D.step(1 / 60); if (C.ph === 'move') seen.cover = C.bd.cover; seen.max = Math.max(seen.max, C.bd.n1); } run(3); return seen; };
+      const btns = () => [...document.querySelectorAll('#picks .pk')], btn = v => btns().find(b => +b.textContent === v), kick = (C, v) => { btn(v).click(); for (let i = 0; i < 400 && (C.ph === 'kick' || C.ph === 'back'); i++) D.step(1 / 60); run(3); };
+      /* level 1, joining: the balls of the two halves stay in sight; no numbers in the goal and no buttons before the question */
+      let C = play(1, q => q.kind === 'add'), q = C.q, e0 = (S.errs || []).length; run(10); const p0 = [D.P.x, D.P.z]; D.input.jx = 1; D.jump(); run(20); D.input.jx = 0;
+      out.start = [C.type, C.still, document.body.classList.contains('still'), Math.hypot(D.P.x - p0[0], D.P.z - p0[1]) < .01, document.querySelector('#picks').hidden, C.tg.some(s => s.visible), !!C.fixCam];
+      let seen = toAsk(C);
+      out.l1 = [seen.cover, seen.max === q.a, C.bd.n1 === q.a, C.bd.n2 === q.b, C.bd.cover, btns().map(b => b.textContent).join() === q.opts.join(), C.tg.every(s => s.visible), q.opts.length];
+      /* a wrong number: the goalkeeper holds the ball, the button is spent, the board counts every ball, and the question goes on */
+      const wrong = q.opts.find(v => v !== q.ans); btn(wrong).click(); out.busy = C.ph; btn(q.ans).click(); out.busy2 = C.ph; /* no second kick while the ball is in the air */
+      for (let i = 0; i < 400 && (C.ph === 'kick' || C.ph === 'back'); i++) D.step(1 / 60); run(80);
+      out.miss = [C.ph, C.tries, C.defs, C.gols, C.locked, btn(wrong).disabled, btn(wrong).classList.contains('no'), C.tg[q.opts.indexOf(wrong)].visible, (S.errs || []).length - e0, S.errs[S.errs.length - 1].q === q.ask && S.errs[S.errs.length - 1].g === wrong, C.bd.hi > 0, Math.abs(C.ball.position.z - C.bz0) < .01 && Math.abs(C.kp.rotation.x) < .01];
+      for (let i = 0; i < 600 && C.count; i++) D.step(1 / 60); out.counted = C.bd.hi === q.ans;
+      const f0 = C.first; kick(C, q.ans); run(25); out.goal = [C.ph, C.gols, C.locked, C.first - f0, btn(q.ans).classList.contains('ok'), btns().every(b => b.disabled), C.ball.position.x > 13.5, C.bd.head === q.eq];
+      /* right at the first try counts as a first-try answer, and the goalkeeper dives away from the ball */
+      C = play(1, q => q.kind === 'sub'); q = C.q; seen = toAsk(C); out.sub = [seen.max === q.a, C.bd.gone === q.b, C.bd.x]; const f1 = C.first, i1 = q.opts.indexOf(q.ans); kick(C, q.ans);
+      out.first = [C.first - f1, C.gols, C.defs, Math.sign(C.kick.dz) !== Math.sign([-3, 0, 3][i1]) || i1 === 1];
+      /* level 2: the board is dark while the goals change, and a miss lights it; two misses end the question with a save */
+      C = play(2, q => q.kind === 'add'); q = C.q; seen = toAsk(C); out.l2 = [seen.cover, C.bd.cover, C.bd.n2 === q.b];
+      kick(C, q.opts.find(v => v !== q.ans)); out.l2miss = [C.bd.cover, C.tries, C.ph]; kick(C, q.opts.find(v => v !== q.ans && !btn(v).disabled)); out.l2fail = [C.locked, C.ph, C.defs, btn(q.ans).classList.contains('ok')];
+      /* level 2: comparing shows two rows; missing shows the places to fill */
+      C = play(2, q => q.kind === 'dif'); q = C.q; toAsk(C); out.dif = [C.bd.n1 === q.a, C.bd.n2 === q.b, q.ans === q.a - q.b, C.bd.num, q.skill];
+      C = play(2, q => q.kind === 'need'); q = C.q; toAsk(C); out.need = [q.ans === q.b, q.end === q.a + q.b, C.bd.num, q.skill];
+      /* level 3: comparing shows only numbers until a miss */
+      C = play(3, q => q.kind === 'dif'); q = C.q; toAsk(C); out.l3 = [C.bd.num, q.cap]; kick(C, q.opts.find(v => v !== q.ans)); out.l3miss = [C.bd.num, !!C.count || C.bd.hi > 0];
+      quit(); out.after = [D.CH === null, document.querySelector('#picks').hidden, document.querySelectorAll('#picks .pk').length];
+      return out;
+    });
+    eq(r, { start: ['gol', true, true, true, true, false, true], l1: [false, true, true, true, false, true, true, 3], busy: 'kick', busy2: 'kick', miss: ['ask', 1, 1, 0, false, true, true, false, 1, true, true, true], counted: true,
+      goal: ['goal', 1, true, 0, true, true, true, true], sub: [true, true, 0], first: [1, 1, 0, true], l2: [true, true, true], l2miss: [false, 1, 'ask'], l2fail: [true, 'saved', 2, true],
+      dif: [true, true, true, false, 'contas.comparar'], need: [true, true, false, 'contas.falta'], l3: [true, 20], l3miss: [false, true], after: [true, true, 0] }, 'football game');
+  });
+
+  await test('bus game: people get on and off in sight, the curtains hide them from level 2, the answer is a button on the screen, a miss brings help, and level 3 can ask how many got on', async () => {
     await enter(page, 'contas');
     const r = await page.evaluate(() => {
       const D = __ilhaDebug, S = D.S(), st = D.STM.contas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, out = {}, quit = () => { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); };
       const play = (L, want) => { let g = 0; do { quit(); S.st.contas = S.st.contas || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; S.st.contas.level = L; D.startMode(st, st.modes[3]); } while (want && !want(D.CH.q) && ++g < 300); return D.CH; };
       const toAsk = C => { const seen = { a: C.seated.length, closedAtMove: null }; for (let i = 0; i < 1500 && C.ph !== 'ask'; i++) { D.step(1 / 60); if (C.ph === 'move' && seen.closedAtMove === null) seen.closedAtMove = C.closed; } run(3); return seen; };
-      const step = (C, v) => { const p = C.pads.find(p => p.v === v); D.P.set(p.x, 0, p.z); run(4); };
-      /* level 1, adding: everybody in sight; the wrong pad counts the people, the right one ends the question */
-      let C = play(1, q => q.add && q.kind === 'res'), q = C.q, e0 = (S.errs || []).length, seen = toAsk(C);
-      out.l1 = [C.type, seen.a === q.a, seen.closedAtMove, C.seated.length === q.end, C.wait.length === q.b, C.pads.map(p => p.v).join() === q.opts.join(), C.closed, !!C.fixCam, document.body.classList.contains('fix')];
+      const btns = () => [...document.querySelectorAll('#picks .pk')], btn = v => btns().find(b => +b.textContent === v), step = (C, v) => { btn(v).click(); run(4); };
+      /* level 1, adding: everybody in sight; the player waits at the stop and cannot walk; no buttons before the question */
+      let C = play(1, q => q.add && q.kind === 'res'), q = C.q, e0 = (S.errs || []).length; run(20); const p0 = [D.P.x, D.P.z]; D.input.jx = 1; D.input.jy = -1; D.jump(); run(40); D.input.jx = D.input.jy = 0;
+      out.still = [C.still, document.body.classList.contains('still'), Math.hypot(D.P.x - p0[0], D.P.z - p0[1]) < .01, D.P.y < .01, document.querySelector('#picks').hidden, getComputedStyle(document.querySelector('#b-jump')).display];
+      /* the wrong button counts the people, the right one ends the question */
+      let seen = toAsk(C);
+      out.l1 = [C.type, seen.a === q.a, seen.closedAtMove, C.seated.length === q.end, C.wait.length === q.b, btns().map(b => b.textContent).join() === q.opts.join() && !document.querySelector('#picks').hidden, C.closed, !!C.fixCam, document.body.classList.contains('fix')];
       const wrong = q.opts.find(v => v !== q.ans); step(C, wrong); out.miss = [C.tries, C.locked, !!C.count, (S.errs || []).length - e0, S.errs[S.errs.length - 1].q === q.ask && S.errs[S.errs.length - 1].g === wrong];
-      const f0 = C.first; step(C, q.ans); out.right = [C.locked, C.first - f0, C.ph]; /* right at the second try: it ends the question, but it is not a first-try answer */
+      out.missBtn = [btn(wrong).disabled, btn(wrong).classList.contains('no'), btns().filter(b => b.disabled).length]; step(C, wrong); out.missTwice = C.tries; /* a button already tried does nothing more */
+      const f0 = C.first; step(C, q.ans); out.right = [C.locked, C.first - f0, C.ph]; out.rightBtn = [btn(q.ans).classList.contains('ok'), btns().every(b => b.disabled)]; /* right at the second try: it ends the question, but it is not a first-try answer */
       /* level 1, taking away: those who got off stand at the stop */
       C = play(1, q => !q.add); q = C.q; toAsk(C); out.sub = [C.seated.length === q.end, C.gone.length === q.b];
       /* level 2: the curtains are shut while people move, and stay shut for the question; a miss opens them */
       C = play(2, q => q.add); q = C.q; seen = toAsk(C); out.l2 = [seen.closedAtMove, C.closed, C.seated.length === q.end]; step(C, q.opts.find(v => v !== q.ans)); out.l2miss = [C.closed, C.tries];
-      step(C, q.opts.find(v => v !== q.ans && !C.pads.find(p => p.v === v).used)); out.l2fail = [C.locked, C.ph];
+      step(C, q.opts.find(v => v !== q.ans && !btn(v).disabled)); out.l2fail = [C.locked, C.ph, btn(q.ans).classList.contains('ok')]; /* after two misses the right button is shown */
       /* level 3: two decks, and sometimes the question is how many got on or off */
       C = play(3, q => q.kind === 'chg'); q = C.q; toAsk(C); out.l3 = [C.seated.length === q.end, q.ans === q.b, C.closed, C.bus.userData.cur.length];
       const f1 = C.first; step(C, q.ans); out.l3right = [C.locked, C.first - f1];
-      quit(); out.after = [document.body.classList.contains('fix'), D.CH === null];
+      quit(); out.after = [document.body.classList.contains('fix'), D.CH === null, document.querySelector('#picks').hidden, document.querySelectorAll('#picks .pk').length];
       return out;
     });
-    eq(r, { l1: ['bus', true, false, true, true, true, false, true, true], miss: [1, false, true, 1, true], right: [true, 0, 'out'], sub: [true, true], l2: [true, true, true], l2miss: [false, 1], l2fail: [true, 'out'], l3: [true, true, false, 2], l3right: [true, 1], after: [true, true] }, 'bus game');
-    eq(await page.evaluate(() => { __ilhaDebug.step(1 / 60); return document.body.classList.contains('fix'); }), false, 'the still camera lets go when the game ends');
+    eq(r, { still: [true, true, true, true, true, 'none'], l1: ['bus', true, false, true, true, true, false, true, true], miss: [1, false, true, 1, true], missBtn: [true, true, 1], missTwice: 1, right: [true, 0, 'out'], rightBtn: [true, true], sub: [true, true], l2: [true, true, true], l2miss: [false, 1], l2fail: [true, 'out', true], l3: [true, true, false, 2], l3right: [true, 1], after: [true, true, true, 0] }, 'bus game');
+    eq(await page.evaluate(() => { __ilhaDebug.step(1 / 60); return [document.body.classList.contains('fix'), document.body.classList.contains('still')]; }), [false, false], 'the still camera and the still player let go when the game ends');
   });
 
   await test('number line: each press is one hop, the stick can undo a hop, "Cheguei!" checks where the player stopped, and level 3 is walked', async () => {
@@ -946,7 +989,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         text: [/ADIÇÃO E SUBTRAÇÃO/.test(text), /Subtração \(conta escrita\): Precisa de ajuda \(2\/6 de primeira\)/.test(text), /9 − 4: respondeu 6, era 5/.test(text), /O QUE FAZER AGORA/.test(text), /<b>|undefined|NaN/.test(text)] }; });
     eq(r, { states: [4, 2, 1, 0], hist: '1111101111', pat: { n: 4, by1: 3, swap: 1, first: 0 }, week: [1, 26, 15, 1, true], day: [26, 15, 1, true, 1], tips: [true, true, true], errs: 4, text: [true, true, true, true, false] }, 'report data');
     await p.evaluate(() => { __ilhaDebug.parents(); document.querySelector('#p-rep').click(); });
-    eq(await p.evaluate(() => [!!document.querySelector('.rep'), document.querySelectorAll('.rep .tbl')[0].querySelectorAll('tbody tr').length, document.querySelectorAll('.week .wd').length, document.querySelectorAll('.week .wd.on').length, document.querySelectorAll('.errs span').length, document.querySelectorAll('.rep .tbl')[1].querySelectorAll('tbody tr').length, document.querySelectorAll('.hist i').length >= 19]), [true, 10, 7, 1, 4, 8, true], 'report on screen');
+    eq(await p.evaluate(() => [!!document.querySelector('.rep'), document.querySelectorAll('.rep .tbl')[0].querySelectorAll('tbody tr').length, document.querySelectorAll('.week .wd').length, document.querySelectorAll('.week .wd.on').length, document.querySelectorAll('.errs span').length, document.querySelectorAll('.rep .tbl')[1].querySelectorAll('tbody tr').length, document.querySelectorAll('.hist i').length >= 19]), [true, 11, 7, 1, 4, 8, true], 'report on screen');
     await p.click('#rp-back'); eq(await p.evaluate(() => !!document.querySelector('#p-rep')), true, 'back to the parents area');
     await p.context().close();
   });
