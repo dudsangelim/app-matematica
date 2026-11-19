@@ -35,7 +35,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
 (async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/`;
-  const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
   const errors = [], foreign = [];
 
   /* Opens the game in a fresh browser profile, answers the first-run tutorial and turns the narration off (faster rounds). */
@@ -58,7 +58,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
   const start = (page, id, mi, level) => page.evaluate(([id, mi, level]) => { const D = __ilhaDebug, st = D.STM[id]; D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); if (level) { D.S().st[id] = D.S().st[id] || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; D.S().st[id].level = level; } D.startMode(st, st.modes[mi]); return D.CH && D.CH.type; }, [id, mi, level]);
   const STATION_IDS = ['contas', 'ordem', 'vocab', 'n10', 'formas', 'dinheiro', 'n100', 'medidas'];
   /* how many games each station offers (the sums station also has the kart) */
-  const MODES = { contas: [0, 1, 2], ordem: [0, 1], vocab: [0, 1], n10: [0, 1], formas: [0, 1], dinheiro: [0, 1], n100: [0, 1], medidas: [0, 1] };
+  const MODES = { contas: [0, 1, 2, 3, 4], ordem: [0, 1], vocab: [0, 1], n10: [0, 1], formas: [0, 1], dinheiro: [0, 1], n100: [0, 1], medidas: [0, 1] };
 
   console.log('Ilha dos Números: smoke tests');
   const page = await open(1024, 768, { tutorial: false });
@@ -74,7 +74,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
   await test(`question generators: ${FUZZ} questions per generator and level are all answerable`, async () => {
     const bad = await page.evaluate(N => {
       const G = window.__ilha, out = [], note = (k, m, q) => { if (out.length < 12) out.push(`${k}: ${m} :: ${String(q && q.text || JSON.stringify(q)).slice(0, 140)}`); };
-      const val = s => { const m = String(s).match(/^(\d+) ([+−]) (\d+)$/); return m ? (m[2] === '+' ? +m[1] + +m[3] : +m[1] - +m[3]) : NaN; };
+      const val = s => { if (/^\d+$/.test(String(s))) return +s; const m = String(s).match(/^(\d+) ([+−]) (\d+)$/); return m ? (m[2] === '+' ? +m[1] + +m[3] : +m[1] - +m[3]) : NaN; };
       for (const L of [1, 2, 3]) for (let i = 0; i < N; i++) {
         for (const g of ['genVocab', 'genN10', 'genMoney', 'genN100', 'genMeasure']) {
           const k = `${g} L${L}`; let q; try { q = G[g](L); } catch (e) { note(k, 'threw ' + e.message); continue; }
@@ -85,7 +85,9 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
           else { if (!(Number.isInteger(q.ans) && q.ans >= 0 && q.ans < q.opts.length)) note(k, 'answer index ' + q.ans, q); if (q.opts.length < 3 && !/balança/.test(q.text)) note(k, 'fewer than 3 options', q); }
         }
         { const q = G.genArith(L); if (q.opts.length !== 3 || new Set(q.opts).size !== 3 || !q.opts.includes(q.ans) || [q.a, q.b, q.ans, ...q.opts].some(v => v < 0) || !/^contas\.(soma|sub)$/.test(q.skill)) note('genArith L' + L, 'options', q); }
-        { const q = G.genShootArith(L), ok = q.items.filter(x => x.ok); if (ok.length < 2 || ok.some(x => val(x.label) !== q.T) || q.items.some(x => !x.ok && val(x.label) === q.T) || q.items.some(x => isNaN(val(x.label))) || new Set(q.items.map(x => x.label)).size !== q.items.length) note('genShootArith L' + L, 'balloons', q); }
+        { const q = G.genShootArith(L), ok = q.items.filter(x => x.ok); if (ok.length !== (L < 3 ? 1 : 2) || q.items.length !== (L < 3 ? 5 : 6) || (L < 3 && (val(q.ask) !== q.T || q.items.some(x => !/^\d+$/.test(x.label)))) || ok.some(x => val(x.label) !== q.T) || q.items.some(x => !x.ok && val(x.label) === q.T) || q.items.some(x => isNaN(val(x.label))) || new Set(q.items.map(x => x.label)).size !== q.items.length) note('genShootArith L' + L, 'balloons', q); }
+        { const q = G.genBus(L), cap = L === 3 ? 20 : 10; if (q.opts.length !== 3 || new Set(q.opts).size !== 3 || !q.opts.includes(q.ans) || q.opts.some(v => v < 0) || q.a < 1 || q.b < 1 || q.end < 1 || q.a > cap || q.end > cap || q.end !== (q.add ? q.a + q.b : q.a - q.b) || q.ans !== (q.kind === 'chg' ? q.b : q.end) || (q.kind === 'chg' && L < 3) || (L < 3 && q.b > (L === 1 ? 3 : 5)) || !/^contas\.(juntar|tirar|falta)$/.test(q.skill) || /undefined|NaN/.test(q.text + q.eq + q.ask)) note('genBus L' + L, 'bus question', q); }
+        { const q = G.genLine(L); if (q.N !== (L === 1 ? 10 : 20) || q.a < 0 || q.a > q.N || q.ans < 0 || q.ans > q.N || q.b < 1 || q.ans !== (q.add ? q.a + q.b : q.a - q.b) || !/^contas\.(retamais|retamenos)$/.test(q.skill)) note('genLine L' + L, 'number line question', q); }
         { const q = G.genShootShapes(L); if (q.items.length !== 8 || !q.items.some(x => x.ok) || !q.items.some(x => !x.ok)) note('genShootShapes L' + L, 'balloons', q); }
         for (const g of ['genFloorOrder', 'genFloorN100']) { const q = G[g](L); if (q.labels.length !== 9 || !q.ok.some(Boolean) || q.ok.every(Boolean) || new Set(q.labels).size !== 9 || q.labels.some(l => +l < 0)) note(`${g} L${L}`, 'tiles', q); }
         for (const g of ['genShareN10', 'genShareMoney']) { const q = G[g](L); if (!q.check(q.sol.map(ix => ix.map(j => q.items[j].v))) || q.items.length > 17) note(`${g} L${L}`, 'solution or item count ' + q.items.length, q); }
@@ -97,7 +99,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     assert(!bad.length, bad.join('\n'));
   });
 
-  await test('all 17 game modes start at levels 1, 2 and 3 and run for a moment', async () => {
+  await test('all 19 game modes start at levels 1, 2 and 3 and run for a moment', async () => {
     eq(await page.evaluate(() => Object.fromEntries(Object.keys(__ilhaDebug.STM).map(id => [id, __ilhaDebug.STM[id].modes.map((m, i) => i)]))), MODES, 'games per station');
     const seen = new Set();
     for (const id of STATION_IDS) {
@@ -112,7 +114,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         seen.add(id + ':' + type);
       }
     }
-    eq(seen.size, 17, 'distinct station:mode pairs started');
+    eq(seen.size, 19, 'distinct station:mode pairs started');
     await page.evaluate(() => document.querySelector('#m-quit').click());
   });
 
@@ -356,7 +358,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     const ctx = await browser.newContext({ viewport: { width: 800, height: 600 } }); const p = await ctx.newPage(); p.on('pageerror', e => errors.push(e.message));
     await p.addInitScript(() => { if (!localStorage.getItem('ilha-numeros-3d-v1')) localStorage.setItem('ilha-numeros-3d-v1', JSON.stringify({ name: 'Antigo', coins: 12, stars: 4, sound: true, music: true, voice: false, tut: true, look: { skin: 's1', shirt: 'azul', pants: 'jeans', hat: 'bone', pet: 'nenhum' }, owned: ['hat:bone'], st: { contas: { level: 2, rounds: 3, first: 9, total: 14, stars: 6 } }, trophies: { contas: 2, formas: 3 }, champ: false })); });
     await p.goto(base); await p.waitForFunction(() => window.__ilhaDebug);
-    eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.name, S.coins, S.st.contas.level, S.trophies.contas, S.trophies.formas, typeof S.sk, S.edit, S.celes, S.cele, document.querySelector('#ov').hidden]; }), ['Antigo', 12, 2, 2, 4, 'object', true, 2, '', true], 'old save (its gold cup, stored as 3, becomes 4; the shop pass starts available; one celebration for each station with a medal)');
+    eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.name, S.coins, S.st.contas.level, S.trophies.contas, S.trophies.formas, typeof S.sk, S.edit, S.celes, S.cele, S.misOn && S.restOn && Array.isArray(S.errs) && typeof S.days === 'object' && Object.keys(S.rest).length === 0, document.querySelector('#ov').hidden]; }), ['Antigo', 12, 2, 2, 4, 'object', true, 2, '', true, true], 'old save (its gold cup, stored as 3, becomes 4; the shop pass starts available; one celebration for each station with a medal)');
     await p.click('#b-menu'); await p.click('#mn-par');
     const [a, b] = await p.evaluate(() => document.querySelector('#gate p').textContent.match(/\d+/g).map(Number));
     await p.fill('#g-in', String(a * b)); await p.click('#gate .btn.gold'); await p.waitForSelector('#p-ex');
@@ -466,6 +468,8 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         else if (C.type === 'shapes') { const q = C.qs[C.idx], sh = D.SHAPES.find(x => x.n === q.n); go(st.spawn.x, st.spawn.z); go(sh.x + (sh.flat ? 0 : sh.r + .5), sh.z); }
         else if (C.type === 'shoot') { const b = C.balloons.find(b => b.alive && b.it.ok); if (b) { const p = b.sp.position, dx = p.x - D.P.x, dz = p.z - D.P.z, dy = p.y - (D.P.y + D.SCOPE.eye); let a = Math.atan2(dx, dz) - C.a0; a = Math.atan2(Math.sin(a), Math.cos(a)); C.ax = a; C.ay = Math.atan2(dy, Math.hypot(dx, dz)) + .05; run(2); if (D.aim() === b) { D.fire(); for (let i = 0; i < 90 && b.alive; i++) D.step(1 / 60); } } }
         else if (C.type === 'floor') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const t = C.tiles.find(t => t.ok); go(t.p.cx, t.p.cz, 1); run(20); document.querySelector('#b-sure').click(); run(3); }
+        else if (C.type === 'bus') { if (C.ph !== 'ask') { run(30); return false; } run(2); const p = C.pads.find(p => p.v === C.q.ans); go(p.x, p.z); run(4); }
+        else if (C.type === 'line') { if (C.hop) { const n = Math.abs(C.q.ans - C.pos); for (let i = 0; i < n; i++) { D.jump(); run(24); } } else go(st.c.x + C.B0 + C.q.ans * C.w, st.c.z - C.fixCam.x); run(3); document.querySelector('#b-sure').click(); run(3); }
         else if (C.type === 'kart') { if (C.phase === 'ready') C.phase = 'go'; const g = C.gates[C.idx]; C.v = 8; if (g) C.lat = (C.qs[C.idx].ans - 1) * 4; D.P.x = (g ? g.x : C.endX) - .3; run(6); }
         else if (C.type === 'simon') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const q = C.q, s = q.steps[C.si], idx = C.si, press = () => { const bt = document.querySelector('#b-sure'); if (!bt.hidden) bt.click(); };
           const spot = { dentro: [11, 7], embaixo: [2, -6], perto: [10, -5.5], longe: [-4, 11.5], entre: [2, 8] }, live = () => D.CH === C && C.q === q && C.si === idx && !C.locked;
@@ -603,6 +607,60 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.context().close();
   });
 
+  await test('bus game: people get on and off in sight, the curtains hide them from level 2, a miss brings help, and level 3 can ask how many got on', async () => {
+    await enter(page, 'contas');
+    const r = await page.evaluate(() => {
+      const D = __ilhaDebug, S = D.S(), st = D.STM.contas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, out = {}, quit = () => { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); };
+      const play = (L, want) => { let g = 0; do { quit(); S.st.contas = S.st.contas || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; S.st.contas.level = L; D.startMode(st, st.modes[3]); } while (want && !want(D.CH.q) && ++g < 300); return D.CH; };
+      const toAsk = C => { const seen = { a: C.seated.length, closedAtMove: null }; for (let i = 0; i < 1500 && C.ph !== 'ask'; i++) { D.step(1 / 60); if (C.ph === 'move' && seen.closedAtMove === null) seen.closedAtMove = C.closed; } run(3); return seen; };
+      const step = (C, v) => { const p = C.pads.find(p => p.v === v); D.P.set(p.x, 0, p.z); run(4); };
+      /* level 1, adding: everybody in sight; the wrong pad counts the people, the right one ends the question */
+      let C = play(1, q => q.add && q.kind === 'res'), q = C.q, e0 = (S.errs || []).length, seen = toAsk(C);
+      out.l1 = [C.type, seen.a === q.a, seen.closedAtMove, C.seated.length === q.end, C.wait.length === q.b, C.pads.map(p => p.v).join() === q.opts.join(), C.closed, !!C.fixCam, document.body.classList.contains('fix')];
+      const wrong = q.opts.find(v => v !== q.ans); step(C, wrong); out.miss = [C.tries, C.locked, !!C.count, (S.errs || []).length - e0, S.errs[S.errs.length - 1].q === q.ask && S.errs[S.errs.length - 1].g === wrong];
+      const f0 = C.first; step(C, q.ans); out.right = [C.locked, C.first - f0, C.ph]; /* right at the second try: it ends the question, but it is not a first-try answer */
+      /* level 1, taking away: those who got off stand at the stop */
+      C = play(1, q => !q.add); q = C.q; toAsk(C); out.sub = [C.seated.length === q.end, C.gone.length === q.b];
+      /* level 2: the curtains are shut while people move, and stay shut for the question; a miss opens them */
+      C = play(2, q => q.add); q = C.q; seen = toAsk(C); out.l2 = [seen.closedAtMove, C.closed, C.seated.length === q.end]; step(C, q.opts.find(v => v !== q.ans)); out.l2miss = [C.closed, C.tries];
+      step(C, q.opts.find(v => v !== q.ans && !C.pads.find(p => p.v === v).used)); out.l2fail = [C.locked, C.ph];
+      /* level 3: two decks, and sometimes the question is how many got on or off */
+      C = play(3, q => q.kind === 'chg'); q = C.q; toAsk(C); out.l3 = [C.seated.length === q.end, q.ans === q.b, C.closed, C.bus.userData.cur.length];
+      const f1 = C.first; step(C, q.ans); out.l3right = [C.locked, C.first - f1];
+      quit(); out.after = [document.body.classList.contains('fix'), D.CH === null];
+      return out;
+    });
+    eq(r, { l1: ['bus', true, false, true, true, true, false, true, true], miss: [1, false, true, 1, true], right: [true, 0, 'out'], sub: [true, true], l2: [true, true, true], l2miss: [false, 1], l2fail: [true, 'out'], l3: [true, true, false, 2], l3right: [true, 1], after: [true, true] }, 'bus game');
+    eq(await page.evaluate(() => { __ilhaDebug.step(1 / 60); return document.body.classList.contains('fix'); }), false, 'the still camera lets go when the game ends');
+  });
+
+  await test('number line: each press is one hop, the stick can undo a hop, "Cheguei!" checks where the player stopped, and level 3 is walked', async () => {
+    await enter(page, 'contas');
+    const r = await page.evaluate(() => {
+      const D = __ilhaDebug, S = D.S(), st = D.STM.contas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, out = {}, quit = () => { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); }, sure = document.querySelector('#b-sure');
+      const play = (L, want) => { let g = 0; do { quit(); S.st.contas.level = L; D.startMode(st, st.modes[4]); } while (want && !want(D.CH.q) && ++g < 300); run(3); return D.CH; };
+      const hop = n => { for (let i = 0; i < n; i++) { D.jump(); run(24); } };
+      let C = play(1, q => q.add && q.b >= 2 && q.ans < q.N), q = C.q;
+      out.start = [C.type, C.pos === q.a, !!C.hop, sure.hidden, C.tiles.length, Math.abs(D.P.x - (st.c.x + C.B0 + q.a * C.w)) < .01];
+      const p0 = D.P.x; D.input.jy = -1; run(20); D.input.jy = 0; out.noWalk = Math.abs(D.P.x - p0) < .01 && D.P.z === st.c.z - C.fixCam.x;
+      hop(q.b + 1); out.over = [C.pos === q.ans + 1, !sure.hidden]; D.input.jx = -1; run(24); D.input.jx = 0; run(4); out.undo = C.pos === q.ans;
+      const f0 = C.first; sure.click(); run(2); out.right = [C.locked, C.first - f0];
+      /* stopping one short is a miss: back to the first number, and the mistake is kept for the report */
+      C = play(1, q => !q.add && q.b >= 2); q = C.q; const e0 = (S.errs || []).length; hop(q.b - 1); sure.click(); run(2);
+      out.miss = [C.tries, C.locked, C.pos === q.a, S.errs.length - e0, S.errs[S.errs.length - 1].g === q.a - (q.b - 1)];
+      hop(q.b); sure.click(); run(2); out.second = [C.locked, C.first];
+      /* a key held down is one hop, not one per repeat */
+      C = play(1, q => q.add && q.a + 4 <= q.N); const key = rep => window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', repeat: rep, bubbles: true })); key(false); run(24); for (let i = 0; i < 3; i++) { key(true); run(24); } out.held = C.pos - C.q.a;
+      /* the ends of the line stop the hops */
+      C = play(1, q => q.add); C.pos = C.q.N; C.hop.from = C.hop.to = C.q.N; hop(1); out.end = C.pos === C.q.N;
+      /* level 3: no hops; the player walks to the number */
+      C = play(3); q = C.q; out.l3 = [C.hop === null, C.q.N];
+      D.P.set(st.c.x + C.B0 + q.ans * C.w, 0, st.c.z - C.fixCam.x); run(4); out.l3at = [C.pos === q.ans, !sure.hidden]; const f1 = C.first; sure.click(); run(2); out.l3right = [C.locked, C.first - f1];
+      quit(); return out;
+    });
+    eq(r, { start: ['line', true, true, true, 11, true], noWalk: true, over: [true, true], undo: true, right: [true, 1], miss: [1, false, true, 1, true], second: [true, 0], held: 1, end: true, l3: [true, 20], l3at: [true, true], l3right: [true, 1] }, 'number line');
+  });
+
   await test('balloon game: played through a scope - the player stands still, the stick moves the aim, and the shot goes to the balloon under the cross', async () => {
     await enter(page, 'contas');
     const r = await page.evaluate(() => {
@@ -657,7 +715,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.click('.item[data-k="bone"]'); await p.click('#w-ok'); eq(await st(), [false, 'bone', 'azul', 90, 'pass off', false], 'wearing an owned cap spends the pass');
     await p.click('.item[data-k="nenhum"]'); await p.click('.tab[data-t="shirt"]'); await p.click('.item[data-k="vermelho"]');
     eq(await st(), [false, 'bone', 'azul', 90, 'pass off', false], 'with the pass spent, nothing can be changed or bought');
-    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), st = D.STM.formas, out = []; D.closeSheet();
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), st = D.STM.formas, out = []; D.closeSheet(); S.misOn = false; /* without the mission, any round with a star gives the change back */
       D.finishChallenge(st, 0, 5, 0, 1, null, false, true); out.push(S.edit); D.finishChallenge(st, 3, 5, 3, 1, null, false, true); out.push(S.edit); D.finishChallenge(st, 5, 5, 5, 1, null, false, true); out.push(S.edit); S.coins = 60; return out; });
     eq(r, [false, true, true], 'pass after a round with no star, a round with stars, and one more round');
     await p.evaluate(() => { const D = __ilhaDebug; D.P.set(0, 0, -5); for (let i = 0; i < 3; i++) D.step(1 / 60); });
@@ -784,13 +842,41 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       out.cast = [men.every(n => /Daniel|Antonio|Fabio/.test(cast[n])), women.every(n => /Maria|Francisca|Thalita/.test(cast[n])), new Set(men.slice(0, 3).map(n => cast[n])).size, new Set(women.slice(0, 3).map(n => cast[n])).size, names.some(n => /Google/.test(cast[n]))];
       /* voices with names the game does not know are still shared out, so the characters do not all sound the same */
       set(['Voz A', 'Voz B', 'Voz C']); out.unknown = new Set(names.map(n => say(n)[1])).size;
+      /* with as many unknown voices as characters, every character gets one of their own (men and women draw from the same voices) */
+      set(names.map((_, i) => 'Voz ' + i)); out.each = new Set(names.map(n => say(n)[1])).size; set(['Microsoft Daniel', 'Voz A', 'Voz B']); out.mixed = [say('Seu Zé')[1], new Set(names.slice(0, 3).map(n => say(n)[1])).size]; set(['Voz A', 'Voz B', 'Voz C']);
       return out; });
-    eq(r, { one: [13, 13, 1, '1/0.9', false], none: '1/0.9', master: '0.6/0.8', host: true, range: true, cast: [true, true, 3, 3, false], unknown: 3 }, 'voices');
+    eq(r, { one: [13, 13, 1, '1/0.9', false], none: '1/0.9', master: '0.6/0.8', host: true, range: true, cast: [true, true, 3, 3, false], unknown: 3, each: 13, mixed: ['Microsoft Daniel', 3] }, 'voices');
     /* the Voices screen: says how many voices the device has and lets each character be heard */
     await p.evaluate(() => { const D = __ilhaDebug; D.closeSheet(); document.querySelector('#b-menu').click(); document.querySelector('#mn-voz').click(); });
     const scr = await p.evaluate(() => { const info = document.querySelector('#v-info').textContent, items = document.querySelectorAll('.item'); window.__said = null; const ss = window.speechSynthesis, old = ss.speak; ss.speak = u => { window.__said = Math.round(u.pitch * 100) / 100; };
       document.querySelector('.item[data-k="Seu Zé"]').click(); ss.speak = old; return [items.length, /tem 3 vozes/.test(info), window.__said]; });
     eq(scr, [14, true, .5], 'voices screen: narrator and 13 characters, the count of voices, and a sample in the character\'s voice');
+    await p.context().close();
+  });
+
+  await test('my own siuuu: a recording or an audio file replaces the game shout, stays on this device, and can be removed', async () => {
+    const p = await open(1024, 768); await p.context().grantPermissions(['microphone']);
+    /* a short real WAV: 0.25 s of a 440 Hz tone, 8 kHz, 8 bits */
+    const wav = n => { const b = Buffer.alloc(44 + n); b.write('RIFF', 0); b.writeUInt32LE(36 + n, 4); b.write('WAVEfmt ', 8); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(8000, 24); b.writeUInt32LE(8000, 28); b.writeUInt16LE(1, 32); b.writeUInt16LE(8, 34); b.write('data', 36); b.writeUInt32LE(n, 40); for (let i = 0; i < n; i++) b[44 + i] = 128 + Math.round(90 * Math.sin(i * 2 * Math.PI * 440 / 8000)); return b; };
+    const state = () => p.evaluate(() => [document.querySelector('#u-state').textContent, !!__ilhaDebug.siu, (localStorage.getItem('ilha-numeros-siu') || '').slice(0, 10), document.querySelector('#u-play').disabled]);
+    const pick = async file => { const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('#u-file')]); await fc.setFiles(file); };
+    eq(await p.evaluate(() => { document.querySelector('#b-cele').click(); return !!document.querySelector('#c-siu'); }), false, 'no button while the Siuuu is still locked');
+    await p.evaluate(() => { const D = __ilhaDebug; D.closeSheet(); D.finishChallenge(D.STM.formas, 5, 5, 5, 1, null, false, true); document.querySelector('#b-cele').click(); document.querySelector('#c-siu').click(); });
+    eq(await state(), ['Usando o som do jogo.', false, '', true], 'at first');
+    await pick({ name: 'siu.wav', mimeType: 'audio/wav', buffer: wav(2000) }); await p.waitForFunction(() => /seu Siuuu/.test(document.querySelector('#u-state').textContent), null, { timeout: 8000 });
+    eq((await state()).slice(1), [true, 'data:audio', false], 'an audio file is kept on the device');
+    eq(await p.evaluate(() => __ilhaDebug.siuBuf), true, 'and it is decoded for the game\'s own audio, which plays without a touch');
+    eq(await p.evaluate(() => { let threw = ''; try { __ilhaDebug.celeSnd.siu(); __ilhaDebug.playSiu(); } catch (e) { threw = String(e); } return [threw, document.querySelector('#u-back') ? 1 : 0]; }), ['', 1], 'the celebration sound plays it without error');
+    await p.click('#u-back'); eq(await p.evaluate(() => document.querySelector('#c-siu').textContent), '🎤 Meu Siuuu ✓', 'the list shows there is a sound of your own'); await p.click('#c-siu');
+    await pick({ name: 'foto.mp3', mimeType: 'audio/mpeg', buffer: Buffer.from('isto não é um áudio de verdade, é só texto') }); await p.waitForFunction(() => /não consegue tocar/.test(document.querySelector('#u-state').textContent), null, { timeout: 9000 });
+    eq((await state()).slice(1), [true, 'data:audio', false], 'a file that is not audio is refused, and the old sound stays');
+    await pick({ name: 'longo.wav', mimeType: 'audio/wav', buffer: wav(1600000) }); await p.waitForFunction(() => /grande demais/.test(document.querySelector('#u-state').textContent), null, { timeout: 8000 });
+    eq((await state()).slice(1), [true, 'data:audio', false], 'a file that is too big is refused');
+    await p.click('#u-del'); eq(await state(), ['Pronto: voltou o som do jogo.', false, '', true], 'removed: back to the game sound');
+    /* record from the (fake) microphone: count-down, three seconds, saved */
+    await p.click('#u-rec'); await p.waitForFunction(() => /Gravado/.test(document.querySelector('#u-state').textContent), null, { timeout: 15000 });
+    eq((await state()).slice(1), [true, 'data:audio', false], 'the recording is kept on the device');
+    eq(await p.evaluate(() => JSON.stringify(__ilhaDebug.S()).includes('data:audio')), false, 'and it is not part of the save (nor of the backup)');
     await p.context().close();
   });
 
@@ -801,6 +887,67 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), snd = Object.keys(D.celeSnd).sort(), keys = D.CELES.map(c => c.k).sort(); let threw = ''; try { for (const k of snd) D.celeSnd[k](); S.sound = false; for (const k of snd) D.celeSnd[k](); S.sound = true; } catch (e) { threw = String(e); }
       return { amb: D.amb, same: JSON.stringify(snd) === JSON.stringify(keys), threw }; });
     eq(r, { amb: true, same: true, threw: '' }, 'ambience and celebration sounds');
+    await p.context().close();
+  });
+
+  await test('mission: three rounds picked by the game (a sums game, the weakest station, a free one) give the change in the shop, and then a new mission starts', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), M = D.STM, out = {}, fin = (id, mi, first) => D.finishChallenge(M[id], first, 5, first, 1, mi == null ? null : M[id].modes[mi], false, true), L = () => D.mission().map(i => [i.id, i.mi, i.done]), done = () => L().filter(i => i[2]).length;
+      const l0 = L(), weak = l0[1][0], other = weak === 'formas' ? 'n10' : 'formas'; S.edit = false;
+      out.first = [l0.length, l0[0][0], M.contas.modes[l0[0][1]].k, weak !== 'contas' && !!M[weak], l0[2][0], document.querySelector('#h-mis').textContent, document.querySelector('#b-mis').hidden];
+      fin(other, 0, 0); out.noStar = done();                                                   // a round with no star fills nothing
+      fin(other, 0, 3); out.free = [L()[2][2], L()[1][2], S.edit];                              // a game the mission does not name fills the free item
+      fin(other, 0, 3); out.again = done();                                                     // and a second one fills nothing more
+      fin('contas', 2, 3); out.wrongGame = [L()[0][2], done()];                                 // the sums item wants its own game: the kart is not it
+      fin(weak, 1, 3); out.weak = [L()[1][2], S.edit, document.querySelector('#h-mis').textContent];
+      const coins = S.coins, day = D.DAY().m; fin('contas', l0[0][1], 3); const l1 = L();
+      out.done = [S.edit, S.mis.n, done(), S.coins - coins >= 5, D.DAY().m - day, M.contas.modes[l1[0][1]].k !== M.contas.modes[l0[0][1]].k, l1[1][0] !== weak, document.querySelector('#h-mis').textContent];
+      return out; });
+    eq(r, { first: [3, 'contas', 'bus', true, '', '0/3', false], noStar: 0, free: [true, false, false], again: 1, wrongGame: [false, 1], weak: [true, false, '2/3'], done: [true, 1, 0, true, 1, true, true, '0/3'] }, 'mission');
+    /* the mission sheet: three lines, and "Jogar" travels to the station and starts the game it names */
+    await p.click('#b-mis'); const want = await p.evaluate(() => { const D = __ilhaDebug, i = D.mission()[0]; return [document.querySelectorAll('.mrow').length, document.querySelectorAll('.mrow .btn').length, D.STM.contas.modes[i.mi].k]; });
+    eq(want.slice(0, 2), [3, 2], 'lines and play buttons'); await p.click('.mrow .btn[data-k="0"]');
+    await p.waitForFunction(k => __ilhaDebug.CH && __ilhaDebug.CH.type === k && __ilhaDebug.WORLD && __ilhaDebug.WORLD.id === 'contas', want[2], { timeout: 8000 });
+    eq(await p.evaluate(() => { const D = __ilhaDebug; document.querySelector('#b-mis').click(); const out = [[...document.querySelectorAll('.mrow .btn')].every(b => b.disabled), /Termine a rodada/.test(document.querySelector('#sheet').textContent)]; D.closeSheet(); const ch = D.CH; D.STM && document.querySelector('#b-mis').click(); document.querySelectorAll('.mrow .btn').forEach(b => b.click()); D.closeSheet(); return [...out, D.CH === ch]; }), [true, true, true], 'during a round the mission does not take the player elsewhere');
+    eq(await p.evaluate(() => { const D = __ilhaDebug, S = D.S(); S.mis.list[1].mi = 7; const L = D.mission(); return [L[1].mi, L[2].mi, L.length]; }), [-1, -1, 3], 'a damaged mission is replaced');
+    /* switched off in the parents area: the old rule is back, and the button goes away */
+    eq(await p.evaluate(() => { const D = __ilhaDebug, S = D.S(); document.querySelector('#m-quit').click(); D.parents(); document.querySelector('#p-mis').click(); const off = [S.misOn, document.querySelector('#b-mis').hidden]; D.closeSheet(); S.edit = false; D.finishChallenge(D.STM.formas, 3, 5, 3, 1, null, false, true); return [...off, S.edit]; }), [false, true, true], 'mission off');
+    await p.context().close();
+  });
+
+  await test('rest: a station with a gold round waits for a medal in each of the others, mission games stay open, and parents can release it', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), M = D.STM, out = {}, ids = Object.keys(M), fin = (id, first, silent, mi) => D.finishChallenge(M[id], first, 5, first, 1, mi == null ? null : M[id].modes[mi], false, silent !== false), kinds = () => [document.querySelectorAll('.mode').length, document.querySelectorAll('.travel button').length];
+      fin('formas', 5, false); out.gold = [D.resting(M.formas), S.rest.formas.need.length, !!document.querySelector('#r-again'), /descansar/.test(document.querySelector('.result').textContent)]; D.closeSheet();
+      D.talk(M.formas); out.sheet = kinds(); D.closeSheet(); D.talk(M.formas, true); out.viaMission = kinds(); D.closeSheet();
+      fin('n10', 5); out.second = [D.resting(M.n10), S.rest.n10.need.length, S.rest.formas.need.length, S.rest.n10.need.includes('formas')];
+      fin('ordem', 0); out.noStar = S.rest.formas.need.includes('ordem');
+      const rest = ids.filter(id => id !== 'formas' && id !== 'n10'); rest.slice(0, -1).forEach(id => fin(id, 1)); out.almost = [D.resting(M.formas), S.rest.formas.need.join()];
+      fin(rest[rest.length - 1], 1); out.back = [D.resting(M.formas), D.resting(M.n10), Object.keys(S.rest).length]; D.talk(M.formas); out.open = kinds(); D.closeSheet();
+      /* a resting station that the mission asks for can be played from the mission */
+      const mi = D.mission()[0].mi, otherGame = mi === 2 ? 0 : 2; fin('contas', 5, true, otherGame); D.talk(M.contas); out.misBtn = [D.resting(M.contas), !!document.querySelector('#rs-mis'), document.querySelectorAll('.mode').length]; D.closeSheet();
+      /* the parents can switch it off, or release what is resting */
+      S.restOn = false; out.off = D.resting(M.contas); S.restOn = true; S.misOn = false; D.parents(); document.querySelector('#p-rs').click(); document.querySelector('#p-rs').click(); out.wiped = [D.S().misOn, D.S().restOn, D.S().mis.n]; D.S().rest = { contas: { need: ['formas'] } }; D.parents(); const btn = document.querySelector('#p-free'); out.btn = [btn.disabled, /\(1\)/.test(btn.textContent)]; btn.click(); out.released = [Object.keys(D.S().rest).length, D.resting(M.contas)]; D.closeSheet();
+      return out; });
+    eq(r, { gold: [true, 7, false, true], sheet: [0, 7], viaMission: [2, 0], second: [true, 6, 6, false], noStar: true, almost: [true, r.almost[1]], back: [false, false, 0], open: [2, 0], misBtn: [true, true, 0], off: false, wiped: [false, true, 0], btn: [false, true], released: [0, false] }, 'rest');
+    assert(r.almost[1].split(',').length === 1, `one station left before the rest ends: ${r.almost[1]}`);
+    await p.context().close();
+  });
+
+  await test('report: situation of each sums skill from the latest answers, the kinds of mistake, the week, what to do next, and the text to copy', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), rec = (skill, pattern) => [...pattern].forEach(c => D.record(skill.split('.')[0], c === '1', skill));
+      rec('contas.juntar', '1111101111'); rec('contas.sub', '010010'); rec('contas.soma', '110'); rec('n10.cont', '0100100');
+      [['9 − 4', 5, 6], ['8 − 3', 5, 4], ['6 − 2', 4, 5], ['7 − 2', 5, 9]].forEach(e => D.noteErr('contas.sub', ...e)); D.noteErr('n10.cont', 'quantos?', 3, 4);
+      D.dayT = 125.4; D.finishChallenge(D.STM.contas, 3, 5, 3, 1, null, false, true);
+      const R = D.reportData(), st = id => R.sums.find(x => x.id === id).s, text = D.reportText(R), day = D.DAY();
+      return { states: [st('contas.juntar'), st('contas.sub'), st('contas.soma'), st('contas.tirar')], hist: S.sk['contas.juntar'].h, pat: R.pat, week: [R.week.days, R.week.q, R.week.f, R.week.r, R.week.t >= 125 && R.week.t < 200], day: [day.q, day.f, day.r, day.t === R.week.t, day.st.contas],
+        tips: [R.tips.some(t => /por 1/.test(t)), R.tips.some(t => /conta escrita/.test(t)), R.tips.some(t => /Contar e achar o número/.test(t))], errs: R.errs.length,
+        text: [/ADIÇÃO E SUBTRAÇÃO/.test(text), /Subtração \(conta escrita\): Precisa de ajuda \(2\/6 de primeira\)/.test(text), /9 − 4: respondeu 6, era 5/.test(text), /O QUE FAZER AGORA/.test(text), /<b>|undefined|NaN/.test(text)] }; });
+    eq(r, { states: [4, 2, 1, 0], hist: '1111101111', pat: { n: 4, by1: 3, swap: 1, first: 0 }, week: [1, 26, 15, 1, true], day: [26, 15, 1, true, 1], tips: [true, true, true], errs: 4, text: [true, true, true, true, false] }, 'report data');
+    await p.evaluate(() => { __ilhaDebug.parents(); document.querySelector('#p-rep').click(); });
+    eq(await p.evaluate(() => [!!document.querySelector('.rep'), document.querySelectorAll('.rep .tbl')[0].querySelectorAll('tbody tr').length, document.querySelectorAll('.week .wd').length, document.querySelectorAll('.week .wd.on').length, document.querySelectorAll('.errs span').length, document.querySelectorAll('.rep .tbl')[1].querySelectorAll('tbody tr').length, document.querySelectorAll('.hist i').length >= 19]), [true, 10, 7, 1, 4, 8, true], 'report on screen');
+    await p.click('#rp-back'); eq(await p.evaluate(() => !!document.querySelector('#p-rep')), true, 'back to the parents area');
     await p.context().close();
   });
 

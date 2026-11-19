@@ -2,7 +2,7 @@
    The page itself is fetched network-first so new versions arrive as soon as there is internet;
    everything else (three.js, fonts, icons) lives on this site and is served from the cache first.
    Bump CACHE whenever a file in CORE changes. */
-const CACHE = 'ilha-numeros-v7';
+const CACHE = 'ilha-numeros-v9';
 const CORE = [
   './',
   './index.html',
