@@ -100,6 +100,16 @@ button.chip{border:0;font-family:inherit;cursor:pointer}
 @keyframes scopemiss{0%,100%{box-shadow:inset 0 0 0 3px rgba(255,255,255,.5),inset 0 0 70px rgba(6,10,20,.5)}30%{box-shadow:inset 0 0 0 3px rgba(255,255,255,.5),inset 0 0 90px rgba(229,57,53,.85)}}
 body.fp #b-jump,body.fp .rot,body.fp #where{display:none}
 body.fix #b-rl,body.fix #b-rr{display:none}
+body.still #b-jump,body.still .rot,body.still #where,body.still #joy{display:none}
+body.still #toast:not(.up){bottom:calc(116px + env(safe-area-inset-bottom,0px))}
+#picks{position:fixed;z-index:6;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));display:flex;gap:14px}
+.pk{min-width:96px;height:80px;padding:0 14px;border-radius:22px;border:4px solid var(--ink);color:#fff;font:inherit;font-weight:700;font-size:42px;line-height:1;box-shadow:0 6px 0 var(--ink);touch-action:manipulation}
+.pk0{background:#E8413A}.pk1{background:#2E8BF0}.pk2{background:#8B4CF0}.pk3{background:#FF8A1F}.pk4{background:#12A5A0}
+.pk:active:not(:disabled){transform:translateY(4px);box-shadow:0 2px 0 var(--ink)}
+.pk.no{background:#9AA3B2;color:#E9EDF3;text-decoration:line-through;box-shadow:0 3px 0 var(--ink);transform:translateY(3px)}
+.pk.ok{background:#22B35E;box-shadow:0 6px 0 var(--ink),0 0 0 5px var(--gold)}
+@media(max-height:430px){body.still #toast:not(.up){bottom:calc(80px + env(safe-area-inset-bottom,0px));font-size:16px;padding:8px 14px}#picks{bottom:calc(10px + env(safe-area-inset-bottom,0px))}.pk{min-width:84px;height:60px;font-size:34px;border-radius:18px}}
+@media(max-width:380px){#picks{gap:10px}.pk{min-width:86px}}
 body.fp #toast{pointer-events:none;font-size:17px;padding:8px 14px}
 #b-jump:active,#b-fire:active,#b-act:active,#b-sure:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
 #b-sure{padding:13px 18px;border-radius:16px;background:var(--gold);border:4px solid var(--ink);font-weight:700;font-size:20px;box-shadow:0 5px 0 var(--ink)}
@@ -249,6 +259,7 @@ select{font-size:17px;padding:8px;border:3px solid var(--ink);border-radius:10px
 </header>
 <div id="mission" hidden><span id="m-text" aria-live="polite"></span><button class="mb q" id="m-min" aria-label="Encolher as instruções" aria-expanded="true">▴</button><button class="mb q" id="m-spk" aria-label="Ouvir">🗣️</button><button class="mb" id="m-quit" aria-label="Sair do desafio">✕</button></div>
 <div id="where">Cidade dos Números</div>
+<div id="picks" hidden></div>
 <div class="hud-br">
   <button id="b-act" hidden></button>
   <button id="b-sure" hidden></button>
@@ -1480,7 +1491,7 @@ let swingT=0;
 function updatePlayer(dt){
   let jx=input.jx,jy=input.jy;
   if(keys['a']||keys['arrowleft'])jx=-1;if(keys['d']||keys['arrowright'])jx=1;if(keys['w']||keys['arrowup'])jy=-1;if(keys['s']||keys['arrowdown'])jy=1;
-  if(paused||(ANIM&&ANIM.lock)){jx=jy=0;input.jump=false}
+  if(paused||(ANIM&&ANIM.lock)||(CH&&CH.still)){jx=jy=0;input.jump=false}
   if(CH&&CH.fp){input.jump=false;scopeAim(dt,jx,jy);return}
   if(CH&&CH.hop){lineMove(dt,jx);return}
   if(CH&&CH.type==='kart'){input.jump=false;kartDrive(dt,jx,jy);return}
@@ -1514,13 +1525,15 @@ function updatePet(dt){if(!PET)return;const bx=P.x-Math.sin(rotY)*1.6+Math.cos(r
 const tmpV=new THREE.Vector3(),tmpC=new THREE.Vector3();
 /* camLook is the height the camera aims at: raised when a question has a board, so the board shows below the mission panel */
 let camLook=1.7;
-let fixOn=false;
+let fixOn=false,stillOn=false;
 function updateCam(dt){
   /* through the scope: the camera is the player's eye, turned by the aim (with a small kick up after a shot) */
   if(CH&&CH.fp){const a=CH.a0+CH.ax,e=CH.ay+CH.kick*.12,c=Math.cos(e),y=P.y+SCOPE.eye;camera.position.set(P.x,y,P.z);camera.lookAt(P.x+Math.sin(a)*c*10,y+Math.sin(e)*10,P.z+Math.cos(a)*c*10);return}
   const fix=!!(CH&&CH.fixCam&&camMode==='follow');if(fix!==fixOn){fixOn=fix;document.body.classList.toggle('fix',fix)}
-  /* a view that stands still, in front of the scene of the game and far enough to show all of it whatever the shape of the screen */
-  if(fix){const f=CH.fixCam,c=CH.st.c,d=Math.max(f.min,f.len/(2*Math.tan(camera.fov*Math.PI/360)*camera.aspect*.92));tmpC.set(c.x+f.z,f.ly+d*f.up,c.z-f.x+d);camera.position.lerp(tmpC,1-Math.pow(.0005,dt));camera.lookAt(c.x+f.z,f.ly,c.z-f.x);return}
+  const still=!!(CH&&CH.still);if(still!==stillOn){stillOn=still;document.body.classList.toggle('still',still)}
+  /* a view that stands still, in front of the scene of the game and far enough to show all of it whatever the shape of the screen
+     (on a tall screen it has to stand far back, so it also rises, to look over the palm trees in between) */
+  if(fix){const f=CH.fixCam,c=CH.st.c,d=Math.max(f.min,f.len/(2*Math.tan(camera.fov*Math.PI/360)*camera.aspect*.92));tmpC.set(c.x+f.z,f.ly+d*(f.up+Math.min(.14,Math.max(0,(d-22)*.008))),c.z-f.x+d);camera.position.lerp(tmpC,1-Math.pow(.0005,dt));camera.lookAt(c.x+f.z,f.ly,c.z-f.x);return}
   let ty=yaw,dist=10,py=pitch,ly=camLook;if(camMode==='front'){ty=rotY;dist=6.5;py=.12;ly=.2}else if(camMode==='cele'){ty=rotY;dist=8.5;py=.12;ly=1.9}
   tmpC.set(P.x+Math.sin(ty)*Math.cos(py)*dist,Math.max(P.y,-1)+1.8+Math.sin(py)*dist,P.z+Math.cos(ty)*Math.cos(py)*dist);
   /* under the roof of the trophy hall the camera stays below the ceiling instead of sitting inside it */
@@ -1677,12 +1690,12 @@ function quit3D(silent){if(!CH)return;
   if(CH.type==='order')CH.cubes.forEach(c=>drop(c.m));
   if(CH.type==='obby')resetObby();
   if(CH.type==='kart')leaveKart();
-  clearArena();checkpoint=null;leaveScope();hideSure();camLook=1.7;
+  clearArena();checkpoint=null;leaveScope();hideSure();hidePicks();camLook=1.7;
   CH=null;mis.hidden=true;if(!silent)toast('Desafio encerrado. Fale com o personagem para jogar de novo!')}
 /* The result sheet opens a moment after the round ends. If the player starts something else first, the round is still scored (quietly). */
 let pendFin=null;
 function flushFin(){if(!pendFin)return;const p=pendFin;clearTimeout(p.t);p.fn(true)}
-function done3D(lost){const c=CH;clearArena();CH=null;mis.hidden=true;checkpoint=null;leaveScope();hideSure();camLook=1.7;
+function done3D(lost){const c=CH;clearArena();CH=null;mis.hidden=true;checkpoint=null;leaveScope();hideSure();hidePicks();camLook=1.7;
   const fn=silent=>{pendFin=null;finishChallenge(c.st,c.first,c.n,c.coins,c.level,c.mode,lost,silent===true)};
   if(lost)playAnim('sad');else{playAnim('win');toast(`<b>Fim da rodada!</b> 🎉`,2400)}
   pendFin={fn,t:setTimeout(fn,(lost?1900:ANIM&&ANIM.type==='cele'?ANIM.dur*1000+200:2700)*TS)}}
@@ -1691,6 +1704,12 @@ function showSure(label,fn){sureFn=fn;if(sureB.hidden||sureB.textContent!==label
 function hideSure(){sureFn=null;if(!sureB.hidden)sureB.hidden=true}
 function sure(){if(!sureFn||paused)return;sfx.tap();const f=sureFn;hideSure();f()}
 sureB.onclick=sure;
+/* answers to tap: a row of big buttons at the foot of the screen, for the games where the player does not walk to the answer */
+const picksB=$('#picks');let pickFn=null;
+function showPicks(vals,fn){pickFn=fn;picksB.innerHTML=vals.map((v,i)=>`<button class="pk pk${i}" data-i="${i}">${v}</button>`).join('');picksB.hidden=false}
+function hidePicks(){pickFn=null;if(!picksB.hidden){picksB.hidden=true;picksB.innerHTML=''}}
+function lockPicks(){picksB.querySelectorAll('.pk').forEach(b=>b.disabled=true)}
+picksB.onclick=e=>{const b=e.target.closest('.pk');if(!b||b.disabled||!pickFn||paused)return;sfx.tap();pickFn(+b.dataset.i,b)};
 function teleport(x,z,lookX,lookZ){P.set(x,0,z);vy=0;pitch=.38;camLook=1.7;PL.g.position.copy(P);if(lookX!=null){yaw=Math.atan2(x-lookX,z-lookZ);rotY=Math.atan2(lookX-x,lookZ-z)}
   camera.position.set(P.x+Math.sin(yaw)*10,P.y+5,P.z+Math.cos(yaw)*10)}
 let TS=1;
@@ -1987,13 +2006,14 @@ function nextBuild(){if(!CH||CH.type!=='build')return;CH.idx++;if(CH.idx>=CH.n)r
 /* ---- 🚌 ÔNIBUS DOS NÚMEROS: adding is people getting on, taking away is people getting off ----
    The bus has ten seats in two rows of five (a ten-frame); at level 3 it has a second deck with ten more.
    Level 1: everything stays in sight, so the answer can be counted. Level 2: the curtains close before people get on or off, so it has
-   to be worked out. Level 3: bigger numbers, or the question is how many got on or off. The camera stands still, facing the bus stop. */
+   to be worked out. Level 3: bigger numbers, or the question is how many got on or off. The camera stands still, facing the bus stop,
+   the player waits at the stop without walking, and the answer is a button on the screen. */
 /* The bus and the number-line games face the side of the island, away from the obby course: in their arena "ahead" is -z of the world
    and "to the right" is +x (the arena group is turned a quarter). FW gives the place in the world of a spot of that arena. */
 const FW=(st,A,B)=>({x:st.c.x+B,z:st.c.z-A});
-const BUS={A:12,s:1.5,far:24,cols:[-2.6,-1.3,0,1.3,2.6],skin:['#FFD9B3','#E9B07F','#C98E5F','#8D5A3B'],shirt:['#E8413A','#2E8BF0','#2DB34A','#FF8A1F','#8B4CF0','#FF5FA2','#FFFFFF'],hair:['#1E1A1A','#5A3A22','#E8C15A','#C1502A']};
-/* seat i in the arena's space, for a bus standing at B: seats 0-4 are the near row, 5-9 the far row (a step higher), 10-19 the same on the upper deck */
-function busSeat(i,B){const deck=Math.floor(i/10),k=i%10,far=k>=5;return {x:BUS.A+(far?.62:-.62)*BUS.s,y:(1.15+(far?.32:0)+deck*2.05)*BUS.s,z:B+BUS.cols[k%5]*BUS.s}}
+const BUS={A:12,s:1.5,far:24,F:1.15,H:2.3,up:.55,cols:[-2.6,-1.3,0,1.3,2.6],skin:['#FFD9B3','#E9B07F','#C98E5F','#8D5A3B'],shirt:['#E8413A','#2E8BF0','#2DB34A','#FF8A1F','#8B4CF0','#FF5FA2','#FFFFFF'],hair:['#1E1A1A','#5A3A22','#E8C15A','#C1502A']};
+/* seat i in the arena's space, for a bus standing at B: seats 0-4 are the near row, 5-9 the far row (a step higher, so that its heads show over the near row), 10-19 the same on the upper deck */
+function busSeat(i,B){const deck=Math.floor(i/10),k=i%10,far=k>=5;return {x:BUS.A+(far?.62:-.62)*BUS.s,y:(BUS.F+(far?BUS.up:0)+deck*BUS.H)*BUS.s,z:B+BUS.cols[k%5]*BUS.s}}
 const busSpot=i=>({x:BUS.A-3.4,y:0,z:-2.9+i*1.15});
 function genBus(L){const kind=L===3&&Math.random()<.45?'chg':'res',t=pickSkill('contas',kind==='chg'?['falta']:['juntar','tirar']),add=kind==='chg'?Math.random()<.6:t==='juntar';let a,b;
   if(kind==='chg'){if(add){a=rnd(2,7);b=rnd(1,Math.min(4,10-a))}else{a=rnd(4,10);b=rnd(1,Math.min(4,a-1))}}
@@ -2003,36 +2023,71 @@ function genBus(L){const kind=L===3&&Math.random()<.45?'chg':'res',t=pickSkill('
   const op=add?'+':'−',end=add?a+b:a-b,ans=kind==='chg'?b:end,eq=`${a} ${op} ${b} = ${end}`;
   const text=kind==='chg'?`Tinha <b>${a}</b> no ônibus. Agora tem <b>${end}</b>. Quantos <b>${add?'SUBIRAM':'DESCERAM'}</b>?`:add?`Tinha <b>${a}</b> no ônibus e subiram <b>${b}</b>. Quantos estão no ônibus <b>agora</b>?`:`Tinha <b>${a}</b> no ônibus e desceram <b>${b}</b>. Quantos <b>ficaram</b> no ônibus?`;
   return {a,b,op,add,kind,end,ans,eq,text,skill:lastSkill,ask:kind==='chg'?`${a} ${op} ? = ${end}`:`${a} ${op} ${b}`,opts:optNums(ans,kind==='chg'?[ans+1,ans-1,ans+2,end,a]:[ans+1,ans-1,ans+2,ans-2,add?a-b:a+b,a],0,20,3)}}
-function busPerson(){const g=new THREE.Group();g.add(mesh(BOX(.46,.62,.34),pick(BUS.shirt),0,.31,0),mesh(BOX(.4,.4,.4),pick(BUS.skin),0,.83,0),mesh(BOX(.42,.13,.42),pick(BUS.hair),0,1.07,0));g.scale.setScalar(BUS.s);return g}
-function buildBus(decks){const g=new THREE.Group(),Y='#FFC83D',D='#2A2F3A',top=1.15+decks*2.05+.7;
-  g.add(mesh(BOX(2.7,.8,7.6),Y,0,.75,0),mesh(BOX(2.74,.16,7.64),'#E53935',0,.62,0));
-  [[-1.36,-2.5],[1.36,-2.5],[-1.36,2.5],[1.36,2.5]].forEach(([x,z])=>{const w=mesh(new THREE.CylinderGeometry(.5,.5,.3,14),D,x,.5,z);w.rotation.z=Math.PI/2;g.add(w)});
-  g.add(mesh(BOX(2.7,1.45,.9),Y,0,1.87,4.25),mesh(BOX(2.3,.8,.1),'#BFE8FF',0,2.05,4.72),mesh(BOX(.5,.3,.12),'#FFF6C2',-.8,.9,3.82),mesh(BOX(.5,.3,.12),'#FFF6C2',.8,.9,3.82));
-  for(let d=0;d<decks;d++){const y=1.15+d*2.05;if(d)g.add(mesh(BOX(2.7,.16,7.6),Y,0,y-.08,0));g.add(mesh(BOX(1.3,.32,7.2),'#C99A1E',.64,y+.16,0))}
-  [[-1.27,-3.7],[1.27,-3.7],[-1.27,3.7],[1.27,3.7]].forEach(([x,z])=>g.add(mesh(BOX(.14,top-1.15,.14),D,x,(top+1.15)/2,z)));
-  g.add(mesh(BOX(2.9,.18,7.9),'#E53935',0,top+.09,0));
-  /* the curtains: one closed box per deck, just inside the pillars; while they are shut nobody on that deck can be seen */
-  const cur=[];for(let d=0;d<decks;d++){const y0=1.15+d*2.05,y1=d===decks-1?top:y0+2.05-.16,c=mesh(BOX(2.6,y1-y0,7.36),'#4C6FB8',0,(y0+y1)/2,0);c.visible=false;g.add(c);cur.push(c)}
-  g.userData.cur=cur;g.scale.setScalar(BUS.s);return g}
+/* a passenger, facing the stop (-x): legs, shirt with arms, a head with eyes and a mouth, and one of four heads of hair or a cap */
+function busPerson(cap){const g=new THREE.Group(),sh=cap?'#2B4C8C':pick(BUS.shirt),sk=pick(BUS.skin),hr=pick(BUS.hair),E='#1E1A1A',k=cap?4:rnd(0,3);
+  g.add(mesh(BOX(.3,.24,.4),'#3A4660',0,.12,0,false),mesh(BOX(.34,.56,.46),sh,0,.52,0),mesh(BOX(.2,.42,.12),sh,0,.57,-.29,false),mesh(BOX(.2,.42,.12),sh,0,.57,.29,false),mesh(BOX(.18,.12,.12),sk,0,.3,-.29,false),mesh(BOX(.18,.12,.12),sk,0,.3,.29,false),
+    mesh(BOX(.4,.4,.4),sk,0,1,0),mesh(BOX(.02,.09,.07),E,-.205,1.04,-.09,false),mesh(BOX(.02,.09,.07),E,-.205,1.04,.09,false),mesh(BOX(.02,.04,.16),'#B5443B',-.205,.9,0,false));
+  if(k===4)g.add(mesh(BOX(.44,.14,.44),'#1F3566',0,1.27,0,false),mesh(BOX(.2,.04,.4),'#1F3566',-.3,1.22,0,false));
+  else{g.add(mesh(BOX(.43,.13,.43),hr,0,1.265,0,false),mesh(BOX(.1,.24,.43),hr,.165,1.1,0,false));
+    if(k===1)g.add(mesh(BOX(.14,.3,.14),hr,.05,.96,-.27,false),mesh(BOX(.14,.3,.14),hr,.05,.96,.27,false));
+    else if(k===2)g.add(mesh(BOX(.3,.14,.3),hr,0,1.39,0,false));
+    else if(k===3)g.add(mesh(BOX(.5,.05,.5),'#FFFFFF',0,1.34,0,false),mesh(BOX(.34,.14,.34),pick(BUS.shirt),0,1.43,0,false))}
+  g.scale.setScalar(BUS.s);return g}
+/* the bus: front at +z, the stop on its -x side. Open windows between thin pillars, so that everybody on board can be counted, and a
+   seat back behind each of the ten places of a deck, so that an empty place is seen too (two rows of five: a ten-frame). */
+function buildBus(decks){const g=new THREE.Group(),Y='#FFC83D',R='#E53935',D='#2A2F3A',W='#F4F6FA',GL='#BFE8FF',SE='#3F7FD9',F=BUS.F,H=BUS.H,top=F+decks*H+.25,wheels=[];
+  /* lower body: white skirt, red stripe, yellow band; bumpers and lights */
+  g.add(mesh(BOX(2.7,.36,9.2),W,0,.53,.5),mesh(BOX(2.75,.2,9.25),R,0,.79,.5),mesh(BOX(2.7,.28,9.2),Y,0,1.01,.5),
+    mesh(BOX(2.82,.22,.22),D,0,.44,5.16),mesh(BOX(2.82,.22,.22),D,0,.44,-4.16),mesh(BOX(1.1,.2,.06),D,0,.6,5.12,false),
+    mesh(BOX(.42,.22,.08),'#FFF6C2',-.92,1,5.12,false),mesh(BOX(.42,.22,.08),'#FFF6C2',.92,1,5.12,false),mesh(BOX(.3,.2,.08),'#B71C1C',-1,.99,-4.12,false),mesh(BOX(.3,.2,.08),'#B71C1C',1,.99,-4.12,false));
+  const name=mesh(new THREE.PlaneGeometry(4.3,.33),new THREE.MeshLambertMaterial({map:texOf(c=>{c.fillStyle=W;c.fillRect(0,0,1024,80);['#E8413A','#2E8BF0','#22B35E'].forEach((col,i)=>{bigText(c,i+1,40+i*62,42,60,62,col);bigText(c,i+1,860+i*62,42,60,62,col)});bigText(c,'ÔNIBUS DOS NÚMEROS',512,43,600,50,INK)},1024,80)}),-1.356,.53,.3,false);name.rotation.y=-Math.PI/2;g.add(name);
+  /* wheels: a dark arch through the body, and on each side a tyre with a hubcap and a bar that shows it turning */
+  [-2.75,3.3].forEach(z=>{const a=mesh(new THREE.CylinderGeometry(.66,.66,2.72,20),D,0,.5,z,false);a.rotation.z=Math.PI/2;g.add(a);
+    [-1.3,1.3].forEach(x=>{const w=new THREE.Group(),ty=mesh(new THREE.CylinderGeometry(.5,.5,.36,18),'#15181F'),hub=mesh(new THREE.CylinderGeometry(.27,.27,.4,14),'#D5DAE2',0,0,0,false);ty.rotation.z=hub.rotation.z=Math.PI/2;
+      w.add(ty,hub,mesh(BOX(.42,.09,.5),'#8E97A6',0,0,0,false),mesh(BOX(.44,.14,.14),R,0,0,0,false));w.position.set(x,.5,z);g.add(w);wheels.push(w)})});
+  /* each deck: floor, the step of the far row, the seat backs, low side walls, and the rail over the windows */
+  for(let d=0;d<decks;d++){const y=F+d*H;
+    if(d)g.add(mesh(BOX(2.7,.16,9.2),Y,0,y-.08,.5));
+    g.add(mesh(BOX(1.25,BUS.up,7.4),'#C99A1E',.66,y+BUS.up/2,-.25),mesh(BOX(.08,.24,7.6),Y,-1.31,y+.12,-.25),mesh(BOX(.08,.9,7.6),Y,1.31,y+.45,-.25),mesh(BOX(2.7,.95,.1),Y,0,y+.475,-4.05),mesh(BOX(2.4,H-1.4,.06),GL,0,y+.95+(H-1.4)/2,-4.05,false));
+    for(let i=0;i<10;i++){const far=i>=5,sx=far?.62:-.62,sy=y+(far?BUS.up:0),z=BUS.cols[i%5];g.add(mesh(BOX(.1,far?.78:.56,.66),SE,sx+.3,sy+(far?.39:.28),z,false),mesh(BOX(.12,.08,.7),'#2C5FB0',sx+.3,sy+(far?.8:.58),z,false))}
+    const y1=d===decks-1?top:y+H-.16;g.add(mesh(BOX(.1,.2,9.2),Y,-1.31,y1-.1,.5,false),mesh(BOX(.1,.2,9.2),Y,1.31,y1-.1,.5,false));
+    /* the front of an upper deck: a low wall and a windscreen */
+    if(d)g.add(mesh(BOX(2.7,.6,.1),Y,0,y+.3,5.05),mesh(BOX(2.4,y1-y-.9,.06),GL,0,y+.6+(y1-y-.9)/2,5.05,false))}
+  /* pillars from the floor to the roof, on both sides */
+  [-4.04,-3.4,-1.95,-.65,.65,1.95,3.4,5.04].forEach(z=>[-1.31,1.31].forEach(x=>g.add(mesh(BOX(.1,top-F,.12),Y,x,(top+F)/2,z,false))));
+  /* the driver's cab: half doors, the wall behind the driver, the windscreen, the mirrors, the wheel, and the driver */
+  g.add(mesh(BOX(.08,.8,1.5),R,-1.31,F+.4,4.25),mesh(BOX(.08,.8,1.5),R,1.31,F+.4,4.25),mesh(BOX(2.6,H-.3,.08),'#D9A21E',0,F+(H-.3)/2,3.42),mesh(BOX(2.7,.5,.1),Y,0,F+.25,5.05),mesh(BOX(2.4,H-.95,.06),GL,0,F+.5+(H-.95)/2,5.05,false),
+    mesh(BOX(.34,.34,.08),D,-1.55,F+1.25,4.95,false),mesh(BOX(.34,.34,.08),D,1.55,F+1.25,4.95,false),mesh(BOX(.5,.08,.5),D,-.1,F+.78,4.72,false));
+  const dr=busPerson(true);dr.scale.setScalar(1);dr.position.set(-.1,F,4.2);g.add(dr);
+  /* roof */
+  g.add(mesh(BOX(2.9,.18,9.4),R,0,top+.09,.5),mesh(BOX(2.4,.1,8.6),W,0,top+.23,.5,false));
+  /* the curtains: one closed box per deck, just inside the low walls; while they are shut nobody on that deck can be seen */
+  const cm=new THREE.MeshLambertMaterial({map:texOf(c=>{for(let i=0;i<16;i++){c.fillStyle=i%2?'#3F5FA8':'#5B7FD0';c.fillRect(i*16,0,16,64)}c.fillStyle='#F2C230';c.fillRect(0,0,256,7)},256,64)}),cur=[];
+  for(let d=0;d<decks;d++){const y0=F+d*H,y1=d===decks-1?top:y0+H-.16,c=mesh(BOX(2.54,y1-y0,7.38),cm,0,(y0+y1)/2,-.26);c.visible=false;g.add(c);cur.push(c)}
+  g.userData.cur=cur;g.userData.wheels=wheels;g.scale.setScalar(BUS.s);return g}
 const busCurtain=on=>{CH.closed=on;CH.bus.userData.cur.forEach(c=>c.visible=on)};
 /* the board over the stop: "+2", "−3", the running count, and the whole sum at the end */
 function busBoard(text,col){const C=CH,b=C.board,g=b.c.getContext('2d');g.clearRect(0,0,512,256);b.sp.visible=!!text;if(!text)return;g.fillStyle=col||'#FFFFFF';rr(g,10,34,492,188,44);g.fill();g.lineWidth=12;g.strokeStyle=INK;g.stroke();bigText(g,text,256,134,440,128,col?'#fff':INK);b.t.needsUpdate=true}
 function startBus(st){CH={type:'bus',st,n:5,idx:0,first:0,coins:0};loadBusQ()}
 function loadBusQ(){clearArena();const C=CH,G=beginArena(C.st);G.rotation.y=Math.PI/2;const lvl=stat(C.st.id).level,q=genBus(lvl),decks=lvl===3?2:1;
-  Object.assign(C,{q,lvl,skill:q.skill,tries:0,locked:false,ph:'in',t:0,busB:-BUS.far,seated:[],wait:[],gone:[],hops:[],pads:[],closed:false,moved:0,stepT:0,count:null});
-  G.add(mesh(BOX(5.6,.04,52),'#5B6475',BUS.A,.03,0,false),mesh(BOX(2.2,.05,15),'#D9D2C5',BUS.A-3.6,.03,0,false));
-  for(let k=-5;k<=5;k++)G.add(mesh(BOX(.2,.05,1.8),'#FFFFFF',BUS.A+2.4,.06,k*4.4,false));
-  G.add(mesh(BOX(.16,3.4,.16),'#5B6475',BUS.A-3.4,1.7,-6.4));
-  const sg=sprite(texOf(g=>{g.fillStyle='#2E8BF0';rr(g,28,28,200,200,36);g.fill();g.lineWidth=10;g.strokeStyle=INK;g.stroke();emo(g,'🚌',128,112,104);bigText(g,'PONTO',128,200,180,40,'#fff')}),2,2);sg.position.set(BUS.A-3.4,4.1,-6.4);G.add(sg);
+  Object.assign(C,{q,lvl,skill:q.skill,tries:0,locked:false,ph:'in',t:0,busB:-BUS.far,seated:[],wait:[],gone:[],hops:[],closed:false,moved:0,stepT:0,count:null,still:true});hidePicks();
+  /* the street: asphalt with a dashed line, kerbs, the pavement of the stop with its yellow line, and a hedge with flowers on the far side */
+  G.add(mesh(BOX(5.8,.04,52),'#4C5364',BUS.A,.03,0,false),mesh(BOX(.24,.16,52),'#E3E6EC',BUS.A+3,.08,0,false),mesh(BOX(2.6,.1,24),'#D9D2C5',BUS.A-4.1,.05,1,false),mesh(BOX(.24,.16,24),'#F4F6FA',BUS.A-2.92,.08,1,false),mesh(BOX(.16,.11,24),'#FFC83D',BUS.A-3.3,.06,1,false));
+  for(let k=-5;k<=5;k++)G.add(mesh(BOX(.2,.05,1.8),'#FFFFFF',BUS.A+2.45,.06,k*4.4,false));
+  for(let k=-4;k<=4;k++){G.add(mesh(BOX(1.1,.8+(k&1)*.2,2.9),k&1?'#2F9E4F':'#3BB25E',BUS.A+3.9,.4+(k&1)*.1,k*3.2,false));
+    [-.8,.1,.9].forEach((o,j)=>G.add(mesh(BOX(.22,.22,.22),['#FF5FA2','#FFFFFF','#FFC83D'][(j+k+8)%3],BUS.A+3.4,.75+(k&1)*.2,k*3.2+o,false)))}
+  /* the sign of the stop on its post, and the post of the board */
+  G.add(mesh(BOX(.16,3.4,.16),'#5B6475',BUS.A-3.6,1.7,-6.9),mesh(BOX(.5,.12,.5),'#3A4252',BUS.A-3.6,.06,-6.9,false),mesh(BOX(.16,3.5,.16),'#5B6475',BUS.A+3.5,1.75,12,false));
+  const sg=sprite(texOf(g=>{g.fillStyle='#2E8BF0';rr(g,28,28,200,200,36);g.fill();g.lineWidth=10;g.strokeStyle=INK;g.stroke();emo(g,'🚌',128,112,104);bigText(g,'PONTO',128,200,180,40,'#fff')}),2,2);sg.position.set(BUS.A-3.6,4.1,-6.9);G.add(sg);
   C.bus=buildBus(decks);C.bus.position.set(BUS.A,0,C.busB);G.add(C.bus);
   for(let i=0;i<q.a;i++){const p=busPerson();G.add(p);C.seated.push(p)}
   if(q.kind==='res'&&q.add)for(let i=0;i<q.b;i++){const p=busPerson(),s=busSpot(i);p.position.set(s.x,0,s.z);G.add(p);C.wait.push(p)}
-  const bc=cv(512,256,()=>{}),bt=tex(bc);CHX.texs.push(bt);const bs=sprite(bt,4.6,2.3);bs.position.set(BUS.A-1,decks===2?7:4.9,9.7);bs.material.depthTest=false;bs.renderOrder=6;bs.visible=false;G.add(bs);C.board={c:bc,t:bt,sp:bs};
-  /* the camera stays put, far enough to show the whole bus on any screen; the player starts in front of the answer pads */
-  C.fixCam={x:BUS.A,z:1.6,ly:decks===2?3.9:3,len:20,min:15,up:decks===2?.2:.16};
-  const w=FW(C.st,BUS.A-8.1,1.95),f=FW(C.st,BUS.A,1.95);teleport(w.x,w.z,f.x,f.z);busPlace();
+  const bc=cv(512,256,()=>{}),bt=tex(bc);CHX.texs.push(bt);const bs=sprite(bt,4,2);bs.position.set(BUS.A+3.5,4.4,12);bs.material.depthTest=false;bs.renderOrder=6;bs.visible=false;G.add(bs);C.board={c:bc,t:bt,sp:bs};
+  /* the camera stays put, far enough to show the whole bus on any screen; the player waits at the stop, behind the back of the bus */
+  C.fixCam={x:BUS.A,z:1.2,ly:decks===2?4.3:3,len:22,min:decks===2?17.5:15,up:decks===2?.2:.16};
+  const w=FW(C.st,BUS.A-3.9,-5.4),f=FW(C.st,BUS.A,-5.4);teleport(w.x,w.z,f.x,f.z);busPlace();
   setMission(`<span class="vt">🚌 ÔNIBUS</span>${C.idx+1}/${C.n} · Lá vem o ônibus! Olhe bem quem está nele.`)}
-function busPlace(){const C=CH;C.bus.position.z=C.busB;C.seated.forEach((p,i)=>{if(p.userData.hop)return;const s=busSeat(i,C.busB);p.position.set(s.x,s.y,s.z)})}
+function busPlace(){const C=CH,a=C.busB/(.5*BUS.s);C.bus.position.z=C.busB;C.bus.userData.wheels.forEach(w=>w.rotation.x=a);C.seated.forEach((p,i)=>{if(p.userData.hop)return;const s=busSeat(i,C.busB);p.position.set(s.x,s.y,s.z)})}
 /* a person jumps in an arc from where they are to a spot (given as a function, because a seat moves with the bus) */
 function busHop(p,to,done){p.userData.hop=true;CH.hops.push({p,x:p.position.x,y:p.position.y,z:p.position.z,to,t:0,done})}
 function busPhase(ph){const C=CH,q=C.q;C.ph=ph;C.t=0;const head=`<span class="vt">🚌 ÔNIBUS</span>${C.idx+1}/${C.n} · `;
@@ -2040,8 +2095,7 @@ function busPhase(ph){const C=CH,q=C.q;C.ph=ph;C.t=0;const head=`<span class="vt
   else if(ph==='close'){busCurtain(true);sfx.tap();setMission(`${head}Tinha <b>${q.a}</b>. As cortinas fecharam! 🙈`)}
   else if(ph==='move'){C.stepT=.35;if(q.kind==='chg'){setMission(`${head}Tinha <b>${q.a}</b>. Alguém ${q.add?'subiu':'desceu'}, mas ninguém viu quantos...`);speak(q.add?'Subiu gente no ônibus.':'Desceu gente do ônibus.')}
     else{setMission(`${head}Tinha <b>${q.a}</b>. Agora veja quem <b>${q.add?'sobe':'desce'}</b>!`);speak(q.add?'Veja quem sobe.':'Veja quem desce.')}}
-  else if(ph==='ask'){[-3.9,0,3.9].forEach((B,i)=>{const A=BUS.A-6,w=FW(C.st,A,B),v=q.opts[i];padSprite(C.G,String(v),A,B,['#E8413A','#2E8BF0','#8B4CF0'][i]);C.pads.push({v,A,B,x:w.x,z:w.z,used:false,markY:3.4})});
-    setMission(`${head}${q.text}<small>Pise na resposta certa.</small>`);sayQ(q.text)}}
+  else if(ph==='ask'){showPicks(q.opts,busAnswer);setMission(`${head}${q.text}<small>Toque no número certo.</small>`);sayQ(q.text)}}
 function updateBus(dt){const C=CH,q=C.q,ez=u=>u<=0?0:u>=1?1:u*u*(3-2*u);C.t+=dt;
   if(C.ph==='in'){C.busB=-BUS.far*(1-ez(C.t/1.8));if(C.t>=1.8){C.busB=0;busPhase('show')}}
   else if(C.ph==='show'){if(C.t>=(C.lvl===1?2:2.6))busPhase(C.lvl>1?'close':'move')}
@@ -2055,18 +2109,18 @@ function updateBus(dt){const C=CH,q=C.q,ez=u=>u<=0?0:u>=1?1:u*u*(3-2*u);C.t+=dt;
         else{const p=C.seated.pop(),s=busSpot(k);busHop(p,()=>s,()=>C.gone.push(p))}}
       if(C.moved>=q.b&&!C.hops.length&&C.stepT<=-.5)busPhase('ask')}}
   else if(C.ph==='open'){if(C.t>=1.4)busPhase('ask')}
-  else if(C.ph==='ask'){if(!C.locked)C.pads.forEach((p,i)=>edge('pad'+i,!p.used&&onGround&&isNear(p,1.35),()=>busAnswer(p)));
+  else if(C.ph==='ask'){
     /* help after a miss: everybody on the bus hops in turn while the board counts */
     if(C.count){const K=C.count;K.t-=dt;if(K.t<=0&&K.i<C.seated.length){const p=C.seated[K.i++];p.userData.bob=.36;K.t=.5;sfx.tick();busBoard(String(K.i))}else if(K.t<=-1.2&&K.i>=C.seated.length)C.count=null}}
   else if(C.ph==='out'){C.busB=BUS.far*ez((C.t-1.6)/2)}
   C.hops=C.hops.filter(h=>{h.t+=dt;const u=Math.min(1,h.t/.5),e=h.to();h.p.position.set(h.x+(e.x-h.x)*u,h.y+(e.y-h.y)*u+Math.sin(u*Math.PI)*1.5,h.z+(e.z-h.z)*u);if(u<1)return true;h.p.userData.hop=false;h.done();return false});
   busPlace();C.seated.forEach(p=>{if(p.userData.bob>0){p.userData.bob-=dt;p.position.y+=Math.sin(Math.max(0,p.userData.bob)/.36*Math.PI)*.5}})}
-function busAnswer(p){const C=CH,q=C.q;
-  if(p.v===q.ans){addMark(p,true);return busEnd(true)}
-  C.tries++;p.used=true;addMark(p,false);noteErr(C.skill,q.ask,q.ans,p.v);if(C.tries>=2)return busEnd(false);
-  if(q.kind==='chg')hintBad(`Não é ${p.v}. Tinha ${q.a} e agora tem ${q.end}: conte quantos ${q.add?'a mais':'a menos'}.`);
-  else{if(C.closed){busCurtain(false);hintBad(`Não é ${p.v}. Abri as cortinas: conte quem está no ônibus!`)}else hintBad(`Não é ${p.v}. Conte todo mundo que está no ônibus agora.`);C.count={i:0,t:.9}}}
-function busEnd(ok){const C=CH,q=C.q;busCurtain(false);C.count=null;busBoard(q.eq,ok?'#22B35E':'#E8413A');C.ph='out';C.t=0;
+function busAnswer(i,b){const C=CH;if(!C||C.type!=='bus'||C.ph!=='ask'||C.locked)return;const q=C.q,v=q.opts[i];
+  if(v===q.ans){b.classList.add('ok');return busEnd(true)}
+  C.tries++;b.disabled=true;b.classList.add('no');noteErr(C.skill,q.ask,q.ans,v);if(C.tries>=2)return busEnd(false);
+  if(q.kind==='chg')hintBad(`Não é ${v}. Tinha ${q.a} e agora tem ${q.end}: conte quantos ${q.add?'a mais':'a menos'}.`);
+  else{if(C.closed){busCurtain(false);hintBad(`Não é ${v}. Abri as cortinas: conte quem está no ônibus!`)}else hintBad(`Não é ${v}. Conte todo mundo que está no ônibus agora.`);C.count={i:0,t:.9}}}
+function busEnd(ok){const C=CH,q=C.q;lockPicks();const rb=picksB.querySelectorAll('.pk')[q.opts.indexOf(q.ans)];if(rb)rb.classList.add('ok');busCurtain(false);C.count=null;busBoard(q.eq,ok?'#22B35E':'#E8413A');C.ph='out';C.t=0;
   if(ok)okRound(null,`<b>${q.eq}</b>`,3800,nextBus);else failRound(`A resposta era <b>${q.ans}</b>: ${q.eq}.`,5200,nextBus)}
 function nextBus(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadBusQ()}
 

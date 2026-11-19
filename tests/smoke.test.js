@@ -468,7 +468,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         else if (C.type === 'shapes') { const q = C.qs[C.idx], sh = D.SHAPES.find(x => x.n === q.n); go(st.spawn.x, st.spawn.z); go(sh.x + (sh.flat ? 0 : sh.r + .5), sh.z); }
         else if (C.type === 'shoot') { const b = C.balloons.find(b => b.alive && b.it.ok); if (b) { const p = b.sp.position, dx = p.x - D.P.x, dz = p.z - D.P.z, dy = p.y - (D.P.y + D.SCOPE.eye); let a = Math.atan2(dx, dz) - C.a0; a = Math.atan2(Math.sin(a), Math.cos(a)); C.ax = a; C.ay = Math.atan2(dy, Math.hypot(dx, dz)) + .05; run(2); if (D.aim() === b) { D.fire(); for (let i = 0; i < 90 && b.alive; i++) D.step(1 / 60); } } }
         else if (C.type === 'floor') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const t = C.tiles.find(t => t.ok); go(t.p.cx, t.p.cz, 1); run(20); document.querySelector('#b-sure').click(); run(3); }
-        else if (C.type === 'bus') { if (C.ph !== 'ask') { run(30); return false; } run(2); const p = C.pads.find(p => p.v === C.q.ans); go(p.x, p.z); run(4); }
+        else if (C.type === 'bus') { if (C.ph !== 'ask') { run(30); return false; } run(2); document.querySelectorAll('#picks .pk')[C.q.opts.indexOf(C.q.ans)].click(); run(4); }
         else if (C.type === 'line') { if (C.hop) { const n = Math.abs(C.q.ans - C.pos); for (let i = 0; i < n; i++) { D.jump(); run(24); } } else go(st.c.x + C.B0 + C.q.ans * C.w, st.c.z - C.fixCam.x); run(3); document.querySelector('#b-sure').click(); run(3); }
         else if (C.type === 'kart') { if (C.phase === 'ready') C.phase = 'go'; const g = C.gates[C.idx]; C.v = 8; if (g) C.lat = (C.qs[C.idx].ans - 1) * 4; D.P.x = (g ? g.x : C.endX) - .3; run(6); }
         else if (C.type === 'simon') { if (C.phase === 'read') C.phase = 'play'; if (C.phase !== 'play') return false; const q = C.q, s = q.steps[C.si], idx = C.si, press = () => { const bt = document.querySelector('#b-sure'); if (!bt.hidden) bt.click(); };
@@ -607,31 +607,35 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.context().close();
   });
 
-  await test('bus game: people get on and off in sight, the curtains hide them from level 2, a miss brings help, and level 3 can ask how many got on', async () => {
+  await test('bus game: people get on and off in sight, the curtains hide them from level 2, the answer is a button on the screen, a miss brings help, and level 3 can ask how many got on', async () => {
     await enter(page, 'contas');
     const r = await page.evaluate(() => {
       const D = __ilhaDebug, S = D.S(), st = D.STM.contas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, out = {}, quit = () => { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); };
       const play = (L, want) => { let g = 0; do { quit(); S.st.contas = S.st.contas || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; S.st.contas.level = L; D.startMode(st, st.modes[3]); } while (want && !want(D.CH.q) && ++g < 300); return D.CH; };
       const toAsk = C => { const seen = { a: C.seated.length, closedAtMove: null }; for (let i = 0; i < 1500 && C.ph !== 'ask'; i++) { D.step(1 / 60); if (C.ph === 'move' && seen.closedAtMove === null) seen.closedAtMove = C.closed; } run(3); return seen; };
-      const step = (C, v) => { const p = C.pads.find(p => p.v === v); D.P.set(p.x, 0, p.z); run(4); };
-      /* level 1, adding: everybody in sight; the wrong pad counts the people, the right one ends the question */
-      let C = play(1, q => q.add && q.kind === 'res'), q = C.q, e0 = (S.errs || []).length, seen = toAsk(C);
-      out.l1 = [C.type, seen.a === q.a, seen.closedAtMove, C.seated.length === q.end, C.wait.length === q.b, C.pads.map(p => p.v).join() === q.opts.join(), C.closed, !!C.fixCam, document.body.classList.contains('fix')];
+      const btns = () => [...document.querySelectorAll('#picks .pk')], btn = v => btns().find(b => +b.textContent === v), step = (C, v) => { btn(v).click(); run(4); };
+      /* level 1, adding: everybody in sight; the player waits at the stop and cannot walk; no buttons before the question */
+      let C = play(1, q => q.add && q.kind === 'res'), q = C.q, e0 = (S.errs || []).length; run(20); const p0 = [D.P.x, D.P.z]; D.input.jx = 1; D.input.jy = -1; D.jump(); run(40); D.input.jx = D.input.jy = 0;
+      out.still = [C.still, document.body.classList.contains('still'), Math.hypot(D.P.x - p0[0], D.P.z - p0[1]) < .01, D.P.y < .01, document.querySelector('#picks').hidden, getComputedStyle(document.querySelector('#b-jump')).display];
+      /* the wrong button counts the people, the right one ends the question */
+      let seen = toAsk(C);
+      out.l1 = [C.type, seen.a === q.a, seen.closedAtMove, C.seated.length === q.end, C.wait.length === q.b, btns().map(b => b.textContent).join() === q.opts.join() && !document.querySelector('#picks').hidden, C.closed, !!C.fixCam, document.body.classList.contains('fix')];
       const wrong = q.opts.find(v => v !== q.ans); step(C, wrong); out.miss = [C.tries, C.locked, !!C.count, (S.errs || []).length - e0, S.errs[S.errs.length - 1].q === q.ask && S.errs[S.errs.length - 1].g === wrong];
-      const f0 = C.first; step(C, q.ans); out.right = [C.locked, C.first - f0, C.ph]; /* right at the second try: it ends the question, but it is not a first-try answer */
+      out.missBtn = [btn(wrong).disabled, btn(wrong).classList.contains('no'), btns().filter(b => b.disabled).length]; step(C, wrong); out.missTwice = C.tries; /* a button already tried does nothing more */
+      const f0 = C.first; step(C, q.ans); out.right = [C.locked, C.first - f0, C.ph]; out.rightBtn = [btn(q.ans).classList.contains('ok'), btns().every(b => b.disabled)]; /* right at the second try: it ends the question, but it is not a first-try answer */
       /* level 1, taking away: those who got off stand at the stop */
       C = play(1, q => !q.add); q = C.q; toAsk(C); out.sub = [C.seated.length === q.end, C.gone.length === q.b];
       /* level 2: the curtains are shut while people move, and stay shut for the question; a miss opens them */
       C = play(2, q => q.add); q = C.q; seen = toAsk(C); out.l2 = [seen.closedAtMove, C.closed, C.seated.length === q.end]; step(C, q.opts.find(v => v !== q.ans)); out.l2miss = [C.closed, C.tries];
-      step(C, q.opts.find(v => v !== q.ans && !C.pads.find(p => p.v === v).used)); out.l2fail = [C.locked, C.ph];
+      step(C, q.opts.find(v => v !== q.ans && !btn(v).disabled)); out.l2fail = [C.locked, C.ph, btn(q.ans).classList.contains('ok')]; /* after two misses the right button is shown */
       /* level 3: two decks, and sometimes the question is how many got on or off */
       C = play(3, q => q.kind === 'chg'); q = C.q; toAsk(C); out.l3 = [C.seated.length === q.end, q.ans === q.b, C.closed, C.bus.userData.cur.length];
       const f1 = C.first; step(C, q.ans); out.l3right = [C.locked, C.first - f1];
-      quit(); out.after = [document.body.classList.contains('fix'), D.CH === null];
+      quit(); out.after = [document.body.classList.contains('fix'), D.CH === null, document.querySelector('#picks').hidden, document.querySelectorAll('#picks .pk').length];
       return out;
     });
-    eq(r, { l1: ['bus', true, false, true, true, true, false, true, true], miss: [1, false, true, 1, true], right: [true, 0, 'out'], sub: [true, true], l2: [true, true, true], l2miss: [false, 1], l2fail: [true, 'out'], l3: [true, true, false, 2], l3right: [true, 1], after: [true, true] }, 'bus game');
-    eq(await page.evaluate(() => { __ilhaDebug.step(1 / 60); return document.body.classList.contains('fix'); }), false, 'the still camera lets go when the game ends');
+    eq(r, { still: [true, true, true, true, true, 'none'], l1: ['bus', true, false, true, true, true, false, true, true], miss: [1, false, true, 1, true], missBtn: [true, true, 1], missTwice: 1, right: [true, 0, 'out'], rightBtn: [true, true], sub: [true, true], l2: [true, true, true], l2miss: [false, 1], l2fail: [true, 'out', true], l3: [true, true, false, 2], l3right: [true, 1], after: [true, true, true, 0] }, 'bus game');
+    eq(await page.evaluate(() => { __ilhaDebug.step(1 / 60); return [document.body.classList.contains('fix'), document.body.classList.contains('still')]; }), [false, false], 'the still camera and the still player let go when the game ends');
   });
 
   await test('number line: each press is one hop, the stick can undo a hop, "Cheguei!" checks where the player stopped, and level 3 is walked', async () => {
