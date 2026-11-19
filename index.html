@@ -1375,7 +1375,7 @@ function celebrate(){if(paused||!PL||(ANIM&&ANIM.lock)||!onGround)return;if(CH){
 const SIU_KEY='ilha-numeros-siu',SIU_MAX=2000000;
 let siuData=null,siuBuf=null,siuEl=null,siuStop=0;try{siuData=localStorage.getItem(SIU_KEY)||null}catch(e){}
 /* the sound as the game's own audio can play it (a promise of a buffer; it fails when there is no audio yet or the data is not sound) */
-const decodeSiu=data=>actx?fetch(data).then(r=>r.arrayBuffer()).then(b=>new Promise((ok,bad)=>actx.decodeAudioData(b,ok,bad))):Promise.reject(new Error('no audio'));
+const decodeSiu=data=>actx?fetch(data).then(r=>r.arrayBuffer()).then(b=>new Promise((ok,bad)=>{const p=actx.decodeAudioData(b,ok,bad);if(p&&p.catch)p.catch(()=>{})})):Promise.reject(new Error('no audio'));
 function setSiu(data){siuEl=null;siuBuf=null;siuData=data||null;try{if(data)localStorage.setItem(SIU_KEY,data);else localStorage.removeItem(SIU_KEY);return true}catch(e){siuData=null;try{localStorage.removeItem(SIU_KEY)}catch(_){}return false}}
 /* plays it (at most six seconds of it); false when there is none or the sound is off */
 function playSiu(){if(!siuData||!S.sound)return false;
@@ -1555,7 +1555,7 @@ function talk(st,viaMission){if(resting(st)&&!viaMission)return restSheet(st);co
   $$('.mode').forEach(b=>b.onclick=()=>{sfx.tap();closeSheet();quit3D(true);startMode(st,st.modes[+b.dataset.i])});
   const intro=st.intro+' '+st.modes.slice().sort((x,y)=>(x.o||3)-(y.o||3)).map(m=>m.n).join(', ou ')+'.';
   $('#d-no').onclick=()=>{sfx.tap();closeSheet()};$('#d-spk').onclick=()=>speak(intro,null,true,st.npc.name);speak(intro,null,false,st.npc.name)}
-function startMode(st,m){flushFin();const lvl=stat(st.id).level;
+function startMode(st,m){flushFin();endAnim(true);/* a celebration still playing would hold the player (and the first hops) at the start of the new game */const lvl=stat(st.id).level;
   if(m.k==='act')startAct(st,m.gen);else if(m.k==='obby')startObby(st);else if(m.k==='order')startOrder(st);else if(m.k==='shapes')startShapes(st);
   else if(m.k==='shoot')startShoot(st,m.gen);else if(m.k==='floor')startFloor(st,m.gen);else if(m.k==='share')startShare(st,m.gen);else if(m.k==='build')startBuild(st,m.gen);else if(m.k==='simon')startSimon(st);else if(m.k==='kart')startKart(st,m.gen);else if(m.k==='bus')startBus(st);else if(m.k==='line')startLine(st);
   if(CH){CH.mode=m;CH.level=lvl}}
