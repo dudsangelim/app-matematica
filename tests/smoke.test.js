@@ -99,7 +99,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     assert(!bad.length, bad.join('\n'));
   });
 
-  await test('all 20 game modes start at levels 1, 2 and 3 and run for a moment', async () => {
+  await test('all 19 games start at levels 1, 2 and 3 and run for a moment', async () => {
     eq(await page.evaluate(() => Object.fromEntries(Object.keys(__ilhaDebug.STM).map(id => [id, __ilhaDebug.STM[id].modes.map((m, i) => i)]))), MODES, 'games per station');
     const seen = new Set();
     for (const id of STATION_IDS) {
@@ -111,10 +111,10 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         assert(st.type === type && type, `${id} mode ${mi} level ${level}: challenge did not start`);
         assert(st.mission && st.text.length > 10 && !/undefined|NaN/.test(st.text), `${id} mode ${mi} level ${level}: mission text is "${st.text}"`);
         assert(errors.length === before, `${id} mode ${mi} level ${level}: ${errors.slice(before).join(' | ')}`);
-        seen.add(id + ':' + type);
+        seen.add(id + ':' + mi);
       }
     }
-    eq(seen.size, 20, 'distinct station:mode pairs started');
+    eq(seen.size, 19, 'distinct games started (the tower has two arena games)');
     await page.evaluate(() => document.querySelector('#m-quit').click());
   });
 
