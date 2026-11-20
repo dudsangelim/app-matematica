@@ -2,22 +2,22 @@
 
 Jogo educativo em 3D para praticar a matemática do 1º ano do ensino fundamental (BNCC/MEC), no estilo dos jogos de blocos que as crianças adoram.
 
-A criança controla um boneco de blocos numa **cidade central**. Os **portais** levam a 8 mundos, um para cada capítulo do caderno:
+A criança controla um boneco de blocos numa **cidade central**. Os **portais** levam a 8 mundos, um para cada capítulo do caderno. Cada mundo tem **jogos só dele**: nenhum jogo se repete em dois portais.
 
 | Mundo | Capítulo | Jogos |
 |---|---|---|
-| Obby das Contas | Adição e subtração | **Gol de Placa**, **Ônibus dos Números**, **Pulos na Reta**, Obby sobre o mar, Estoura-Balão (tiro), Kart das Contas |
-| Corrida dos Números | A ordem dos números | Corrida dos cubos, Chão de Lava |
-| Vila das Posições | Vocabulário fundamental | Circular, pular e pintar (inclui direita/esquerda e na frente/atrás); O Mestre Mandou (ordens de 1 a 3 passos, pega-pega, esconde-esconde) |
-| Fazenda do 10 | Números até 10 | Pintar, levar ao cesto, padrões, gráfico de colunas, "certeza, talvez, impossível"; Ajude os Amigos (dividir) |
-| Parque das Formas | Figuras geométricas | Caça às Formas, Tiro às Formas |
-| Mercadinho | Nosso dinheiro | Pagar, troco, caixa; Atenda os Clientes |
-| Torre do 100 | Números até 39 e até 100 | Dezenas e unidades, quadro do 100, Chão de Lava |
-| Oficina das Medidas | Grandezas e medidas | Lápis, prédios, copos, balança; Construa a Escada |
+| Ilha das Contas | Adição e subtração | **Gol de Placa**, **Ônibus dos Números**, **Pulos na Reta**, Obby das Contas (pular sobre o mar), Kart das Contas |
+| Corrida dos Números | A ordem dos números | Corrida dos Cubos; Chão de Lava (antes, depois, entre, maior, menor, de 2 em 2... até 100) |
+| Vila das Posições | Vocabulário fundamental | **Circula e Pinta** (só circular e pintar: em cima, dentro, perto, entre, direita/esquerda, na frente/atrás); O Mestre Mandou (ordens de 1 a 3 passos, pega-pega, esconde-esconde) |
+| Fazenda do 10 | Números até 10 | **Leve ao Cesto** (tudo se responde levando ao cesto: contar, completar 10, padrões, gráfico de colunas, "certeza, talvez, impossível"); **Cestos Iguais** (dividir igualmente e pôr em cada cesto o que a placa pede) |
+| Parque das Formas | Figuras geométricas | Caça às Formas, Tiro às Formas (o único jogo de tiro) |
+| Mercadinho | Nosso dinheiro | **Caixa do Mercado** (pagar, troco, caixa); Atenda os Clientes (o único jogo de entregar a cada pessoa) |
+| Torre do 100 | Números até 39 e até 100 | **Monte o Número** (barras de 10 e cubinhos na caixa); **Quadro do 100** (dezenas, vizinhos, família, de 10 em 10, contas com dezenas) |
+| Oficina das Medidas | Grandezas e medidas | **Compare e Meça** (lápis, prédios, copos, balança, calendário); Construa a Escada |
 
 ## Recursos
 
-- Ações com o boneco: **pular em cima**, **correr em volta para circular**, **pintar com a cor pedida**, **quebrar a caixa com o martelo**, **chutar a bola no gol**, **arremessar na cesta**, **carregar objetos** (um por um no nível 1), **dirigir o kart**, **atirar**, **sobreviver**, **construir** e **ajudar amigos**. As perguntas de escolher uma resposta sorteiam a ação a cada vez.
+- Ações com o boneco: **pular em cima**, **correr em volta para circular**, **pintar com a cor pedida**, **quebrar a caixa com o martelo**, **chutar a bola no gol**, **arremessar na cesta**, **carregar objetos** (um por um no nível 1), **dirigir o kart**, **atirar**, **sobreviver**, **construir** e **entregar a cada um**. Nos jogos de escolher uma resposta (Caixa do Mercado, Quadro do 100, Compare e Meça), a ação é sorteada a cada vez; a Vila só circula e pinta, e a Fazenda só leva ao cesto.
 - **Botão amarelo de ação**: pintar, pegar tinta, quebrar, chutar e arremessar acontecem ao tocar no botão (ou tecla E), não só por passar por cima.
 - **Medalhas**: cada rodada vale 🥇 ouro (tudo certo de primeira), 🥈 prata (metade ou mais) ou 🥉 bronze (rodada terminada). A estação guarda a melhor, e ouro no nível 3 vale a **taça 🏆**.
 - Os níveis 1 a 3 se ajustam sozinhos aos acertos da criança.
@@ -26,12 +26,11 @@ A criança controla um boneco de blocos numa **cidade central**. Os **portais** 
 - **Moedas são poucas de propósito**: cada resposta certa de primeira vale 1 moeda (acertar depois não vale moeda), a rodada dá um bônus de 3 moedas com tudo certo ou de 1 com a metade, e a primeira vez de cada medalha dá um prêmio pequeno. Uma rodada perfeita rende de 7 a 12 moedas; uma camisa custa 30 e uma camisa de futebol, 80.
 - Depois de dois erros, o jogo **mostra a resposta pronta** (inclusive no cesto e na divisão entre amigos). Certo e errado têm sempre um **✓ ou ✗**, não só a cor.
 - No Obby, até 20, a placa mostra a conta também em **bolinhas** para contar. As plataformas têm espaço entre si, placas em pé com cada resposta, uma fileira revelada por vez e um portal no fim que leva de volta ao começo.
-- O Estoura-Balão é jogado em **primeira pessoa, pela luneta**: o boneco fica parado, o direcional (ou arrastar a tela, ou as setas) move a mira e o botão vermelho atira. A mira fica dourada e desacelera quando há um balão embaixo dela, e o tiro vai nesse balão.
+- O Tiro às Formas é jogado em **primeira pessoa, pela luneta**: o boneco fica parado, o direcional (ou arrastar a tela, ou as setas) move a mira e o botão vermelho atira. A mira fica dourada e desacelera quando há um balão embaixo dela, e o tiro vai nesse balão.
 - **O Mestre Mandou** dá ordens de 1, 2 ou 3 passos (um passo por nível), que precisam ser feitas na ordem: ir a um lugar, pular N vezes, pisar no círculo de uma cor, tocar o sino, dar a volta em algo, pegar e levar um objeto, pegar um amigo (pega-pega), achar um amigo escondido, esconder-se do mestre, fugir do pegador e ficar como estátua. Às vezes a ordem vem sem "O mestre mandou", e aí o certo é não fazer.
 - **Ônibus dos Números** mostra o que é somar e tirar: gente sobe, gente desce. O ônibus tem 10 lugares em duas fileiras de 5. No nível 1 tudo fica à vista e dá para contar; no nível 2 as cortinas fecham antes de o pessoal subir ou descer; no nível 3 são dois andares (até 20) e a pergunta pode ser "quantos subiram?". Depois de um erro o jogo abre a cortina e conta um por um. O boneco espera no ponto, sem andar, e a resposta é um botão grande na tela (não há nada para pisar no chão). A câmera pode ser mexida para ver cada passageiro de perto: os botões **+** e **−** (ou a rodinha do mouse, ou abrir e fechar dois dedos) aproximam e afastam, arrastar o dedo move a vista, e **⟲ ⟳** giram em volta do ônibus. O mesmo vale no Gol de Placa e nos Pulos na Reta.
 - **Gol de Placa** usa o futebol para os quatro sentidos de somar e tirar. Os gols aparecem como bolas no placar, em quadros de 10 (duas fileiras de 5): juntar os gols dos dois tempos; tirar os gols que o juiz anulou; comparar com o rival (duas fileiras lado a lado, "quantos a mais?"); e descobrir quantos faltam para a taça (lugares vazios). Para responder, a criança toca num botão e o boneco chuta no número: se estiver certo é gol, se estiver errado o goleiro pega e o placar conta bola por bola. O placar fica fixo na tela, grande, logo abaixo do enunciado, e as bolas estão sempre à vista para contar. No nível 1 só juntar e tirar, até 10; no nível 2 entram comparar e quanto falta; no nível 3 vai até 20.
 - **Pulos na Reta**: somar é pular para a frente na reta numérica, tirar é pular para trás. Cada toque no botão de pular é um pulo (o direcional também pula, e desfaz um pulo a mais) e "Cheguei!" confere onde parou. No nível 3 a criança anda direto até o número da resposta.
-- No **Estoura-Balão das contas**, os níveis 1 e 2 têm uma conta só e 5 balões com resultados; o nível 3 pede todos os balões cuja conta dá um número.
 - **Missão 🎯**: o jogo escolhe 3 rodadas (uma de contas, uma na área mais fraca, uma livre). Cada uma precisa de pelo menos 1 estrela. A missão completa dá 5 moedas e a troca da Loja, e outra missão começa. Com a missão ligada, é só ela que libera a troca.
 - **Descanso do ouro 💤**: a estação em que a criança ganha ouro numa rodada fica em espera até ela ganhar uma medalha em cada uma das outras. Os jogos da missão continuam liberados. Missão e descanso podem ser desligados na Área dos pais, que também tem um botão para liberar o que está em descanso.
 - No **Kart das Contas**, para a frente acelera, para trás freia para pensar, e acertar portões seguidos liga o turbo.
@@ -87,6 +86,6 @@ npx playwright install chromium
 npm test
 ```
 
-Os testes (`tests/smoke.test.js`) abrem o jogo de verdade num navegador sem tela e conferem: os 16 modos nos 3 níveis, milhares de perguntas geradas (todas com resposta válida), pontuação, layout em celular, uso de memória, jogadores, cópia de segurança e funcionamento offline. Eles rodam sozinhos no GitHub a cada envio (`.github/workflows/test.yml`).
+Os testes (`tests/smoke.test.js`) abrem o jogo de verdade num navegador sem tela e conferem: os 19 jogos nos 3 níveis, que nenhum jogo se repete entre portais, milhares de perguntas geradas (todas com resposta válida), pontuação, layout em celular, uso de memória, jogadores, cópia de segurança e funcionamento offline. Eles rodam sozinhos no GitHub a cada envio (`.github/workflows/test.yml`).
 
 Ao mudar um arquivo listado em `CORE` no `sw.js` (por exemplo, `vendor/three.min.js`), aumente o número em `CACHE` para os aparelhos buscarem a versão nova.

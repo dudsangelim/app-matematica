@@ -323,7 +323,7 @@ const CELES=[{k:'siu',n:'Siuuu!',who:'Cristiano Ronaldo',e:'🚀',d:3.2,f:'wow'}
 const celeOf=k=>CELES.find(c=>c.k===k)||null;
 const DEF={name:'',coins:0,stars:0,sound:true,music:true,voice:true,caps:false,breakMin:0,tut:false,look:{skin:'s2',hair:'castanho',shirt:'azul',pants:'jeans',hat:'nenhum',pet:'nenhum'},lite:false,misMin:false,edit:true,musStyle:'rock',celes:-1,cele:'',misOn:true,restOn:true,mis:{n:0,list:[]},rest:{},errs:[],days:{},owned:[],st:{},trophies:{},champ:false,sk:{},wk:{}};
 const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
-function normalize(raw){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),isObj(raw)?raw:{}),oldTiers=isObj(raw)&&!(raw.v>=2);s.v=2;s.look=Object.assign({},DEF.look,isObj(s.look)?s.look:{});
+function normalize(raw){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),isObj(raw)?raw:{}),oldTiers=isObj(raw)&&!(raw.v>=2),oldModes=isObj(raw)&&!(raw.v>=3);s.v=3;s.look=Object.assign({},DEF.look,isObj(s.look)?s.look:{});
   ['st','trophies','sk','wk'].forEach(k=>{if(!isObj(s[k]))s[k]={}});if(!Array.isArray(s.owned))s.owned=[];s.name=String(s.name||'').slice(0,14);s.coins=Math.max(0,Math.round(+s.coins)||0);s.stars=Math.max(0,Math.round(+s.stars)||0);s.breakMin=[0,15,20,30,45].includes(+s.breakMin)?+s.breakMin:0;
   const num=(o,ks)=>ks.forEach(k=>o[k]=Math.max(0,+o[k]||0));
   Object.keys(s.st).forEach(k=>{const t=s.st[k];if(!isObj(t))return delete s.st[k];num(t,['rounds','first','total','stars']);t.level=Math.min(3,Math.max(1,Math.round(+t.level)||1))});
@@ -336,6 +336,8 @@ function normalize(raw){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),is
   /* mission, rest, the last mistakes and the day log (which stations exist is checked when the mission is read: they are not known yet here) */
   s.misOn=s.misOn!==false;s.restOn=s.restOn!==false;if(!isObj(s.mis))s.mis={};s.mis.n=Math.max(0,Math.round(+s.mis.n)||0);
   s.mis.list=(Array.isArray(s.mis.list)?s.mis.list:[]).filter(isObj).slice(0,3).map(i=>({id:String(i.id||''),mi:Number.isInteger(i.mi)?i.mi:-1,done:!!i.done}));
+  /* before the portals were sorted out, the sums portal listed obby, balloons, kart, bus, number line, goal: a mission of the balloons becomes one of the obby */
+  if(oldModes)s.mis.list.forEach(i=>{if(i.id==='contas'&&i.mi>=0){const m=[0,0,1,2,3,4][i.mi];i.mi=m===undefined?-1:m}});
   if(!isObj(s.rest))s.rest={};Object.keys(s.rest).forEach(k=>{const r=s.rest[k];if(!isObj(r)||!Array.isArray(r.need))delete s.rest[k];else r.need=r.need.filter(x=>typeof x==='string')});
   s.errs=(Array.isArray(s.errs)?s.errs:[]).filter(isObj).slice(-40).map(e=>({s:String(e.s||''),q:String(e.q||'').slice(0,40),r:+e.r||0,g:+e.g||0,d:+e.d||0}));
   if(!isObj(s.days))s.days={};Object.keys(s.days).forEach(k=>{const d=s.days[k];if(!/^\d{4}-\d\d-\d\d$/.test(k)||!isObj(d))return delete s.days[k];['t','q','f','r','m'].forEach(x=>d[x]=Math.max(0,+d[x]||0));if(!isObj(d.st))d.st={}});return s}
@@ -356,7 +358,7 @@ const SKN={'vocab.cima':'Em cima e embaixo','vocab.dentro':'Dentro e fora','voca
   'medidas.comp':'Comprimento','medidas.altura':'Altura','medidas.peso':'Peso','medidas.capac':'Cheio e vazio','medidas.tempo':'Manhã e noite','medidas.semana':'Dias da semana','medidas.clipes':'Medir com clipes','medidas.esc1':'Escada: contar degraus','medidas.esc2':'Escada: a mais e a menos','medidas.esc3':'Escada: entre duas alturas','medidas.esc4':'Escada: somar degraus',
   'contas.juntar':'Juntar: quantos ficam quando chegam mais (ônibus, gols)','contas.tirar':'Tirar: quantos ficam quando saem (ônibus, gols anulados)','contas.falta':'Descobrir a parte que falta (quantos subiram, quantos gols faltam)','contas.comparar':'Comparar: quantos gols a mais','contas.retamais':'Somar pulando para a frente na reta','contas.retamenos':'Subtrair pulando para trás na reta',
   'contas.soma':'Adição (conta escrita)','contas.sub':'Subtração (conta escrita)','contas.decompor':'Jeitos de formar um número',
-  'ordem.depois':'O número que vem depois','ordem.antes':'O número que vem antes','ordem.maior':'Achar um número maior','ordem.menor':'Achar um número menor','ordem.salto':'Contar pulando: 2, 5, 10','ordem.seq':'Sequência crescente','ordem.seqdec':'Sequência decrescente',
+  'ordem.depois':'O número que vem depois','ordem.entre':'O número que fica entre dois','ordem.antes':'O número que vem antes','ordem.maior':'Achar um número maior','ordem.menor':'Achar um número menor','ordem.salto':'Contar pulando: 2, 5, 10','ordem.seq':'Sequência crescente','ordem.seqdec':'Sequência decrescente',
   'formas.tfig':'Figuras planas pelo nome','formas.tsol':'Sólidos pelo nome','formas.lados4':'Figuras de 4 lados','formas.lados3':'Figuras de 3 lados','formas.rolam':'Formas que rolam','formas.semcanto':'Figuras sem cantos'};
 const skillName=id=>SKN[id]||'Reconhecer: '+id.split('.')[1];
 const dayNum=()=>{const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()};
@@ -768,6 +770,14 @@ const FRN=[['🍎','maçã','a'],['🍌','banana','a'],['🍇','uva','a'],['🍊
 /* the three paints; a paint question names one (or two) of them, and the colour is checked together with the answer */
 const PAINTS=[{k:'vermelho',c:'#E8413A',n:'VERMELHO'},{k:'azul',c:'#2E8BF0',n:'AZUL'},{k:'amarelo',c:'#FFC83D',n:'AMARELO'}];
 const pchip=c=>`<span class="pc" style="--k:${c.c}">${c.n}</span>`;
+/* A portal whose game keeps to its own actions turns the pick-one questions into them: in the village they are circled
+   (Circula e Pinta), in the farm the answer is carried to the basket (Leve ao Cesto). */
+function toCircle(q){if(q.verb!=='jump'||!q.opts.every(o=>o.pic&&!o.size&&!o.model))return q;
+  q.verb='circle';q.text=q.text.replace(/PULE EM CIMA d([oa]s?) /,'CIRCULE $1 ');q.opts.forEach(o=>{o.cr=o.cr||.9});return q}
+function toCarry(q){if(q.verb==='carry'||!q.opts||!q.opts.every(o=>o.pic))return q;const ans=q.ans;
+  q.text=q.text.replace(/PULE EM CIMA d([oa]s?) /,'LEVE para o cesto $1 ').replace(/CIRCULE ([oa]s?) /,'LEVE para o cesto $1 ');
+  return Object.assign(q,{verb:'carry',one:true,items:q.opts.map((o,i)=>({pic:o.pic,v:i,s:2})),check:v=>v.length===1&&v[0]===ans,solIdx:[ans],
+    count:v=>v.length>1?`Tem ${v.length} no cesto: leve só a resposta.`:'Essa não é a resposta.'})}
 function say(verb,a,rest){if(verb==='jump')return `PULE EM CIMA d${a} ${rest}`;if(verb==='circle')return `CIRCULE ${a} ${rest}`;return `PINTE ${a} ${rest}`}
 function optNums(ans,cands,min,max,count){count=count||4;const s=new Set([ans]);
   shuffle(cands||[]).forEach(v=>{if(s.size<count&&v>=min&&v<=max)s.add(v)});
@@ -820,8 +830,10 @@ function genVocab(L){
   const an=sample(ANIMAIS,4),i=rnd(0,1);
   return {verb:'jump',text:say('jump','o',`animal que está <b>ENTRE</b> o ${an[i][1]} e o ${an[i+2][1]}`),opts:an.map(a=>({pic:pEmo(a[0])})),ans:i+1,hint:'ENTRE é no meio dos dois.'};
 }
+/* the questions of Leve ao Cesto: counting is carrying to the basket ('leve'), making 10 too ('enche'), and every pick-one question is
+   answered by carrying the right one to the basket (toCarry, in the station) */
 function genN10(L){
-  const t=pickSkill('n10',L===1?['leve','cont','grupo','depois','pint','padrao','grafico']:L===2?['pint','compl','leve','cont','grupo','palavra','padrao','grafico','chance']:['compl','enche','palavra','cont','grupo','depois','padrao','grafico','chance']);
+  const t=pickSkill('n10',L===1?['leve','cont','grupo','depois','padrao','grafico']:L===2?['enche','leve','cont','grupo','palavra','padrao','grafico','chance']:['enche','leve','palavra','cont','grupo','depois','padrao','grafico','chance']);
   const [e,nm,g]=pick(COUNT);
   if(t==='padrao'){const its=sample(FRUTA,3),pat=L===1?[0,1]:L===2?pick([[0,0,1],[0,1,1]]):pick([[0,1,2],[0,0,1,1]]),len=L===3?7:6,seq=range(0,len).map(i=>pat[i%pat.length]),opts=shuffle([0,1,2]);
     return {verb:'jump',text:`Olhe a fileira da placa. ${say('jump','a','fruta que vem <b>DEPOIS</b>, continuando o padrão')}`,board:bPat(seq.slice(0,len).map(i=>its[i])),opts:opts.map(i=>({pic:pEmo(its[i])})),ans:opts.indexOf(seq[len]),
@@ -835,13 +847,6 @@ function genN10(L){
     const balls=k===0?Array(n).fill(c1[0]):k===2?Array(n).fill(c2[0]):shuffle([...Array(m).fill(c1[0]),...Array(n-m).fill(c2[0])]),opts=shuffle([0,1,2]),low=c1[1].toLowerCase();
     return {verb:'jump',text:`Vou tirar uma bola do saco sem olhar. Vai sair uma bola <b>${c1[1]}</b>? PULE EM CIMA da resposta`,board:bBag(balls),opts:opts.map(i=>({pic:pWord(K[i])})),ans:opts.indexOf(k),
       hint:`Olhe as bolas do saco. Todas são da cor ${low}? Só algumas? Nenhuma?`,explain:k===0?`Só tem bola ${low}. Então sai com certeza!`:k===2?`Não tem nenhuma bola ${low}. Então é impossível!`:`Tem bola ${low} e de outra cor. Então talvez saia.`}}
-  if(t==='pint'){const n=rnd(L===1?2:4,L===1?9:10);
-    if(L>=2&&Math.random()<.6){const [c1,c2]=sample(PAINTS,2),a=rnd(1,n-1),b=n-a;
-      return {verb:'paint',multi:true,layout:'tiles',cols:{[c1.k]:a,[c2.k]:b},text:`PINTE <b>${a}</b> de ${pchip(c1)} e <b>${b}</b> de ${pchip(c2)}`,opts:range(1,10).map(()=>({})),check:s=>s.length===n,sol:range(0,n-1),solCol:[...Array(a).fill(c1.k),...Array(b).fill(c2.k)],
-        count:s=>`Você pintou ${s.length}.`,hint:`São ${a} de ${c1.n} e ${b} de ${c2.n}. Conte cada cor.`,explain:`${a} + ${b} = ${n}`}}
-    return {verb:'paint',multi:true,layout:'tiles',text:`PINTE <b>${n}</b> quadrados do chão`,opts:range(1,10).map(()=>({})),check:s=>s.length===n,sol:range(0,n-1),count:s=>`Você pintou ${s.length}.`,hint:`Conte enquanto pinta. Precisa dar ${n}.`}}
-  if(t==='compl'){const k=rnd(2,8);
-    return {verb:'paint',multi:true,layout:'tiles',text:`Já tem ${k} pintados. PINTE os que faltam para dar <b>10</b>`,opts:range(0,9).map(i=>i<k?{locked:true}:{}),check:s=>s.length===10-k,sol:range(k,9),count:s=>`Agora tem ${k+s.length}.`,hint:'Conte os quadrados cinza e continue contando até 10.',explain:`${k} + ${10-k} = 10`}}
   if(t==='leve'){const one=L===1,n=one?rnd(2,5):rnd(4,10),total=Math.min(14,n+rnd(2,4));
     return {verb:'carry',one,text:`LEVE <b>${n}</b> ${nm} para o cesto 🧺${one?`, ${g==='a'?'uma':'um'} de cada vez`:''}`,items:range(1,total).map(()=>({e,v:1})),check:v=>v.length===n,solIdx:range(0,n-1),count:v=>`Tem ${v.length} no cesto.`,hint:`Conte um por um. Precisa ter ${n} no cesto. Para tirar, pise no ➖.`}}
   if(t==='enche'){const k=rnd(2,7),need=10-k;
@@ -849,7 +854,7 @@ function genN10(L){
   if(t==='cont'){const n=L===3?rnd(0,10):rnd(1,10),q=numJump(n,[n+1,n-1,n+2],0,10);
     return Object.assign(q,{text:say('jump','o',`número que mostra quant${g}s ${nm} tem na placa`),board:bEmo(e,n),hint:'Conte um por um, apontando com o dedo.',explain:n===0?'Não tem nenhum. Nenhum é ZERO!':''})}
   if(t==='grupo'){const cnt=sample(L===1?range(1,6):range(1,10),3),x=pick(cnt);
-    return {verb:'circle',text:say('circle','o',`prato que tem <b>${x}</b> ${nm}`),opts:cnt.map(n=>({model:mPlate(e,n),cr:1.4})),ans:cnt.indexOf(x),hint:'Conte cada prato.'}}
+    return {verb:'jump',text:say('jump','o',`prato que tem <b>${x}</b> ${nm}`),opts:cnt.map(n=>({pic:pEmoGrid(e,n)})),ans:cnt.indexOf(x),hint:'Conte cada prato.'}}
   if(t==='depois'){const x=rnd(1,9),before=L>=2&&Math.random()<.4,ans=before?x-1:x+1,q=numJump(ans,[x,ans+1,ans-1],0,10);
     return Object.assign(q,{text:say('jump','o',`número que vem <b>${before?'ANTES':'DEPOIS'}</b> do ${x}`),board:bBig(before?`? ➜ ${x}`:`${x} ➜ ?`),hint:before?'ANTES é um a menos.':'DEPOIS é um a mais.'})}
   const n=rnd(0,10);
@@ -879,9 +884,11 @@ function genMoney(L){
   const B=rnd(4,9),gs=sample(GOODS,4),prices=shuffle([rnd(1,B),rnd(1,B),rnd(B+1,B+6),rnd(B+1,B+6)]),sol=prices.map((p,i)=>p<=B?i:-1).filter(i=>i>=0);
   return {verb:'paint',multi:true,layout:'grid',text:`Você tem <b>R$ ${B}</b>. PINTE tudo o que dá para comprar (uma coisa de cada vez)`,opts:gs.map((g2,i)=>({pic:pGoods(g2[0],prices[i])})),check:s=>setEq(s,sol),sol,hint:`Só dá para comprar o que custa R$ ${B} ou menos.`};
 }
-function genN100(L){
+/* the tower has two games: Monte o Número (only 'monte', with bars of 10 and little cubes) and Quadro do 100 (the rest, every answer picked
+   from three; it also has the sums with tens of the old floor of lava) */
+function genN100(L,game){
   const M=[39,69,99][L-1];
-  const t=pickSkill('n100',L===1?['dez','viz','maior','fam','monte']:L===2?['dez','quadro','monte','fam','seq']:['quadro','monte','maior','seq','viz','fam']);
+  const t=game==='monte'?pickSkill('n100',['monte']):pickSkill('n100',L===1?['dez','viz','maior','fam']:L===2?['dez','quadro','fam','seq','viz']:['quadro','maior','seq','viz','fam','conta']);
   if(t==='dez'){const n=rnd(11,M),d=Math.floor(n/10),u=n%10,sw=u*10+d,q=numJump(n,[u&&sw<=100&&sw!==n?sw:n+10,n+10,n-10,n+1],10,100);
     return Object.assign(q,{text:say('jump','o',`número que mostra quantos cubinhos tem na placa`),board:bRods(d,u),hint:'Cada barra azul tem 10. Conte 10, 20, 30... e depois some os cubinhos vermelhos.',explain:`${d} dezenas e ${u} unidades = ${n}`})}
   if(t==='monte'){const n=rnd(L===1?12:21,M),d=Math.floor(n/10),u=n%10;
@@ -895,12 +902,13 @@ function genN100(L){
   if(t==='viz'){const x=rnd(10,M-1),m=pick(['depois','antes','entre']),ans=m==='depois'?x+1:m==='antes'?x-1:x;
     const q=numJump(ans,[m==='entre'?x+2:x,ans+1,ans-1,ans+10],0,100);
     return Object.assign(q,{text:say('jump','o',m==='entre'?`número que fica <b>ENTRE</b> ${x-1} e ${x+1}`:`número que vem <b>${m.toUpperCase()}</b> do ${x}`),board:bBig(m==='entre'?`${x-1}  ?  ${x+1}`:m==='antes'?`? ➜ ${x}`:`${x} ➜ ?`),hint:m==='antes'?'ANTES é um a menos.':m==='depois'?'DEPOIS é um a mais.':'O do meio é o que fica entre.'})}
-  if(t==='fam'){const d=rnd(1,Math.floor(M/10)),ins=sample(range(d*10,d*10+9),3),outs=sample(range(10,M).filter(v=>Math.floor(v/10)!==d),3);
-    const all=shuffle([...ins,...outs]),sol=all.map((v,i)=>Math.floor(v/10)===d?i:-1).filter(i=>i>=0);
-    return {verb:'paint',multi:true,layout:'grid',text:`PINTE os números de <b>${d*10} até ${d*10+9}</b>`,opts:all.map(v=>({pic:pNum(v)})),check:s=>setEq(s,sol),sol,hint:`Olhe o primeiro algarismo. Ele precisa ser ${d}.`}}
+  if(t==='fam'){const d=rnd(1,Math.floor(M/10)),x=rnd(d*10,d*10+9),outs=sample(range(10,M).filter(v=>Math.floor(v/10)!==d&&Math.abs(v-x)<25),2),arr=shuffle([x,...outs]);
+    return {verb:'jump',text:say('jump','o',`número que é da família do <b>${d*10}</b> (de ${d*10} até ${d*10+9})`),opts:arr.map(v=>({pic:pNum(v)})),ans:arr.indexOf(x),hint:`Olhe o primeiro algarismo. Ele precisa ser ${d}.`}}
+  if(t==='conta'){const a=rnd(2,7)*10,b=Math.random()<.5?rnd(1,2)*10:rnd(1,8),ans=a+b,q=numJump(ans,[ans+10,ans-10,ans+1,a+b*10<=99?a+b*10:ans-1],0,99);
+    return Object.assign(q,{text:say('jump','o',`resultado de <b>${a} + ${b}</b>`),board:bBig(`${a} + ${b}`),hint:'Some primeiro as dezenas, depois as unidades.',explain:`${a} + ${b} = ${ans}`})}
   if(t==='maior'){const a=rnd(1,Math.floor(M/10)),b=rnd(1,9),nums=new Set([a*10+b]);if(b*10+a<=M&&b!==a)nums.add(b*10+a);
     while(nums.size<3)nums.add(rnd(10,M));const arr=shuffle([...nums]),ask=pick(['MAIOR','MENOR']);
-    return {verb:'circle',text:say('circle','o',`número <b>${ask}</b>`),opts:arr.map(v=>({pic:pNum(v)})),ans:arr.indexOf(ask==='MAIOR'?Math.max(...arr):Math.min(...arr)),hint:'Compare primeiro as dezenas (o algarismo da frente).'}}
+    return {verb:'jump',text:say('jump','o',`número <b>${ask}</b>`),opts:arr.map(v=>({pic:pNum(v)})),ans:arr.indexOf(ask==='MAIOR'?Math.max(...arr):Math.min(...arr)),hint:'Compare primeiro as dezenas (o algarismo da frente).'}}
   const step=L===2?10:pick([10,5,2]),start=step*rnd(1,step===10?4:6),seq=range(0,4).map(i=>start+i*step),m=rnd(1,4),ans=seq[m],q=numJump(ans,[ans+1,ans-1,ans+step,ans-step],0,100);
   return Object.assign(q,{text:say('jump','o',`número que falta. Conte de <b>${step} em ${step}</b>`),board:bSeq(seq,m),hint:`Some ${step} ao número que vem antes.`});
 }
@@ -956,20 +964,6 @@ function genShapeQ(L,prev){const names=Object.keys(SHAPE_INFO).filter(n=>n!==pre
   else text=`Encoste na forma <b>${I.prop}</b>`;return {n,text,skill:lastSkill}}
 
 /* --- NEW: 🎯 shooter --- */
-function mkExpr(v,L){const sub=Math.random()<(L===1?.3:.45);
-  if(L<3){if(sub){const b=rnd(1,L===1?5:9),a=v+b;if(a>(L===1?10:20))return null;return `${a} − ${b}`}if(v<2)return null;const a=rnd(1,v-1);return `${a} + ${v-a}`}
-  if(sub){const b=pick([10,20,1,2,3]),a=v+b;if(a>99)return null;return `${a} − ${b}`}
-  const tens=Math.floor(v/10),u=v%10;if(Math.random()<.5&&tens>=2){const x=rnd(1,tens-1)*10;return `${x} + ${v-x}`}if(u>=1){const k=rnd(1,u);return `${v-k} + ${k}`}return `${v-10} + 10`}
-/* Levels 1 and 2: one sum, and balloons with numbers - a single thing to work out. Level 3 keeps the hunt for every sum that makes a number
-   (several sums to work out for one question), with fewer balloons than before. */
-function genShootArith(L){
-  if(L<3){const dk=S.sk['contas.decompor'];if(dk)dk.w=0;const q=genArith(L),ask=`${q.a} ${q.op} ${q.b}`,nums=optNums(q.ans,[q.ans+1,q.ans-1,q.ans+2,q.ans-2,q.op==='+'?Math.abs(q.a-q.b):q.a+q.b,q.ans+10],0,30,5);
-    return {T:q.ans,ask,text:`Quanto é <b>${ask}</b>? Estoure o balão com a resposta`,items:nums.map(v=>({label:String(v),ok:v===q.ans})),explain:`${ask} = ${q.ans}`}}
-  tag('contas','decompor');const T=pick([20,30,40,50,60,70,80])+(Math.random()<.5?0:rnd(1,8));
-  const ok=new Set();let g=0;while(ok.size<2&&g<200){g++;const e=mkExpr(T,L);if(e)ok.add(e)}
-  const bad=new Set();g=0;while(bad.size<4&&g<400){g++;const v=T+pick([-10,-2,-1,1,2,10]);if(v<1)continue;const e=mkExpr(v,L);if(e&&!ok.has(e))bad.add(e)}
-  const items=shuffle([...[...ok].map(l=>({label:l,ok:true})),...[...bad].map(l=>({label:l,ok:false}))]);
-  return {T,text:`Estoure TODOS os balões que dão <b>${T}</b>`,items,explain:`Todos esses dão ${T}!`}}
 const FIGS=['círculo','quadrado','triângulo','retângulo'],SOLS=['esfera','cubo','cilindro','cone','pirâmide','bloco'];
 const PLUR={'círculo':'CÍRCULOS','quadrado':'QUADRADOS','triângulo':'TRIÂNGULOS','retângulo':'RETÂNGULOS','esfera':'ESFERAS','cubo':'CUBOS','cilindro':'CILINDROS','cone':'CONES','pirâmide':'PIRÂMIDES','bloco':'BLOCOS'};
 function genShootShapes(L){const cols=['#E8413A','#2E8BF0','#FFC83D','#2DB34A','#8B4CF0','#FF8A1F'];
@@ -989,26 +983,21 @@ function genShootShapes(L){const cols=['#E8413A','#2E8BF0','#FFC83D','#2DB34A','
 function floorQ(text,pred,pool,needOk,explain){const oks=shuffle(pool.filter(pred)),bads=shuffle(pool.filter(v=>!pred(v))),k=Math.min(oks.length,needOk,9);
   const vals=shuffle([...oks.slice(0,k),...bads.slice(0,9-k)]);return {text,labels:vals.map(String),ok:vals.map(pred),explain}}
 const near9=(n,lo,hi)=>range(Math.max(lo,n-9),Math.min(hi,n+9));
-function genFloorOrder(L){const max=L===1?20:L===2?60:100,t=pickSkill('ordem',L===1?['depois','antes','depois']:L===2?['depois','antes','maior','menor']:['salto','maior','depois','antes']);
+function genFloorOrder(L){const max=L===1?20:L===2?60:100,t=pickSkill('ordem',L===1?['depois','antes','depois']:L===2?['depois','antes','maior','menor','entre']:['salto','maior','depois','antes','entre']);
+  if(t==='entre'){const x=rnd(2,max-1);return floorQ(`Pise no número que fica <b>ENTRE</b> ${x-1} e ${x+1}`,v=>v===x,near9(x,0,max),1,`${x-1}, ${x}, ${x+1}`)}
   if(t==='depois'||t==='antes'){const x=rnd(1,max-1),ans=t==='depois'?x+1:x-1;return floorQ(`Pise no número que vem <b>${t.toUpperCase()}</b> do ${x}`,v=>v===ans,near9(ans,0,max),1,`${t==='depois'?`${x}, ${ans}`:`${ans}, ${x}`}`)}
   if(t==='maior'||t==='menor'){const x=rnd(10,max-10);return floorQ(`Pise em um número <b>${t.toUpperCase()}</b> que ${x}`,t==='maior'?v=>v>x:v=>v<x,range(Math.max(0,x-20),Math.min(max,x+20)),3,`Os números ${t==='maior'?'maiores':'menores'} que ${x} ficaram.`)}
   const s=pick([2,5,10]),a=s*rnd(1,s===10?6:8),ans=a+2*s;return floorQ(`Conte de ${s} em ${s}: ${a}, ${a+s}, <b>?</b>`,v=>v===ans,near9(ans,0,100).concat([ans+s,a]).filter((v,i,ar)=>ar.indexOf(v)===i),1,`${a}, ${a+s}, ${ans}`)}
-function genFloorN100(L){const M=[39,69,99][L-1],t=({dez:'du',fam:'familia',viz:'entre'})[pickSkill('n100',L===1?['dez','fam','viz']:L===2?['dez','fam','maior','viz']:['dez','maior','conta','fam'])]||lastSkill.split('.')[1];
-  if(t==='du'){const n=rnd(11,M),d=Math.floor(n/10),u=n%10,pool=near9(n,10,M).concat(u&&u*10+d<=99?[u*10+d]:[]).filter((v,i,a)=>a.indexOf(v)===i);return floorQ(`Pise no número com <b>${d} dezena${d>1?'s':''} e ${u} unidade${u===1?'':'s'}</b>`,v=>v===n,pool,1,`${d} dezenas e ${u} unidades = ${n}`)}
-  if(t==='familia'){const d=rnd(1,Math.floor(M/10));return floorQ(`Pise em um número de <b>${d*10} até ${d*10+9}</b>`,v=>Math.floor(v/10)===d,range(1,M),3,`Começam com ${d}: são da família do ${d*10}.`)}
-  if(t==='entre'){const x=rnd(11,M-1);return floorQ(`Pise no número que fica <b>ENTRE</b> ${x-1} e ${x+1}`,v=>v===x,near9(x,0,M),1,`${x-1}, ${x}, ${x+1}`)}
-  if(t==='maior'){const x=rnd(20,M-10);return floorQ(`Pise em um número <b>MAIOR</b> que ${x}`,v=>v>x,range(x-20,Math.min(99,x+20)),3,`Ficaram os maiores que ${x}.`)}
-  const a=rnd(2,7)*10,b=Math.random()<.5?rnd(1,2)*10:rnd(1,8),ans=a+b;return floorQ(`Pise no resultado de <b>${a} + ${b}</b>`,v=>v===ans,near9(ans,0,99).concat([a+b+10,a+b-10]).filter((v,i,ar)=>ar.indexOf(v)===i&&v>=0),1,`${a} + ${b} = ${ans}`)}
 
 /* --- NEW: 🤝 help friends (share / deliver) --- */
 function genShareN10(L){const [e,nm,ar]=pick([['🍪','biscoitos','os'],['🍎','maçãs','as'],['🍓','morangos','os'],['⚽','bolas','as'],['🍬','balas','as']]);
   if(pickSkill('n10',['dividir','entregar'])==='dividir'){const f=L===1?2:L===2?pick([2,3]):pick([3,4]),p=L===1?rnd(1,4):L===2?rnd(1,4):rnd(2,3),tot=f*p;
     const items=range(1,tot).map(()=>({e,v:1})),sol=range(0,f-1).map(i=>range(i*p,i*p+p-1));
-    return {text:`Divida ${ar} <b>${tot} ${nm}</b> IGUALMENTE entre os ${f} amigos. Use tod${ar}!`,friends:range(1,f).map(()=>({bubble:pBubble('Divida','igualmente!')})),items,sol,
-      check:a=>a.every(x=>x.length===p),count:a=>`Cada um ficou com: ${a.map(x=>x.length).join(', ')}.`,hint:'Dê um para cada amigo, depois mais um para cada, até acabar.',explain:`${tot} dividido entre ${f} amigos dá ${p} para cada um.`}}
+    return {baskets:true,text:`Divida ${ar} <b>${tot} ${nm}</b> IGUALMENTE entre os ${f} cestos. Use tod${ar}!`,friends:range(1,f).map(()=>({sign:''})),items,sol,
+      check:a=>a.every(x=>x.length===p),count:a=>`Cada cesto ficou com: ${a.map(x=>x.length).join(', ')}.`,hint:'Ponha um em cada cesto, depois mais um em cada, até acabar.',explain:`${tot} dividido em ${f} cestos dá ${p} em cada um.`}}
   const f=L===1?2:3,wants=range(1,f).map(()=>rnd(1,5)),tot=sum(wants),items=range(1,tot+2).map(()=>({e,v:1}));let k=0;const sol=wants.map(w=>{const s=range(k,k+w-1);k+=w;return s});
-  return {text:`Cada amigo pediu ${nm}. Entregue o que cada um pediu!`,friends:wants.map(w=>{if(L>=2&&w>=2){const a=rnd(1,w-1);return {bubble:pBubble(`Quero ${a} + ${w-a}`,e)}}return {bubble:pBubble(`Quero ${w}`,e)}}),items,sol,
-    check:a=>a.every((x,i)=>x.length===wants[i]),count:a=>`Você entregou: ${a.map(x=>x.length).join(', ')}.`,hint:'Leia o balão de cada amigo e conte antes de entregar.',explain:`Eles queriam ${wants.join(', ')}.`}}
+  return {baskets:true,text:`Cada cesto tem uma placa. Ponha em cada cesto quant${ar} ${nm} a placa pede!`,friends:wants.map(w=>{if(L>=2&&w>=2){const a=rnd(1,w-1);return {sign:`${a} + ${w-a}`}}return {sign:String(w)}}),items,sol,
+    check:a=>a.every((x,i)=>x.length===wants[i]),count:a=>`Você pôs: ${a.map(x=>x.length).join(', ')}.`,hint:'Leia a placa de cada cesto e conte antes de colocar.',explain:`As placas pediam ${wants.join(', ')}.`}}
 function genShareMoney(L){tag('dinheiro','trocado');const f=L===1?2:3,dens=L===1?[1,2]:L===2?[1,2,5]:[1,2,5,10],hi=L===1?6:L===2?12:25,wants=range(1,f).map(()=>rnd(L===1?2:4,hi));
   const parts=wants.map(w=>compose(w,dens)),vals=[...parts.flat(),pick(dens),pick(dens)],items=vals.map(v=>({pic:pMoney(v),v,s:2.1}));let k=0;const sol=parts.map(p=>{const s=range(k,k+p.length-1);k+=p.length;return s});
   return {text:'Os clientes pediram dinheiro trocado. Entregue o valor certo para cada um!',friends:wants.map(w=>({bubble:pBubble('Quero',`R$ ${w}`)})),items,sol,
@@ -1025,27 +1014,27 @@ function genBuild(L){
 
 /* ================= STATIONS / WORLDS ================= */
 const STATIONS=[
-  {id:'contas',name:'Obby das Contas',sub:'Adição e subtração',color:'#E8413A',world:'Ilhas do Mar',sky:'#FFD9A8',ground:['#F2D99B','#E5C77F'],prop:'palm',npc:{name:'Rafa',skin:'#C98E5F',shirt:'#E8413A',pants:'#1F3F8A',hat:'bone'},
-    intro:'Eu sou o Rafa! Aqui no mar a gente faz contas de mais e de menos. Escolha o jogo:',modes:[{k:'obby',i:'⬆',n:'Obby das Contas',d:'Pule na plataforma com a resposta. Errou? Cai na água!'},{k:'shoot',gen:genShootArith,i:'🎯',n:'Estoura-Balão',d:'Mire e estoure os balões com a conta certa.'},{k:'kart',i:'🏎️',n:'Kart das Contas',o:5,d:'Acelere, freie para pensar e passe pelo portão com o resultado.'},{k:'bus',o:1,i:'🚌',n:'Ônibus dos Números',d:'Veja quem sobe e quem desce e descubra quantos ficaram.'},{k:'line',o:2,i:'🦘',n:'Pulos na Reta',d:'Somar é pular para a frente. Tirar é pular para trás.'},{k:'gol',o:.5,i:'⚽',n:'Gol de Placa',d:'Veja os gols no placar, faça a conta e chute no número certo.'}]},
+  {id:'contas',name:'Ilha das Contas',sub:'Adição e subtração',color:'#E8413A',world:'Ilhas do Mar',sky:'#FFD9A8',ground:['#F2D99B','#E5C77F'],prop:'palm',npc:{name:'Rafa',skin:'#C98E5F',shirt:'#E8413A',pants:'#1F3F8A',hat:'bone'},
+    intro:'Eu sou o Rafa! Aqui no mar a gente faz contas de mais e de menos. Escolha o jogo:',modes:[{k:'obby',i:'⬆',n:'Obby das Contas',d:'Pule na plataforma com a resposta. Errou? Cai na água!'},{k:'kart',i:'🏎️',n:'Kart das Contas',o:5,d:'Acelere, freie para pensar e passe pelo portão com o resultado.'},{k:'bus',o:1,i:'🚌',n:'Ônibus dos Números',d:'Veja quem sobe e quem desce e descubra quantos ficaram.'},{k:'line',o:2,i:'🦘',n:'Pulos na Reta',d:'Somar é pular para a frente. Tirar é pular para trás.'},{k:'gol',o:.5,i:'⚽',n:'Gol de Placa',d:'Veja os gols no placar, faça a conta e chute no número certo.'}]},
   {id:'ordem',name:'Corrida dos Números',sub:'A ordem dos números',color:'#FF8A1F',world:'Estádio',sky:'#9FDBFF',ground:['#4CB84A','#43A743'],prop:'stand',npc:{name:'Juca',skin:'#FFD9B3',shirt:'#FF8A1F',pants:'#20242E',hat:'nenhum'},
-    intro:'Oi, eu sou o Juca! Bem-vindo ao estádio dos números. Bora correr?',modes:[{k:'order',i:'🏃',n:'Corrida dos Cubos',d:'Pegue os cubos na ordem certa.'},{k:'floor',gen:genFloorOrder,i:'🌋',n:'Chão de Lava',d:'Fique no número certo antes do tempo acabar!'}]},
+    intro:'Oi, eu sou o Juca! Bem-vindo ao estádio dos números. Bora correr?',modes:[{k:'order',i:'🏃',n:'Corrida dos Cubos',d:'Pegue os cubos na ordem certa.'},{k:'floor',gen:genFloorOrder,i:'🌋',n:'Chão de Lava',d:'Fique no número certo antes do tempo acabar! Até 100.'}]},
   {id:'vocab',name:'Vila das Posições',sub:'Vocabulário fundamental',color:'#2DB34A',world:'Vila',sky:'#BFE8FF',ground:['#7ED36B','#6CC25B'],prop:'house',npc:{name:'Bia',skin:'#8D5A3B',shirt:'#2DB34A',pants:'#5B6475',hat:'nenhum'},
-    intro:'Oi, eu sou a Bia! Aqui a gente aprende EM CIMA, EMBAIXO, DENTRO, FORA, PERTO, LONGE e ENTRE. E brinca de O Mestre Mandou!',modes:[{k:'act',gen:genVocab,i:'⭕',n:'Desafios da Vila',d:'Circule, pule e pinte as posições certas.'},{k:'simon',i:'🗣️',n:'O Mestre Mandou',d:'Ordens de até 3 passos, com pega-pega e esconde-esconde.'}]},
+    intro:'Oi, eu sou a Bia! Aqui a gente aprende EM CIMA, EMBAIXO, DENTRO, FORA, PERTO, LONGE e ENTRE. E brinca de O Mestre Mandou!',modes:[{k:'act',gen:L=>toCircle(genVocab(L)),i:'⭕',n:'Circula e Pinta',d:'Circule e pinte o que está em cima, dentro, perto, na frente...'},{k:'simon',i:'🗣️',n:'O Mestre Mandou',d:'Ordens de até 3 passos, com pega-pega e esconde-esconde.'}]},
   {id:'n10',name:'Fazenda do 10',sub:'Números até 10',color:'#E0A800',world:'Fazenda',sky:'#CDEFFF',ground:['#9CCB5B','#8DBB4E'],prop:'fence',npc:{name:'Theo',skin:'#E9B07F',shirt:'#FFC83D',pants:'#1F4FA0',hat:'nenhum'},
-    intro:'Eu sou o Theo! Na fazenda a gente conta tudo até 10.',modes:[{k:'act',gen:genN10,i:'🧺',n:'Desafios da Fazenda',d:'Pinte, leve ao cesto e pule nos números.'},{k:'share',gen:genShareN10,i:'🤝',n:'Ajude os Amigos',d:'Divida igualmente e entregue o que cada um pediu.'}]},
+    intro:'Eu sou o Theo! Na fazenda a gente conta tudo até 10.',modes:[{k:'act',gen:L=>toCarry(genN10(L)),i:'🧺',n:'Leve ao Cesto',d:'Conte e leve ao cesto: frutas, números, padrões e gráficos.'},{k:'share',gen:genShareN10,i:'🧺',n:'Cestos Iguais',d:'Divida igualmente e ponha em cada cesto o que ele pede.'}]},
   {id:'formas',name:'Parque das Formas',sub:'Figuras geométricas',color:'#8B4CF0',world:'Parque',sky:'#E5D9FF',ground:['#C7B4F5','#B9A4EE'],prop:'shape',npc:{name:'Lia',skin:'#FFD9B3',shirt:'#8B4CF0',pants:'#20242E',hat:'mago'},
     intro:'Oi! Eu sou a Lia. Aqui tudo tem forma: cubos, esferas, cones, triângulos...',modes:[{k:'shapes',i:'🔷',n:'Caça às Formas',d:'Corra e encoste na forma certa.'},{k:'shoot',gen:genShootShapes,i:'🎯',n:'Tiro às Formas',d:'Estoure só os balões com a forma pedida.'}]},
   {id:'dinheiro',name:'Mercadinho',sub:'Nosso dinheiro',color:'#16A34A',world:'Rua do Mercado',sky:'#FFE7C2',ground:['#D9D2C5','#CBC3B4'],prop:'stall',npc:{name:'Seu Zé',skin:'#C98E5F',shirt:'#FFFFFF',pants:'#7A4B2A',hat:'bone'},
-    intro:'Bem-vindo ao Mercadinho! Aqui a gente aprende a usar o real.',modes:[{k:'act',gen:genMoney,i:'💵',n:'Desafios do Mercado',d:'Pague certinho, leve ao caixa e ache o troco.'},{k:'share',gen:genShareMoney,i:'🧑‍🤝‍🧑',n:'Atenda os Clientes',d:'Entregue o dinheiro que cada cliente pediu.'}]},
+    intro:'Bem-vindo ao Mercadinho! Aqui a gente aprende a usar o real.',modes:[{k:'act',gen:genMoney,i:'💵',n:'Caixa do Mercado',d:'Pague certinho, leve ao caixa e ache o troco.'},{k:'share',gen:genShareMoney,i:'🧑‍🤝‍🧑',n:'Atenda os Clientes',d:'Entregue o dinheiro que cada cliente pediu.'}]},
   {id:'n100',name:'Torre do 100',sub:'Números até 39 e até 100',color:'#2E8BF0',world:'Cidade Alta',sky:'#A9C8FF',ground:['#9FB8E8','#8EA9DD'],prop:'tower',npc:{name:'Duda',skin:'#E9B07F',shirt:'#2E8BF0',pants:'#5B6475',hat:'capacete'},
-    intro:'Eu sou a Duda! Aqui moram os números grandes, até 100.',modes:[{k:'act',gen:genN100,i:'🔟',n:'Desafios da Torre',d:'Monte números com barras de 10 e pule no quadro.'},{k:'floor',gen:genFloorN100,i:'🌋',n:'Chão de Lava 100',d:'Fique em cima do número certo para não cair!'}]},
+    intro:'Eu sou a Duda! Aqui moram os números grandes, até 100.',modes:[{k:'act',gen:L=>genN100(L,'monte'),i:'🧱',n:'Monte o Número',d:'Leve barras de 10 e cubinhos para a caixa.'},{k:'act',gen:L=>genN100(L,'quadro'),i:'🔟',n:'Quadro do 100',d:'Dezenas, vizinhos, de 10 em 10 e contas até 100.'}]},
   {id:'medidas',name:'Oficina das Medidas',sub:'Grandezas e medidas',color:'#A0522D',world:'Oficina',sky:'#F2E4CF',ground:['#C9A27A','#BB936B'],prop:'bench',npc:{name:'Nina',skin:'#8D5A3B',shirt:'#A0522D',pants:'#1F4FA0',hat:'nenhum'},
-    intro:'Oi, eu sou a Nina! Na oficina a gente mede tudo: comprido, alto, pesado, cheio.',modes:[{k:'act',gen:genMeasure,i:'📏',n:'Desafios da Oficina',d:'Lápis gigantes, prédios, copos e balança.'},{k:'build',gen:genBuild,i:'🏗️',n:'Construa a Escada',d:'Monte a escada do tamanho certo e suba no baú!'}]}
+    intro:'Oi, eu sou a Nina! Na oficina a gente mede tudo: comprido, alto, pesado, cheio.',modes:[{k:'act',gen:genMeasure,i:'📏',n:'Compare e Meça',d:'Lápis gigantes, prédios, copos, balança e calendário.'},{k:'build',gen:genBuild,i:'🏗️',n:'Construa a Escada',d:'Monte a escada do tamanho certo e suba no baú!'}]}
 ];
 const STM=Object.fromEntries(STATIONS.map(s=>[s.id,s]));
 STATIONS.forEach(s=>{s.npc.hair=({Rafa:'#1E1A1A',Juca:'#E8C15A',Bia:'#1E1A1A',Theo:'#5A3A22',Lia:'#C1502A','Seu Zé':'#B3BCC7',Duda:'#5A3A22',Nina:'#2A1C14'})[s.npc.name]});
 const withArt=name=>`${({'Bia':'a','Lia':'a','Duda':'a','Nina':'a','Ana':'a'})[name]||'o'} ${name}`;
-window.__ilha={genBus,genLine,genGol,genSimon,genVocab,genN10,genMoney,genN100,genMeasure,genArith,genShapeQ,genShootArith,genShootShapes,genFloorOrder,genFloorN100,genShareN10,genShareMoney,genBuild};
+window.__ilha={genBus,genLine,genGol,genSimon,genVocab,genN10,genMoney,genN100,genMeasure,genArith,genShapeQ,genShootShapes,genFloorOrder,genShareN10,genShareMoney,genBuild,toCircle,toCarry};
 if(typeof THREE==='undefined'){document.body.insertAdjacentHTML('beforeend','<div id="err">Não consegui carregar o mundo 3D. Verifique a internet e abra a página de novo.</div>');return}
 
 /* ================= THREE BASICS ================= */
@@ -1642,7 +1631,7 @@ const fadeEl=$('#fade');
 function travel(fn,label){if(fadeEl.classList.contains('on'))return;sfx.portal();endAnim(true);fadeEl.textContent=label||'';fadeEl.classList.add('on');paused=true;
   setTimeout(()=>{fn();camera.position.set(P.x+Math.sin(yaw)*10,P.y+5,P.z+Math.cos(yaw)*10);setTimeout(()=>{fadeEl.classList.remove('on');if($('#ov').hidden)paused=false},120)},380)}
 function enterWorld(st){flushFin();quit3D(true);travel(()=>{WORLD=st;checkpoint=null;P.set(st.spawn.x,0,st.spawn.z);vy=0;yaw=-Math.PI/2;rotY=Math.PI/2;setSky(st.sky);
-    $('#where').textContent=`${st.world} · ${st.name}`;portalCD=1.2;setSong(st.id);voPreload(st.npc.name);if(st.id==='vocab')voPreload('Mestre');toast(`Bem-vindo ${({contas:'ao',formas:'ao',dinheiro:'ao'})[st.id]||'à'} <b>${st.name}</b>! Fale com ${withArt(st.npc.name)} ❗`,4000,true)},`🌀 ${st.name}`)}
+    $('#where').textContent=`${st.world} · ${st.name}`;portalCD=1.2;setSong(st.id);voPreload(st.npc.name);if(st.id==='vocab')voPreload('Mestre');toast(`Bem-vindo ${({formas:'ao',dinheiro:'ao'})[st.id]||'à'} <b>${st.name}</b>! Fale com ${withArt(st.npc.name)} ❗`,4000,true)},`🌀 ${st.name}`)}
 function leaveWorld(){const st=WORLD;flushFin();quit3D(true);travel(()=>{WORLD=null;checkpoint=null;const p=st?st.portal:{x:0,z:12};const ux=-p.x/31,uz=-p.z/31;
     P.set(p.x+ux*4,0,p.z+uz*4);vy=0;yaw=Math.atan2(P.x-(P.x+ux),P.z-(P.z+uz));rotY=Math.atan2(ux,uz);setSky(HUB_SKY);$('#where').textContent='Cidade dos Números';portalCD=1.2;setSong('hub')},'🏙️ Cidade dos Números')}
 function updatePortals(dt){portalCD-=dt;PORTALS.forEach(p=>{p.disc.rotation.z+=dt*1.5});if(portalCD>0||paused)return;
@@ -1692,7 +1681,7 @@ function friendTalk(f){if(f.cool>0){openSheet(`<div class="quiz"><p><b>${f.name}
    the mission can always be played, resting or not. Both can be switched off in the parents area. */
 const MIS_COINS=5;
 const resting=st=>!!(S.restOn&&S.rest[st.id]);
-function newMission(){const lv=stat('contas').level,C=STM.contas,pool=lv<3?['bus','gol','line','obby','gol','kart']:['obby','bus','kart','gol','line','shoot'],mi=C.modes.findIndex(x=>x.k===pool[S.mis.n%pool.length]);
+function newMission(){const lv=stat('contas').level,C=STM.contas,pool=lv<3?['bus','gol','line','obby','gol','kart']:['obby','bus','kart','gol','line','gol'],mi=C.modes.findIndex(x=>x.k===pool[S.mis.n%pool.length]);
   /* the weakest station: one hardly played yet comes first, then the lowest share of answers right at the first try */
   const prev=(S.mis.list[1]||{}).id,cand=STATIONS.filter(s=>s.id!=='contas'&&s.id!==prev),open=cand.filter(s=>!resting(s)),from=open.length?open:cand;
   const score=s=>{const t=stat(s.id);return t.total<5?-1+t.rounds*.01:t.first/t.total},weak=from.slice().sort((a,b)=>score(a)-score(b))[0];
@@ -1754,7 +1743,7 @@ function finishChallenge(st,first,n,coins,lvl,mode,lost,silent){
   const misMsg=!mn?'':mn.done?`🎯 <b>Missão completa!</b> +${MIS_COINS} 🪙${freed?' e <b>1 troca</b> na Loja':had?' (a troca da Loja já estava guardada)':''}. Já tem missão nova.`:mn.hit>=0?`🎯 Valeu para a missão! ${mn.left>1?`Faltam <b>${mn.left}</b> rodadas`:'Falta <b>1</b> rodada'}.`:'🎯 A missão pede outros jogos agora. Toque em <b>Missão</b> para ver quais.';
   const restMsg=(rs.rest?'💤 <b>Ouro!</b> Este jogo vai descansar. Ele volta quando você ganhar uma medalha em cada um dos outros.':'')+(rs.back.length?`${rs.rest?'<br>':''}🎈 ${rs.back.map(x=>`<b>${x.name}</b>`).join(', ')} ${rs.back.length>1?'voltaram':'voltou'} a abrir!`:'');
   const again=!resting(st)||(S.misOn&&mission().some(i=>!i.done&&i.id===st.id&&(i.mi<0||i.mi===st.modes.indexOf(mode))));
-  const owed=Object.keys(S.sk).filter(k=>k.startsWith(st.id+'.')&&S.sk[k].w>0&&!(k==='contas.decompor'&&lvl<3)).sort((a,b)=>S.sk[b].d-S.sk[a].d).slice(0,2).map(skillName);
+  const owed=Object.keys(S.sk).filter(k=>k.startsWith(st.id+'.')&&S.sk[k].w>0).sort((a,b)=>S.sk[b].d-S.sk[a].d).slice(0,2).map(skillName);
   sfx.win();confetti(tr.gained||tr.champ?80:stars?40:12);
   /* the medal of this round, why it was earned, and what the next one takes */
   const M=[null,{k:'bronze',t:'🥉 Medalha de Bronze',why:'Você terminou a rodada.',next:'Para a prata 🥈: acerte pelo menos a metade de primeira.'},
@@ -2074,16 +2063,20 @@ function nextFloor(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadFloorQ(false)}
 function startShare(st,gen){CH={type:'share',st,gen,n:4,idx:0,first:0,coins:0};loadShareQ()}
 function loadShareQ(){clearArena();const st=CH.st,G=beginArena(st),q=CH.gen(stat(st.id).level);Object.assign(CH,{q,skill:lastSkill,tries:0,locked:false,held:[],pads:{}});
   const f=q.friends.length,sp=f===2?7:f===3?5.6:4.6;
-  CH.friends=q.friends.map((fr,i)=>{const B=(i-(f-1)/2)*sp,ch=makeChar(randomLook(i)),w=L2W(st,10.5,B);ch.g.position.set(w.x,0,w.z);ch.g.rotation.y=-Math.PI/2;scene.add(ch.g);CHX.objs.push(ch.g);addColl(10.5,B,.7);
+  /* people to help (each with a speech bubble), or, in the farm, baskets (each with a sign) */
+  CH.friends=q.friends.map((fr,i)=>{const B=(i-(f-1)/2)*sp,pw=L2W(st,8,B);
+    if(q.baskets){G.add(mesh(new THREE.CylinderGeometry(1.5,1.1,1.1,20,1,true),new THREE.MeshLambertMaterial({color:'#C98A4B',side:THREE.DoubleSide}),8,.55,B),mesh(new THREE.CylinderGeometry(1.1,1.1,.08,20),'#8A552D',8,.04,B));
+      if(fr.sign){const sg=sprite(texOf(g=>{g.fillStyle='#FFF7E0';rr(g,14,60,228,136,24);g.fill();g.lineWidth=8;g.strokeStyle=INK;g.stroke();bigText(g,fr.sign,128,130,200,64,INK)}),2.6,2.6);sg.position.set(pw.x,3.4,pw.z);scene.add(sg);CHX.sprites.push(sg)}return {x:pw.x,z:pw.z,items:[],basket:true}}
+    const ch=makeChar(randomLook(i)),w=L2W(st,10.5,B);ch.g.position.set(w.x,0,w.z);ch.g.rotation.y=-Math.PI/2;scene.add(ch.g);CHX.objs.push(ch.g);addColl(10.5,B,.7);
     G.add(mesh(new THREE.CylinderGeometry(1.25,1.25,.1,28),'#FFFFFF',8,.05,B,false));const ring=new THREE.Mesh(new THREE.RingGeometry(1.3,1.5,40),new THREE.MeshBasicMaterial({color:st.color}));ring.rotation.x=-Math.PI/2;ring.position.set(8,.08,B);G.add(ring);
-    const bub=sprite(texOf(fr.bubble),3,3);const bw=L2W(st,10.5,B);bub.position.set(bw.x,5,bw.z);scene.add(bub);CHX.sprites.push(bub);const pw=L2W(st,8,B);return {x:pw.x,z:pw.z,items:[],ch}});
+    const bub=sprite(texOf(fr.bubble),3,3);const bw=L2W(st,10.5,B);bub.position.set(bw.x,5,bw.z);scene.add(bub);CHX.sprites.push(bub);return {x:pw.x,z:pw.z,items:[],ch}});
   CH.area=[-.5,4.5,-9,9];CH.items=spawnPickups(q.items,CH.area);
   padSprite(G,'PRONTO ✓',-7.4,2.6,'#22B35E');padSprite(G,'DEVOLVER ↺',-7.4,-3.4,'#E8413A');CH.pads={pronto:L2W(st,-7.4,2.6),dev:L2W(st,-7.4,-3.4)};
   const w=L2W(st,-4.8,0),f2=L2W(st,8,0);teleport(w.x,w.z,f2.x,f2.z);
-  const tip='Encoste para pegar, leve até o círculo de cada amigo. Depois pise no PRONTO ✓.';
-  setMission(`<span class="vt">🤝 AJUDAR</span>${CH.idx+1}/${CH.n} · ${q.text}<small>${tip}</small>`);sayQ(q.text,CH.idx===0?tip:'')}
-function placeFriend(fr){fr.items.forEach((o,k)=>{const a=k*2.4,r=k===0?0:.75;o.sp.position.set(fr.x+Math.cos(a)*r,.9+Math.floor(k/7)*.55,fr.z+Math.sin(a)*r);o.sp.scale.set(1.1,1.1,1)})}
-function updateShare(dt){updatePickups(CH.items,CH.held,dt,12);CH.friends.forEach(fr=>{fr.ch.armR.rotation.x=CH.locked?-Math.abs(Math.sin(T*8))*2:0});if(CH.locked)return;
+  const tip=q.baskets?'Encoste para pegar e leve até cada cesto. Depois pise no PRONTO ✓.':'Encoste para pegar, leve até o círculo de cada amigo. Depois pise no PRONTO ✓.';
+  setMission(`<span class="vt">${q.baskets?'🧺 CESTOS':'🤝 AJUDAR'}</span>${CH.idx+1}/${CH.n} · ${q.text}<small>${tip}</small>`);sayQ(q.text,CH.idx===0?tip:'')}
+function placeFriend(fr){fr.items.forEach((o,k)=>{const a=k*2.4,r=k===0?0:.75;o.sp.position.set(fr.x+Math.cos(a)*r,(fr.basket?1.45:.9)+Math.floor(k/7)*.55,fr.z+Math.sin(a)*r);o.sp.scale.set(1.1,1.1,1)})}
+function updateShare(dt){updatePickups(CH.items,CH.held,dt,12);CH.friends.forEach(fr=>{if(fr.ch)fr.ch.armR.rotation.x=CH.locked?-Math.abs(Math.sin(T*8))*2:0});if(CH.locked)return;
   CH.friends.forEach(fr=>{if(CH.held.length&&isNear(fr,1.8)){CH.held.forEach(o=>{o.state='friend';fr.items.push(o)});CH.held=[];placeFriend(fr);sfx.coin()}});
   edge('dev',isNear(CH.pads.dev,1.4),()=>{CH.friends.forEach(fr=>{fr.items.forEach(o=>dropToGround(o,CH.area));fr.items=[]});sfx.tap();toast('Tudo voltou para o chão.',1500)});
   edge('pronto',isNear(CH.pads.pronto,1.4),()=>{if(CH.held.length){toast('Entregue o que está na sua cabeça primeiro!',1800);return}
@@ -2721,7 +2714,7 @@ const dayPlayed=d=>!!d&&(d.q>0||d.r>0||d.t>=60);
 const REP_ST=[['#C9CED6','Ainda não praticou'],['#C9CED6','Pouco praticado'],['#E53935','Precisa de ajuda'],['#FFC83D','Em progresso'],['#22B35E','Domina']];
 function skillState(k){if(!k||!k.n)return 0;if(k.n<5)return 1;const h=k.h||'',rate=h.length>=5?(h.split('1').length-1)/h.length:k.f/k.n;return rate>=.85&&k.n>=8?4:rate>=.6?3:2}
 /* the sums skills, from understanding (objects in sight) to working out (the written sum) */
-const REP_SUMS=[['contas.juntar','Entender'],['contas.tirar','Entender'],['contas.retamais','Entender'],['contas.retamenos','Entender'],['contas.comparar','Entender'],['contas.falta','Pensar ao contrário'],['contas.soma','Calcular'],['contas.sub','Calcular'],['contas.decompor','Calcular'],['n100.conta','Aplicar'],['dinheiro.troco','Aplicar']];
+const REP_SUMS=[['contas.juntar','Entender'],['contas.tirar','Entender'],['contas.retamais','Entender'],['contas.retamenos','Entender'],['contas.comparar','Entender'],['contas.falta','Pensar ao contrário'],['contas.soma','Calcular'],['contas.sub','Calcular'],['n100.conta','Aplicar'],['dinheiro.troco','Aplicar']];
 function reportData(){const days=n=>{const out=[];for(let i=0;i<n;i++){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-i);out.push(dKey(d))}return out};
   flushTime();const agg=ks=>ks.reduce((a,k)=>{const d=S.days[k];if(dayPlayed(d)){a.days++;a.t+=d.t;a.q+=d.q;a.f+=d.f;a.r+=d.r;a.m+=d.m}return a},{days:0,t:0,q:0,f:0,r:0,m:0}),d14=days(14);
   const R={name:S.name||'Jogador',week:agg(d14.slice(0,7)),prev:agg(d14.slice(7)),last7:d14.slice(0,7).reverse().map(k=>[k,S.days[k]||null])};
@@ -2735,7 +2728,7 @@ function reportData(){const days=n=>{const out=[];for(let i=0;i<n;i++){const d=n
   /* what to do next, the most useful first */
   const tips=[],sm=id=>R.sums.find(x=>x.id===id).s,und=['contas.juntar','contas.tirar','contas.comparar','contas.retamais','contas.retamenos'],total=sum(R.areas.map(a=>a.t.total));
   if(total<10)tips.push('Ainda há poucas respostas para tirar conclusões. Depois de alguns dias de jogo este relatório fica mais preciso.');
-  if(und.every(id=>sm(id)<2))tips.push('Comece pelo <b>Gol de Placa</b>, pelo <b>Ônibus dos Números</b> e pelos <b>Pulos na Reta</b> (mundo Obby das Contas). Eles mostram o que é somar e tirar antes da conta escrita.');
+  if(und.every(id=>sm(id)<2))tips.push('Comece pelo <b>Gol de Placa</b>, pelo <b>Ônibus dos Números</b> e pelos <b>Pulos na Reta</b> (mundo Ilha das Contas). Eles mostram o que é somar e tirar antes da conta escrita.');
   else if(und.some(id=>sm(id)===2))tips.push(`No Gol de Placa, no Ônibus ou na Reta ainda há dificuldade em: <b>${und.filter(id=>sm(id)===2).map(skillName).join('</b>, <b>')}</b>. Jogue junto e peça para contar em voz alta as bolas do placar, quem está no ônibus, ou cada pulo. Em casa, repita com objetos (tampinhas, feijões).`);
   if(und.some(id=>sm(id)>=3)&&(sm('contas.soma')===2||sm('contas.sub')===2))tips.push('Com objetos e pulos vai bem, mas a <b>conta escrita</b> ainda trava. Antes de responder, peça para dizer: "vai ficar mais ou vai ficar menos?" e para contar a partir do primeiro número.');
   if(R.pat.n>=4&&R.pat.by1/R.pat.n>=.4)tips.push('Muitos erros são <b>por 1</b>. É comum quando a criança conta o número de partida: na reta, conte os <b>pulos</b>, não as casas.');
