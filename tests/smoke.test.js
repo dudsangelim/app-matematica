@@ -686,7 +686,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         window.__q = q; return [B.className, C.wide, C.tries, C.bz0, B.getBoundingClientRect().width > 300]; });
       await p.setViewportSize({ width: 780, height: 390 }); await p.waitForTimeout(300);
       const b = await p.evaluate(() => { const D = __ilhaDebug, C = D.CH, B = document.querySelector('#board'), q = C.q; for (let i = 0; i < 5; i++) D.step(1 / 60); const r = B.getBoundingClientRect(), pk = document.querySelector('#picks').getBoundingClientRect(), bs = [...document.querySelectorAll('#picks .pk')];
-        const out = [B.className, C.wide, q === window.__q, C.tries, C.ph, C.bz0 < 0, r.bottom < pk.top && r.right <= innerWidth / 2 + 4, bs.filter(x => x.disabled).length, C.tg.filter(s => s.visible).length, C.bd.n1 === q.a || q.kind !== 'add'];
+        const out = [B.className, C.wide, q === window.__q, C.tries, C.ph, C.gz > 0 && C.bz0 === 0 && C.sx === 3.9 /* the goal moved to the right half, the ball still on the penalty mark */, r.bottom < pk.top && r.right <= innerWidth / 2 + 4, bs.filter(x => x.disabled).length, C.tg.filter(s => s.visible).length, C.bd.n1 === q.a || q.kind !== 'add'];
         bs[q.opts.indexOf(q.ans)].click(); for (let i = 0; i < 400 && C.ph === 'kick'; i++) D.step(1 / 60); out.push(C.ph, C.gols); return out; });
       eq([a, b], [['tall', false, 1, 0, true], ['wide', true, true, 1, 'ask', true, true, 1, 2, true, 'goal', 1]], 'screen turned in the middle of a question'); await p.context().close(); }
     eq(r, { start: ['gol', true, true, true, true, false, true], l1: [true, true, true, true, 'wide', true, true, 3], busy: 'kick', busy2: 'kick', miss: ['ask', 1, 1, 0, false, true, true, false, 1, true, true, true], counted: true,
@@ -926,15 +926,18 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       const say = who => { said.length = 0; D.speak('oi', null, true, who); return said[0]; }, names = Object.keys(D.VOICES), out = {};
       /* one voice on the device: everybody uses it, each with a pitch and a pace of their own */
       set(['Google português do Brasil']); const one = names.map(n => say(n)); out.one = [names.length, new Set(one.map(x => x[0])).size, new Set(one.map(x => x[1])).size, say(null)[0], one.some(x => x[0] === say(null)[0])];
-      out.none = say(undefined)[0]; const vila = D.STM.vocab; D.startMode(vila, vila.modes[1]); out.master = say(undefined)[0]; document.querySelector('#m-quit').click(); D.startMode(vila, vila.modes[0]); out.host = say(undefined)[0] === say(vila.npc.name)[0]; document.querySelector('#m-quit').click();
+      /* who speaks when nothing says otherwise: the master in his game, the narrator in the games of the hosts (not the host) */
+      out.none = say(undefined)[0]; const vila = D.STM.vocab; D.startMode(vila, vila.modes[1]); out.master = say(undefined)[0]; document.querySelector('#m-quit').click(); D.startMode(vila, vila.modes[0]); out.host = say(undefined)[0] === say(null)[0] && say(undefined)[0] !== say(vila.npc.name)[0]; document.querySelector('#m-quit').click();
       /* no chipmunks and no monsters: every pitch stays near a real voice */
       const v = D.VOICES; out.range = names.every(n => v[n].p >= .75 && v[n].p <= 1.4 && v[n].r >= .85 && v[n].r <= 1.05);
       /* several voices: men get a man's voice, women a woman's, nobody shares one while there are enough, and the pitch-deaf Google voice is left to the narrator */
       set(['Microsoft Maria - Portuguese (Brazil)', 'Google português do Brasil', 'Microsoft Daniel', 'Microsoft Francisca Online (Natural)', 'Microsoft Antonio Online (Natural)', 'Microsoft Thalita Online (Natural)', 'Microsoft Fabio Online (Natural)']);
       const cast = Object.fromEntries(names.map(n => [n, say(n)[1]])), men = names.filter(n => v[n].g === 'm'), women = names.filter(n => v[n].g === 'f');
       out.cast = [men.every(n => /Daniel|Antonio|Fabio/.test(cast[n])), women.every(n => /Maria|Francisca|Thalita/.test(cast[n])), new Set(men.slice(0, 3).map(n => cast[n])).size, new Set(women.slice(0, 3).map(n => cast[n])).size, names.some(n => /Google/.test(cast[n]))];
-      /* the narrator gets the most natural voice; the old robotic voices of Apple only when there is nothing else */
-      out.narrator = say(null)[1]; set(['Eddy (Português (Brasil))', 'Luciana', 'Luciana (Aprimorada)']); out.apple = say(null)[1];
+      /* the narrator gets the most natural woman's voice, also when a man's voice comes first (as on Edge); the old robotic voices of Apple only
+         when there is nothing else; a man's voice only when the device has no woman's voice */
+      out.narrator = say(null)[1]; set(['Microsoft Antonio Online (Natural)', 'Microsoft Francisca Online (Natural)', 'Microsoft Daniel']); out.edge = say(null)[1];
+      set(['Eddy (Português (Brasil))', 'Luciana', 'Luciana (Aprimorada)']); out.apple = say(null)[1]; set(['Microsoft Daniel']); out.onlyMan = say(null)[1];
       /* voices with names the game does not know are still shared out, so the characters do not all sound the same */
       set(['Voz A', 'Voz B', 'Voz C']); out.unknown = new Set(names.map(n => say(n)[1])).size;
       /* with as many unknown voices as characters, every character gets one of their own (men and women draw from the same voices) */
@@ -942,7 +945,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       /* words in capitals are said as words, not letter by letter */
       out.caps = D.cleanSpeech('Fique EM CIMA do bloco, NÃO embaixo. R$ 5');
       return out; });
-    eq(r, { one: [13, 13, 1, '1/0.92', false], none: '1/0.92', master: '0.8/0.88', host: true, range: true, cast: [true, true, 3, 3, false], narrator: 'Microsoft Francisca Online (Natural)', apple: 'Luciana (Aprimorada)', unknown: 3, each: 13, mixed: ['Microsoft Daniel', 3], caps: 'Fique em cima do bloco, não embaixo. 5 reais' }, 'voices');
+    eq(r, { one: [13, 13, 1, '1/0.92', false], none: '1/0.92', master: '0.8/0.88', host: true, range: true, cast: [true, true, 3, 3, false], narrator: 'Microsoft Francisca Online (Natural)', edge: 'Microsoft Francisca Online (Natural)', apple: 'Luciana (Aprimorada)', onlyMan: 'Microsoft Daniel', unknown: 3, each: 13, mixed: ['Microsoft Daniel', 3], caps: 'Fique em cima do bloco, não embaixo. 5 reais' }, 'voices');
     await p.context().close();
   });
 
@@ -957,8 +960,8 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       /* each line lies inside its file */
       const sizes = {}; for (const w of Object.keys(VO)) sizes[w] = (await (await fetch('vozes/' + VO[w].f)).arrayBuffer()).byteLength;
       out.bounds = Object.entries(VO).every(([w, c]) => Object.values(c.l).every(([o, n, d]) => o >= 0 && n > 0 && o + n <= sizes[w] && d > .2 && d < 30));
-      /* a host: the cheer in their voice, then the narrator goes on with the sum; the welcome of each station is one recording */
-      out.host = D.voPlan('Rafa', D.cleanSpeech('Mandou bem! 3 + 4 = 7')).map(x => x.k || x);
+      /* nobody's voice changes in the middle of a sentence: a line is recorded from end to end, or said whole by the device voice */
+      out.host = [D.voPlan('Rafa', D.cleanSpeech('Mandou bem! 3 + 4 = 7')), D.voPlan('Ana', D.cleanSpeech('Me ajuda? A Ana tinha 3 balas.'))];
       out.intros = Object.values(D.STM).every(st => { const pl = D.voPlan(st.npc.name, D.cleanSpeech(D.introText(st))); return pl.length === 1 && pl[0].k; });
       /* a question nobody recorded is read by the narrator */
       out.question = D.voPlan('Theo', D.cleanSpeech('Pule no número SETE!'));
@@ -973,14 +976,18 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       const bufs = await Promise.all(lines.map(([k]) => D.voClip(who(k), k)));
       out.decoded = bufs.every((b, i) => Math.abs(b.duration - lines[i][1][2]) < .12);
       return out; });
-    eq(r, { chars: [true, 13], missing: [], bounds: true, host: ['mandou bem', '3 mais 4 = 7'], intros: true, question: ['Pule no número sete!'], master: [4500, []], decoded: true }, 'recorded voices');
-    /* speaking: the recording plays first, and the narrator (the device voice) reads the rest after it */
-    const flow = await p.evaluate(() => new Promise(done => { const D = __ilhaDebug, said = [];
+    eq(r, { chars: [true, 13], missing: [], bounds: true, host: [null, null], intros: true, question: null, master: [4500, []], decoded: true }, 'recorded voices');
+    /* a friend's riddle: the friend asks for help in their own recorded voice, then the narrator (the device voice, at the narrator's pitch)
+       reads the riddle, which is told about the friend; the two never overlap */
+    const flow = await p.evaluate(() => new Promise(done => { const D = __ilhaDebug, said = [], heard = [];
+      D.S().voice = true; D.closeSheet();
       window.SpeechSynthesisUtterance = function (text) { this.text = text; this.pitch = 1; this.rate = 1; this.voice = null; };
-      Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: u => { said.push([u.text, D.saying]); setTimeout(() => u.onend && u.onend(), 50); }, cancel() {}, getVoices: () => [] } });
-      const t0 = performance.now(); let playing = false; const iv = setInterval(() => { if (D.saying) playing = true; }, 20);
-      D.speak('Mandou bem! Tinha 3.', () => { clearInterval(iv); done({ playing, said, ms: Math.round(performance.now() - t0) > 400 }); }, true, 'Rafa'); }));
-    eq(flow, { playing: true, said: [['Tinha 3.', false]], ms: true }, 'a recorded cheer, then the narrator');
+      Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: u => { said.push([u.text, u.pitch, D.saying]); setTimeout(() => u.onend && u.onend(), 50); }, cancel() {}, getVoices: () => [] } });
+      const iv = setInterval(() => { const w = D.sayingWho; if (w && heard[heard.length - 1] !== w) heard.push(w); }, 20);
+      const f = D.FRIENDS[0]; f.cool = 0; D.friendTalk(f);
+      setTimeout(() => { clearInterval(iv); D.S().voice = false; done({ heard: heard.map(w => w.split(':')[0]), asked: D.FRIEND_ASK.some(a => heard[0] && heard[0].endsWith(D.voKey(a))),
+        said: said.map(([t, pitch, rec]) => [new RegExp('^' + (f.name === 'Ana' ? 'A' : 'O') + ' ' + f.name + ' t').test(t), pitch, rec]) }); }, 6000); }));
+    eq(flow, { heard: ['Ana'], asked: true, said: [[true, 1, false]] }, 'a friend asks in their own voice, then the narrator reads the riddle');
     /* the Voices screen: the narrator and 13 characters, and each character is heard in their recorded voice */
     await p.evaluate(() => { const D = __ilhaDebug; D.closeSheet(); document.querySelector('#b-menu').click(); document.querySelector('#mn-voz').click(); });
     const scr = await p.evaluate(() => new Promise(done => { const D = __ilhaDebug, items = document.querySelectorAll('.item'), info = document.querySelector('#v-info').textContent; let tts = 0;
@@ -989,6 +996,37 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       const iv = setInterval(() => { if (D.saying || performance.now() - t0 > 3000) { clearInterval(iv); done([items.length, /própria voz/.test(info), [...items].filter(b => /voz gravada/.test(b.textContent)).length, D.saying, tts]); } }, 20); }));
     eq(scr, [14, true, 13, true, 0], 'voices screen: narrator and 13 characters with recorded voices, and a sample played from the recording');
     await p.context().close();
+  });
+
+  await test('nothing of the HTML reaches the voice: every game, at every level, says its words without tags (some voices read "<b>" out loud)', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(async () => { const D = __ilhaDebug, said = [], sleep = ms => new Promise(ok => setTimeout(ok, ms));
+      D.S().voice = true; D.timeScale = .05;
+      window.SpeechSynthesisUtterance = function (text) { this.text = text; };
+      Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: u => { said.push(u.text); setTimeout(() => u.onend && u.onend(), 5); }, cancel() {}, getVoices: () => [] } });
+      for (const st of Object.values(D.STM)) for (let m = 0; m < st.modes.length; m++) for (let L = 1; L <= 3; L++) {
+        D.S().st[st.id] = Object.assign(D.S().st[st.id] || { rounds: 0, first: 0, total: 0, stars: 0 }, { level: L });
+        D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[m]); await sleep(60);
+        for (let i = 0; i < 40; i++) D.step(1 / 30); await sleep(30); }
+      if (D.CH) document.querySelector('#m-quit').click(); D.timeScale = 1; D.S().voice = false;
+      return { some: said.length > 40, tags: [...new Set(said.filter(t => /[<>]|&\w+;/.test(t)))].slice(0, 5), clean: D.cleanSpeech('Pegue o número <b>9</b>&nbsp;agora') }; });
+    eq(r, { some: true, tags: [], clean: 'Pegue o número 9 agora' }, 'speech without tags');
+    await p.context().close();
+  });
+
+  await test('Gol de Placa: the ball waits on the penalty mark, in front of the middle of the goal, on wide and tall screens, and comes back to it after a save', async () => {
+    for (const [w, h] of [[1280, 720], [390, 844]]) {
+      const p = await open(w, h);
+      await p.evaluate(() => { const D = __ilhaDebug, st = D.STM.contas; D.closeSheet(); D.startMode(st, st.modes.find(m => m.k === 'gol')); });
+      await p.waitForFunction(() => __ilhaDebug.CH && __ilhaDebug.CH.ph === 'ask', null, { timeout: 45000 });
+      const at = () => p.evaluate(() => { const C = __ilhaDebug.CH, b = C.ball.position; return [+(13.5 - b.x).toFixed(2), +b.z.toFixed(2)]; });
+      const start = await at();
+      await p.evaluate(() => { const C = __ilhaDebug.CH, i = C.q.opts.findIndex(v => v !== C.q.ans); document.querySelectorAll('#picks .pk')[i].click(); });
+      await p.waitForFunction(() => __ilhaDebug.CH && __ilhaDebug.CH.defs === 1 && __ilhaDebug.CH.ph === 'ask', null, { timeout: 30000 });
+      const back = await at();
+      eq([start, back], [[3.9, 0], [3.9, 0]], `ball on the penalty mark (${w}x${h})`);
+      await p.context().close();
+    }
   });
 
   await test('my own siuuu: a recording or an audio file replaces the game shout, stays on this device, and can be removed', async () => {
