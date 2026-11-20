@@ -1,8 +1,8 @@
 /* Ilha dos Números: offline cache.
    The page itself is fetched network-first so new versions arrive as soon as there is internet;
-   everything else (three.js, fonts, icons) lives on this site and is served from the cache first.
+   everything else (three.js, fonts, icons, the voices) lives on this site and is served from the cache first.
    Bump CACHE whenever a file in CORE changes. */
-const CACHE = 'ilha-numeros-v13';
+const CACHE = 'ilha-numeros-v14';
 const CORE = [
   './',
   './index.html',
@@ -16,7 +16,22 @@ const CORE = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
-  './icons/apple-touch-icon.png'
+  './icons/apple-touch-icon.png',
+  /* the recorded voices of the characters (tools/vozes makes them) */
+  './vozes/vozes.json',
+  './vozes/rafa.mp3',
+  './vozes/juca.mp3',
+  './vozes/bia.mp3',
+  './vozes/theo.mp3',
+  './vozes/lia.mp3',
+  './vozes/seu-ze.mp3',
+  './vozes/duda.mp3',
+  './vozes/nina.mp3',
+  './vozes/mestre.mp3',
+  './vozes/lojista.mp3',
+  './vozes/ana.mp3',
+  './vozes/pedro.mp3',
+  './vozes/leo.mp3'
 ];
 
 self.addEventListener('install', e => {

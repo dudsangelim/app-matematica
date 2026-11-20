@@ -2,3 +2,8 @@
 .DS_Store
 Thumbs.db
 node_modules/
+# the voice tool: downloaded models, recorded pieces kept between runs, and the list of lines read from the game
+tools/vozes/.modelos/
+tools/vozes/.cache/
+tools/vozes/falas.json
+__pycache__/

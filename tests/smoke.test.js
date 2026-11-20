@@ -915,9 +915,10 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await p.context().close();
   });
 
-  await test('voices: every character has a pitch and a pace of their own, the host of each game reads its questions, and the voices of the device are dealt out by character', async () => {
+  await test('voices of the device (when a recording cannot play): each character has a pitch and a pace of their own close to a real voice, and the voices are dealt out by character', async () => {
     const p = await open(1024, 768);
     const r = await p.evaluate(() => { const D = __ilhaDebug, said = []; let voices = [];
+      D.VO = null; /* as when the recordings did not load */
       /* a plain stand-in for the utterance, so that made-up voices can be set on it */
       window.SpeechSynthesisUtterance = function (text) { this.text = text; this.pitch = 1; this.rate = 1; this.voice = null; };
       Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: u => said.push([Math.round(u.pitch * 100) / 100 + '/' + Math.round(u.rate * 100) / 100, u.voice ? u.voice.name : '']), cancel() {}, getVoices: () => voices } });
@@ -926,22 +927,67 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       /* one voice on the device: everybody uses it, each with a pitch and a pace of their own */
       set(['Google português do Brasil']); const one = names.map(n => say(n)); out.one = [names.length, new Set(one.map(x => x[0])).size, new Set(one.map(x => x[1])).size, say(null)[0], one.some(x => x[0] === say(null)[0])];
       out.none = say(undefined)[0]; const vila = D.STM.vocab; D.startMode(vila, vila.modes[1]); out.master = say(undefined)[0]; document.querySelector('#m-quit').click(); D.startMode(vila, vila.modes[0]); out.host = say(undefined)[0] === say(vila.npc.name)[0]; document.querySelector('#m-quit').click();
-      const v = D.VOICES; out.range = v['Seu Zé'].p <= .5 && v.Mestre.p <= .6 && v.Ana.p >= 1.8 && names.filter(n => D.STM && Object.values(D.STM).some(s => s.npc.name === n)).every(n => v[n].p <= 1.6);
+      /* no chipmunks and no monsters: every pitch stays near a real voice */
+      const v = D.VOICES; out.range = names.every(n => v[n].p >= .75 && v[n].p <= 1.4 && v[n].r >= .85 && v[n].r <= 1.05);
       /* several voices: men get a man's voice, women a woman's, nobody shares one while there are enough, and the pitch-deaf Google voice is left to the narrator */
       set(['Microsoft Maria - Portuguese (Brazil)', 'Google português do Brasil', 'Microsoft Daniel', 'Microsoft Francisca Online (Natural)', 'Microsoft Antonio Online (Natural)', 'Microsoft Thalita Online (Natural)', 'Microsoft Fabio Online (Natural)']);
       const cast = Object.fromEntries(names.map(n => [n, say(n)[1]])), men = names.filter(n => v[n].g === 'm'), women = names.filter(n => v[n].g === 'f');
       out.cast = [men.every(n => /Daniel|Antonio|Fabio/.test(cast[n])), women.every(n => /Maria|Francisca|Thalita/.test(cast[n])), new Set(men.slice(0, 3).map(n => cast[n])).size, new Set(women.slice(0, 3).map(n => cast[n])).size, names.some(n => /Google/.test(cast[n]))];
+      /* the narrator gets the most natural voice; the old robotic voices of Apple only when there is nothing else */
+      out.narrator = say(null)[1]; set(['Eddy (Português (Brasil))', 'Luciana', 'Luciana (Aprimorada)']); out.apple = say(null)[1];
       /* voices with names the game does not know are still shared out, so the characters do not all sound the same */
       set(['Voz A', 'Voz B', 'Voz C']); out.unknown = new Set(names.map(n => say(n)[1])).size;
       /* with as many unknown voices as characters, every character gets one of their own (men and women draw from the same voices) */
       set(names.map((_, i) => 'Voz ' + i)); out.each = new Set(names.map(n => say(n)[1])).size; set(['Microsoft Daniel', 'Voz A', 'Voz B']); out.mixed = [say('Seu Zé')[1], new Set(names.slice(0, 3).map(n => say(n)[1])).size]; set(['Voz A', 'Voz B', 'Voz C']);
+      /* words in capitals are said as words, not letter by letter */
+      out.caps = D.cleanSpeech('Fique EM CIMA do bloco, NÃO embaixo. R$ 5');
       return out; });
-    eq(r, { one: [13, 13, 1, '1/0.9', false], none: '1/0.9', master: '0.6/0.8', host: true, range: true, cast: [true, true, 3, 3, false], unknown: 3, each: 13, mixed: ['Microsoft Daniel', 3] }, 'voices');
-    /* the Voices screen: says how many voices the device has and lets each character be heard */
+    eq(r, { one: [13, 13, 1, '1/0.92', false], none: '1/0.92', master: '0.8/0.88', host: true, range: true, cast: [true, true, 3, 3, false], narrator: 'Microsoft Francisca Online (Natural)', apple: 'Luciana (Aprimorada)', unknown: 3, each: 13, mixed: ['Microsoft Daniel', 3], caps: 'Fique em cima do bloco, não embaixo. 5 reais' }, 'voices');
+    await p.context().close();
+  });
+
+  await test('recorded voices: every line the game says has a recording, the orders of the master are always whole, and the recordings play', async () => {
+    const p = await open(1024, 768);
+    await p.waitForFunction(() => __ilhaDebug.VO, null, { timeout: 10000 });
+    const r = await p.evaluate(async () => { const D = __ilhaDebug, VO = D.VO, out = {};
+      /* every character has a file of their own, and every line of the script is in it */
+      const script = D.voiceScript();
+      out.chars = [Object.keys(D.VOICES).every(w => VO[w] && VO[w].f), Object.keys(script).length];
+      out.missing = Object.entries(script).flatMap(([w, ls]) => ls.filter(l => !VO[w] || !VO[w].l[l.k]).map(l => `${w}: ${l.t}`)).slice(0, 5);
+      /* each line lies inside its file */
+      const sizes = {}; for (const w of Object.keys(VO)) sizes[w] = (await (await fetch('vozes/' + VO[w].f)).arrayBuffer()).byteLength;
+      out.bounds = Object.entries(VO).every(([w, c]) => Object.values(c.l).every(([o, n, d]) => o >= 0 && n > 0 && o + n <= sizes[w] && d > .2 && d < 30));
+      /* a host: the cheer in their voice, then the narrator goes on with the sum; the welcome of each station is one recording */
+      out.host = D.voPlan('Rafa', D.cleanSpeech('Mandou bem! 3 + 4 = 7')).map(x => x.k || x);
+      out.intros = Object.values(D.STM).every(st => { const pl = D.voPlan(st.npc.name, D.cleanSpeech(D.introText(st))); return pl.length === 1 && pl[0].k; });
+      /* a question nobody recorded is read by the narrator */
+      out.question = D.voPlan('Theo', D.cleanSpeech('Pule no número SETE!'));
+      /* the master never changes voice in the middle of an order: every order, every mistake and every next step is recorded whole */
+      let orders = 0, broken = [];
+      for (let L = 1; L <= 3; L++) for (let i = 0; i < 1500; i++) { const q = D.genSimon(L); orders++;
+        const texts = [q.text, ...q.steps.map(s => `Não era isso! O mestre mandou: ${s.t}.`), ...q.steps.map(s => `O tempo acabou! O mestre mandou: ${s.t}.`), ...q.steps.map(s => 'Isso! Agora, ' + s.t)];
+        texts.forEach(t => { if (!D.voPlan('Mestre', D.cleanSpeech(t))) broken.push(t); }); }
+      out.master = [orders, [...new Set(broken)].slice(0, 3)];
+      /* the recordings unpack and last as long as the index says */
+      const lines = Object.entries(VO.Rafa.l).concat(Object.entries(VO.Mestre.l).slice(0, 20)), who = k => VO.Rafa.l[k] ? 'Rafa' : 'Mestre';
+      const bufs = await Promise.all(lines.map(([k]) => D.voClip(who(k), k)));
+      out.decoded = bufs.every((b, i) => Math.abs(b.duration - lines[i][1][2]) < .12);
+      return out; });
+    eq(r, { chars: [true, 13], missing: [], bounds: true, host: ['mandou bem', '3 mais 4 = 7'], intros: true, question: ['Pule no número sete!'], master: [4500, []], decoded: true }, 'recorded voices');
+    /* speaking: the recording plays first, and the narrator (the device voice) reads the rest after it */
+    const flow = await p.evaluate(() => new Promise(done => { const D = __ilhaDebug, said = [];
+      window.SpeechSynthesisUtterance = function (text) { this.text = text; this.pitch = 1; this.rate = 1; this.voice = null; };
+      Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: u => { said.push([u.text, D.saying]); setTimeout(() => u.onend && u.onend(), 50); }, cancel() {}, getVoices: () => [] } });
+      const t0 = performance.now(); let playing = false; const iv = setInterval(() => { if (D.saying) playing = true; }, 20);
+      D.speak('Mandou bem! Tinha 3.', () => { clearInterval(iv); done({ playing, said, ms: Math.round(performance.now() - t0) > 400 }); }, true, 'Rafa'); }));
+    eq(flow, { playing: true, said: [['Tinha 3.', false]], ms: true }, 'a recorded cheer, then the narrator');
+    /* the Voices screen: the narrator and 13 characters, and each character is heard in their recorded voice */
     await p.evaluate(() => { const D = __ilhaDebug; D.closeSheet(); document.querySelector('#b-menu').click(); document.querySelector('#mn-voz').click(); });
-    const scr = await p.evaluate(() => { const info = document.querySelector('#v-info').textContent, items = document.querySelectorAll('.item'); window.__said = null; const ss = window.speechSynthesis, old = ss.speak; ss.speak = u => { window.__said = Math.round(u.pitch * 100) / 100; };
-      document.querySelector('.item[data-k="Seu Zé"]').click(); ss.speak = old; return [items.length, /tem 3 vozes/.test(info), window.__said]; });
-    eq(scr, [14, true, .5], 'voices screen: narrator and 13 characters, the count of voices, and a sample in the character\'s voice');
+    const scr = await p.evaluate(() => new Promise(done => { const D = __ilhaDebug, items = document.querySelectorAll('.item'), info = document.querySelector('#v-info').textContent; let tts = 0;
+      window.speechSynthesis.speak = () => { tts++; };
+      document.querySelector('.item[data-k="Seu Zé"]').click(); const t0 = performance.now();
+      const iv = setInterval(() => { if (D.saying || performance.now() - t0 > 3000) { clearInterval(iv); done([items.length, /própria voz/.test(info), [...items].filter(b => /voz gravada/.test(b.textContent)).length, D.saying, tts]); } }, 20); }));
+    eq(scr, [14, true, 13, true, 0], 'voices screen: narrator and 13 characters with recorded voices, and a sample played from the recording');
     await p.context().close();
   });
 

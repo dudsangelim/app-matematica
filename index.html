@@ -384,7 +384,7 @@ function ensureAudio(){if(actx){if(actx.state==='suspended'&&!document.hidden)ac
 document.addEventListener('pointerdown',()=>{ensureAudio();unlockSpeech()},true);
 document.addEventListener('keydown',()=>{ensureAudio();unlockSpeech()},true);
 /* silence everything while the page is in the background */
-document.addEventListener('visibilitychange',()=>{try{if(document.hidden){if(actx)actx.suspend();if(window.speechSynthesis)speechSynthesis.cancel()}else if(actx)actx.resume()}catch(e){}});
+document.addEventListener('visibilitychange',()=>{try{if(document.hidden){if(actx)actx.suspend();stopSpeech()}else if(actx)actx.resume()}catch(e){}});
 function tone(f,d,type,vol,when,f2){if(!S.sound||!actx)return;try{
   const t=actx.currentTime+(when||0),o=actx.createOscillator(),g=actx.createGain();o.type=type||'square';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);
   g.gain.setValueAtTime(vol||.05,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(sfxBus);o.start(t);o.stop(t+d+.02)}catch(e){}}
@@ -474,19 +474,27 @@ const sfx={
   burn(){hiss(1.2,.12,0,2500);tone(620,.35,'sawtooth',.05,0,300);tone(520,.4,'sawtooth',.05,.35,250)},
   dizzy(){[1200,900,1300,1000].forEach((f,i)=>tone(f,.1,'sine',.04,i*.1))}
 };
-/* --- narration (text-to-speech) --- */
-/* Every character has a voice of their own. The game can only use the voices the device has, so it does two things:
-   - each character gets a pitch (p) and a pace (r) of their own, which is all that changes when the device has a single Portuguese voice;
-   - when there are several, they are dealt out so that men get a man's voice, women a woman's, and no two characters share one while there are enough.
-   The characters are listed from the deepest voice to the highest. The hosts read the questions, so their pitch stops short of the extremes. */
-const VOICES={'Seu Zé':{p:.5,r:.82,g:'m'},Mestre:{p:.6,r:.8,g:'m'},Lojista:{p:.8,r:.95,g:'m'},Theo:{p:.9,r:.9,g:'m'},Pedro:{p:1,r:1.02,g:'m'},Rafa:{p:1.15,r:.95,g:'m'},'Léo':{p:1.25,r:.9,g:'m'},Juca:{p:1.35,r:1,g:'m'},
-  Duda:{p:1.3,r:.92,g:'f'},Nina:{p:1.4,r:.88,g:'f'},Bia:{p:1.5,r:.94,g:'f'},Lia:{p:1.6,r:.98,g:'f'},Ana:{p:1.8,r:1,g:'f'}},NARR={p:1,r:.9,g:'f'};
+/* --- voices --- */
+/* Every character has a voice of their own, recorded beforehand with an open neural voice (tools/vozes makes them): vozes/<character>.mp3 holds all
+   the lines of one character, one after the other, and vozes/vozes.json says where each line starts. The file stays packed in memory and only the line
+   being said is unpacked, so the recordings take little memory.
+   What changes every time (the questions, the sums, the explanations) cannot be recorded, so the narrator reads it with the voice of the device.
+   A host says "Mandou bem!" in their own voice and the narrator goes on with the sum. The orders of the master are put together from recorded pieces.
+   When a recording cannot be played (the files did not load yet, an old browser), the character falls back to the voice of the device,
+   with a pitch (p) and a pace (r) of their own, kept close to a real voice so that nobody sounds like a robot or a chipmunk. */
+const VOICES={'Seu Zé':{p:.78,r:.86,g:'m'},Mestre:{p:.8,r:.88,g:'m'},Lojista:{p:.9,r:.96,g:'m'},Theo:{p:.95,r:.92,g:'m'},Rafa:{p:1,r:.98,g:'m'},Juca:{p:1.08,r:1.02,g:'m'},Pedro:{p:1.2,r:1,g:'m'},'Léo':{p:1.25,r:.95,g:'m'},
+  Duda:{p:1.02,r:.94,g:'f'},Nina:{p:1.08,r:.92,g:'f'},Bia:{p:1.14,r:.97,g:'f'},Lia:{p:1.2,r:.9,g:'f'},Ana:{p:1.35,r:1,g:'f'}},NARR={p:1,r:.92,g:'f'};
 /* names of the Portuguese voices of the common systems (Windows and Edge, Apple, Android), to tell a man's voice from a woman's */
 const FEM=/luciana|maria|francisca|fernanda|vit[oó]ria|camila|joana|let[ií]cia|thalita|brenda|elza|giovanna|leila|manuela|yara|catarina|in[eê]s|raquel|helo[ií]sa|\bflo\b|sandy|shelley|grandma|female|feminin|mulher/i;
 const MASC=/felipe|daniel|ant[oô]nio|ricardo|donato|f[aá]bio|humberto|j[uú]lio|nicolau|val[eé]rio|duarte|cristiano|eddy|\breed\b|rocko|grandpa|\bmale|masculin|homem/i;
+/* the old robotic voices of Apple (Eddy, Flo, Grandma...) are used last; the natural and enhanced ones first */
+const ROBOT=/\b(eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley|albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox)\b/i;
+const voiceRank=v=>(/natural|neural|premium|enhanced|aprimorad|melhorad|siri/i.test(v.name)?4:0)+(/online/i.test(v.name)?1:0)+(/^google/i.test(v.name)?2:0)+(ROBOT.test(v.name)?-6:0)+(/pt[-_]BR/i.test(v.lang)?1:0);
 let ptVoice=null,ptVoices=[],voiceMap={},speechOK=false;
-function pickVoice(){try{const vs=speechSynthesis.getVoices();ptVoices=vs.filter(v=>/pt[-_]BR/i.test(v.lang));if(!ptVoices.length)ptVoices=vs.filter(v=>/^pt/i.test(v.lang));ptVoice=ptVoices[0]||null;castVoices()}catch(e){}}
-/* deal the voices of the device out to the characters */
+function pickVoice(){try{const vs=speechSynthesis.getVoices();ptVoices=vs.filter(v=>/pt[-_]BR/i.test(v.lang));if(!ptVoices.length)ptVoices=vs.filter(v=>/^pt/i.test(v.lang));
+  /* the narrator gets the most natural voice of the device (the list keeps its order between voices of the same rank) */
+  ptVoices=ptVoices.map((v,i)=>[v,i]).sort((a,b)=>voiceRank(b[0])-voiceRank(a[0])||a[1]-b[1]).map(x=>x[0]);ptVoice=ptVoices[0]||null;castVoices()}catch(e){}}
+/* deal the voices of the device out to the characters, for when a recording cannot be played */
 function castVoices(){voiceMap={};if(ptVoices.length<2)return;
   /* the Google voices of desktop Chrome ignore the pitch: they are kept for the narrator when the device has any other */
   const rest=ptVoices.filter(v=>!/^google/i.test(v.name)),pool=rest.length?rest:ptVoices,men=pool.filter(v=>MASC.test(v.name)&&!FEM.test(v.name)),women=pool.filter(v=>FEM.test(v.name)),other=pool.filter(v=>!men.includes(v)&&!women.includes(v)),uses=new Map();
@@ -500,16 +508,60 @@ const speaker=()=>CH?(CH.type==='simon'?'Mestre':CH.st.npc.name):null;
 if(window.speechSynthesis){pickVoice();try{speechSynthesis.onvoiceschanged=pickVoice}catch(e){}}
 function unlockSpeech(){if(speechOK||!window.speechSynthesis)return;speechOK=true;try{const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u)}catch(e){}}
 const ORD={1:'primeiro',2:'segundo',3:'terceiro',4:'quarto',5:'quinto'};
+/* words in capitals are said as words (some voices spell them out letter by letter) */
 function cleanSpeech(t){return String(t).replace(/\p{Extended_Pictographic}|️|[⬆⭕✓➜⏱⟲⟳➖↺⬇·]/gu,' ').replace(/R\$\s?1\b/g,'1 real').replace(/R\$\s?(\d+)/g,'$1 reais')
-  .replace(/(\d)º/g,(m,d)=>ORD[d]||m).replace(/ − /g,' menos ').replace(/ \+ /g,' mais ').replace(/ × /g,' vezes ').replace(/\?(\s*$)/,'?').replace(/\s+/g,' ').trim()}
-let speakCb=null;
+  .replace(/(\d)º/g,(m,d)=>ORD[d]||m).replace(/ − /g,' menos ').replace(/ \+ /g,' mais ').replace(/ × /g,' vezes ').replace(/(^|[^\p{L}])(\p{Lu}{2,})(?![\p{L}])/gu,(m,a,w)=>a+w.toLowerCase()).replace(/\?(\s*$)/,'?').replace(/\s+/g,' ').trim()}
+/* --- the recorded lines --- */
+let VO=null,voBus=null,sayTok=0,sayNode=null,speakCb=null;const voFiles={},voBufs=new Map();
+const voKey=t=>String(t).toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+fetch('vozes/vozes.json').then(r=>r.ok?r.json():null).then(j=>{if(j&&j.chars)VO=j.chars}).catch(()=>{});
+/* the packed file of a character, fetched once */
+function voFile(who){const c=VO&&VO[who];if(!c)return Promise.reject(new Error('no voice'));
+  return voFiles[who]||(voFiles[who]=fetch('vozes/'+c.f).then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer()}).catch(e=>{delete voFiles[who];throw e}))}
+const voPreload=who=>{if(VO&&VO[who])voFile(who).catch(()=>{})};
+/* one line, unpacked: the last few stay ready */
+function voClip(who,k){const id=who+'|'+k;if(voBufs.has(id)){const b=voBufs.get(id);voBufs.delete(id);voBufs.set(id,b);return Promise.resolve(b)}
+  const at=VO[who].l[k];
+  return voFile(who).then(ab=>new Promise((ok,no)=>{const p=actx.decodeAudioData(ab.slice(at[0],at[0]+at[1]),ok,no);if(p&&p.catch)p.catch(no)}))
+    .then(b=>{voBufs.set(id,b);while(voBufs.size>40)voBufs.delete(voBufs.keys().next().value);return b})}
+/* a text in pieces at its pauses (after . ! ? : , ; and before "e por fim"), so that recorded pieces can be found in it */
+const clauses=t=>String(t).replace(/([.!?:,;])\s+/g,'$1\u0001').replace(/\s+(e por fim\b)/gi,'\u0001$1').split('\u0001').filter(s=>voKey(s));
+/* What a character says, as recordings ({k,d,t}) and text for the narrator. The longest recorded run of pieces is taken first.
+   Recordings are only looked for at the start of the text: once the narrator takes over, he reads to the end.
+   The master is all or nothing: an order he has not recorded is said whole with the device voice, so that his voice does not change in the middle of it. */
+function voPlan(who,text){const L=VO&&VO[who]&&VO[who].l;if(!L)return null;const cs=clauses(text),out=[];let i=0;
+  while(i<cs.length){let j=cs.length;for(;j>i;j--){const k=voKey(cs.slice(i,j).join(' '));if(L[k]){out.push({k,d:L[k][2],t:cs.slice(i,j).join(' ')});break}}
+    if(j>i){i=j;continue}if(who==='Mestre')return null;out.push(cs.slice(i).join(' '));break}
+  return out}
+/* stops what is being said; whoever waited for the end of it goes on, as when the device voice is interrupted */
+function stopSpeech(){sayTok++;if(sayNode){const n=sayNode;sayNode=null;try{n.onended=null;n.stop()}catch(e){}}try{if(window.speechSynthesis)speechSynthesis.cancel()}catch(e){}
+  if(speakCb){const c=speakCb;speakCb=null;c()}}
+/* one utterance with the device voice; who = null is the narrator */
+function ttsSay(text,who,tok,end){if(tok!==sayTok)return;if(!window.speechSynthesis||!voKey(text))return end();
+  try{const u=new SpeechSynthesisUtterance(text);u.lang='pt-BR';const vc=voiceFor(who);if(vc.voice)u.voice=vc.voice;u.pitch=vc.pitch;u.rate=vc.rate;
+    let fired=false;const e=()=>{if(fired)return;fired=true;if(tok===sayTok)end()};u.onend=e;u.onerror=e;speechSynthesis.speak(u);setTimeout(e,Math.max(4000,text.length*120))}catch(x){end()}}
+/* one recorded line; if it is not ready in time, fail() hands the rest to the device voice */
+function playClip(who,k,tok,end,fail){let wait=setTimeout(()=>{wait=0;if(tok===sayTok)fail()},1500);
+  voClip(who,k).then(b=>{if(!wait)return;clearTimeout(wait);wait=0;if(tok!==sayTok)return;
+    if(!voBus){voBus=actx.createGain();voBus.connect(actx.destination)}
+    const s=actx.createBufferSource();s.buffer=b;s.connect(voBus);s.onended=()=>{if(sayNode===s)sayNode=null;if(tok===sayTok)end()};sayNode=s;s.start()},
+    ()=>{if(wait){clearTimeout(wait);wait=0;if(tok===sayTok)fail()}})}
 function speak(text,cb,force,who){if(speakCb){const c=speakCb;speakCb=null;c()}
   const n=String(text).length,fallback=()=>{if(cb)setTimeout(cb,1500+n*45)};
-  if(!(S.voice||force)||!window.speechSynthesis)return fallback();
-  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(cleanSpeech(text));u.lang='pt-BR';const vc=voiceFor(who===undefined?speaker():who);if(vc.voice)u.voice=vc.voice;u.pitch=vc.pitch;u.rate=vc.rate;
-    let done=false;const fin=()=>{if(done)return;done=true;duck(false);if(speakCb===fin)speakCb=null;if(cb)setTimeout(cb,600)};speakCb=fin;
-    u.onend=fin;u.onerror=fin;duck(true);speechSynthesis.speak(u);setTimeout(fin,Math.max(4000,n*120))}catch(e){fallback()}}
-const plain=html=>{const d=document.createElement('div');d.innerHTML=html;return d.textContent};
+  if(!(S.voice||force))return fallback();
+  stopSpeech();if(who===undefined)who=speaker();const tok=sayTok,clean=cleanSpeech(text);
+  /* without recordings (or before the sound is on) the character speaks with the device voice, as before */
+  const plan=actx&&actx.state==='running'?voPlan(who,clean):null,parts=plan&&plan.length?plan:[{tts:clean}];
+  /* nothing recorded and no voice on the device: the text is only written, and whoever waits gets the time to read it */
+  if(!window.speechSynthesis&&!parts.some(p=>p.k))return fallback();
+  let done=false;const fin=()=>{if(done)return;done=true;duck(false);if(speakCb===fin)speakCb=null;if(cb)setTimeout(cb,600)};speakCb=fin;duck(true);
+  setTimeout(fin,Math.max(4000,parts.reduce((s,p)=>s+(p.k?p.d*1000+500:Math.max(2500,(p.tts||p).length*120)),0)+2000));
+  let i=0;const next=()=>{if(tok!==sayTok)return;if(i>=parts.length)return fin();const p=parts[i++];
+    if(p.k)playClip(who,p.k,tok,next,()=>{const rest=parts.slice(i-1).map(x=>x.k?x.t:x).join(' ');i=parts.length;ttsSay(rest,who,tok,next)});
+    else ttsSay(p.tts||p,p.tts?who:null,tok,next)};
+  next()}
+/* the words of a bit of HTML; a line break counts as a space, so that the sentences on both sides of it do not run together */
+const plain=html=>{const d=document.createElement('div');d.innerHTML=String(html).replace(/<br\s*\/?>/gi,' ');return d.textContent};
 
 /* ================= HUD helpers ================= */
 let toastT;
@@ -532,7 +584,7 @@ function confetti(n){const cs=['#E8413A','#2E8BF0','#FFC83D','#2DB34A','#8B4CF0'
 function shake(el){if(!el)return;el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake')}
 let paused=false,camMode='follow';
 function openSheet(html,cls){const ov=$('#ov');ov.className=cls||'';ov.hidden=false;$('#sheet').innerHTML=html;$('#sheet').scrollTop=0;paused=true;resetInput()}
-function closeSheet(){$('#ov').hidden=true;paused=false;camMode='follow';try{speechSynthesis.cancel()}catch(e){}}
+function closeSheet(){$('#ov').hidden=true;paused=false;camMode='follow';stopSpeech()}
 
 /* ================= CATALOG ================= */
 const CAT={
@@ -1582,7 +1634,7 @@ const fadeEl=$('#fade');
 function travel(fn,label){if(fadeEl.classList.contains('on'))return;sfx.portal();endAnim(true);fadeEl.textContent=label||'';fadeEl.classList.add('on');paused=true;
   setTimeout(()=>{fn();camera.position.set(P.x+Math.sin(yaw)*10,P.y+5,P.z+Math.cos(yaw)*10);setTimeout(()=>{fadeEl.classList.remove('on');if($('#ov').hidden)paused=false},120)},380)}
 function enterWorld(st){flushFin();quit3D(true);travel(()=>{WORLD=st;checkpoint=null;P.set(st.spawn.x,0,st.spawn.z);vy=0;yaw=-Math.PI/2;rotY=Math.PI/2;setSky(st.sky);
-    $('#where').textContent=`${st.world} · ${st.name}`;portalCD=1.2;setSong(st.id);toast(`Bem-vindo ${({contas:'ao',formas:'ao',dinheiro:'ao'})[st.id]||'à'} <b>${st.name}</b>! Fale com ${withArt(st.npc.name)} ❗`,4000,true)},`🌀 ${st.name}`)}
+    $('#where').textContent=`${st.world} · ${st.name}`;portalCD=1.2;setSong(st.id);voPreload(st.npc.name);toast(`Bem-vindo ${({contas:'ao',formas:'ao',dinheiro:'ao'})[st.id]||'à'} <b>${st.name}</b>! Fale com ${withArt(st.npc.name)} ❗`,4000,true)},`🌀 ${st.name}`)}
 function leaveWorld(){const st=WORLD;flushFin();quit3D(true);travel(()=>{WORLD=null;checkpoint=null;const p=st?st.portal:{x:0,z:12};const ux=-p.x/31,uz=-p.z/31;
     P.set(p.x+ux*4,0,p.z+uz*4);vy=0;yaw=Math.atan2(P.x-(P.x+ux),P.z-(P.z+uz));rotY=Math.atan2(ux,uz);setSky(HUB_SKY);$('#where').textContent='Cidade dos Números';portalCD=1.2;setSong('hub')},'🏙️ Cidade dos Números')}
 function updatePortals(dt){portalCD-=dt;PORTALS.forEach(p=>{p.disc.rotation.z+=dt*1.5});if(portalCD>0||paused)return;
@@ -1595,23 +1647,25 @@ function updateNear(){if(celeB.hidden!==!!CH)celeB.hidden=!!CH;let best=null,bd=
   if(best!==near){near=best;if(near){actB.hidden=false;actB.textContent=near.kind==='shop'?'🛍️ Abrir a loja':near.kind==='friend'?`💬 Falar com ${withArt(near.name)}`:`💬 Falar com ${withArt(near.st.npc.name)}`}else actB.hidden=true}}
 function act(){if(!near)return;sfx.tap();if(near.kind==='shop')openShop();else if(near.kind==='friend')friendTalk(near);else talk(near.st)}
 actB.onclick=act;
+/* what the host says when the player comes to talk: who they are and the games of the station (recorded whole) */
+const introText=st=>st.intro+' '+st.modes.slice().sort((x,y)=>(x.o||3)-(y.o||3)).map(m=>m.n).join(', ou ')+'.';
 function talk(st,viaMission){if(resting(st)&&!viaMission)return restSheet(st);const s=stat(st.id);
   openSheet(`<div class="dlg"><span class="dlg-name" style="--c:${st.color}">${st.npc.name}</span><p>${st.intro}</p>
     <div class="modes">${st.modes.map((m,i)=>[m,i]).sort((x,y)=>(x[0].o||3)-(y[0].o||3)).map(([m,i])=>`<button class="mode" data-i="${i}" style="--c:${st.color}"><span class="mi">${m.i}</span><span><b>${m.n}</b><small>${m.d}</small></span></button>`).join('')}</div>
     <div class="small">${st.sub} · Nível ${s.level} de 3 · ★ ${s.stars||0} · ${['Sem medalha ainda','Melhor medalha: bronze 🥉','Melhor medalha: prata 🥈','Melhor medalha: ouro 🥇','TAÇA DE OURO 🏆'][S.trophies[st.id]||0]}</div>
     <div class="btns"><button class="btn" id="d-no">Agora não</button><button class="btn icon" id="d-spk" aria-label="Ouvir">🗣️</button></div></div>`);
   $$('.mode').forEach(b=>b.onclick=()=>{sfx.tap();closeSheet();quit3D(true);startMode(st,st.modes[+b.dataset.i])});
-  const intro=st.intro+' '+st.modes.slice().sort((x,y)=>(x.o||3)-(y.o||3)).map(m=>m.n).join(', ou ')+'.';
+  const intro=introText(st);
   $('#d-no').onclick=()=>{sfx.tap();closeSheet()};$('#d-spk').onclick=()=>speak(intro,null,true,st.npc.name);speak(intro,null,false,st.npc.name)}
 function startMode(st,m){flushFin();endAnim(true);/* a celebration still playing would hold the player (and the first hops) at the start of the new game */const lvl=stat(st.id).level;
   if(m.k==='act')startAct(st,m.gen);else if(m.k==='obby')startObby(st);else if(m.k==='order')startOrder(st);else if(m.k==='shapes')startShapes(st);
   else if(m.k==='shoot')startShoot(st,m.gen);else if(m.k==='floor')startFloor(st,m.gen);else if(m.k==='share')startShare(st,m.gen);else if(m.k==='build')startBuild(st,m.gen);else if(m.k==='simon')startSimon(st);else if(m.k==='kart')startKart(st,m.gen);else if(m.k==='bus')startBus(st);else if(m.k==='line')startLine(st);else if(m.k==='gol')startGol(st);
   if(CH){CH.mode=m;CH.level=lvl}}
-function friendTalk(f){if(f.cool>0){openSheet(`<div class="quiz"><p><b>${f.name}:</b> Valeu pela ajuda! Volte daqui a pouquinho que eu tenho outra charada. 😄</p><button class="btn go" id="q-x">Tchau!</button></div>`);$('#q-x').onclick=()=>closeSheet();return}
+function friendTalk(f){if(f.cool>0){openSheet(`<div class="quiz"><p><b>${f.name}:</b> ${FRIEND_BYE} 😄</p><button class="btn go" id="q-x">Tchau!</button></div>`);$('#q-x').onclick=()=>closeSheet();speak(FRIEND_BYE,null,false,f.name);return}
   const L=Math.max(stat('contas').level,stat('n10').level),q=genArith(L),thing=pick([['figurinhas','a'],['balas','a'],['carrinhos','o'],['bolinhas de gude','a'],['adesivos','o']]);
   const other=pick(FRIENDS.map(x=>x.name).filter(n=>n!==f.name)),kind=q.op==='+'?'juntar':pick(['tirar','comparar','completar']);
-  const text=kind==='juntar'?`Eu tinha <b>${q.a}</b> ${thing[0]} e ganhei mais <b>${q.b}</b>. Com quant${thing[1]}s eu fiquei?`:kind==='tirar'?`Eu tinha <b>${q.a}</b> ${thing[0]} e dei <b>${q.b}</b> para minha irmã. Quant${thing[1]}s sobraram?`
-    :kind==='comparar'?`Eu tenho <b>${q.a}</b> ${thing[0]} e ${withArt(other)} tem <b>${q.b}</b>. Quant${thing[1]}s eu tenho <b>a mais</b>?`:`Eu tenho <b>${q.b}</b> ${thing[0]}. Quero ter <b>${q.a}</b>. Quant${thing[1]}s <b>faltam</b>?`;
+  const ask=pick(FRIEND_ASK),text=ask+' '+(kind==='juntar'?`Eu tinha <b>${q.a}</b> ${thing[0]} e ganhei mais <b>${q.b}</b>. Com quant${thing[1]}s eu fiquei?`:kind==='tirar'?`Eu tinha <b>${q.a}</b> ${thing[0]} e dei <b>${q.b}</b> para minha irmã. Quant${thing[1]}s sobraram?`
+    :kind==='comparar'?`Eu tenho <b>${q.a}</b> ${thing[0]} e ${withArt(other)} tem <b>${q.b}</b>. Quant${thing[1]}s eu tenho <b>a mais</b>?`:`Eu tenho <b>${q.b}</b> ${thing[0]}. Quero ter <b>${q.a}</b>. Quant${thing[1]}s <b>faltam</b>?`);
   const tip={juntar:'Dica: junte as duas quantidades.',tirar:'Dica: tire e conte o que sobrou.',comparar:'Dica: tire a quantidade menor da maior.',completar:`Dica: conte a partir do ${q.b} até chegar no ${q.a}.`}[kind];let tries=0;
   openSheet(`<div class="quiz"><span class="dlg-name" style="--c:#2E8BF0">${f.name}</span><p>${text}</p><div class="btns">${q.opts.map(v=>`<button class="btn big" data-v="${v}">${v}</button>`).join('')}</div><div class="fb" id="q-fb"></div><button class="btn icon" id="q-spk" aria-label="Ouvir">🗣️</button></div>`);
   $('#q-spk').onclick=()=>speak(plain(text),null,true,f.name);speak(plain(text),null,false,f.name);
@@ -1662,7 +1716,7 @@ function restSheet(st){const need=S.rest[st.id].need.filter(x=>STM[x]),k=mission
     <div class="btns">${S.misOn&&k>=0&&!CH?'<button class="btn gold" id="rs-mis">🎯 Jogar pela missão</button>':''}<button class="btn" id="d-no">Entendi</button></div></div>`);
   $('#d-no').onclick=()=>{sfx.tap();closeSheet()};$$('.travel button').forEach(b=>b.onclick=()=>{sfx.tap();closeSheet();enterWorld(STM[b.dataset.id])});
   if($('#rs-mis'))$('#rs-mis').onclick=()=>{sfx.tap();const i=mission()[k];goPlay(st,i.mi>=0?st.modes[i.mi]:null)};
-  speak('Você ganhou ouro aqui! Este jogo está descansando. Jogue os outros para ele voltar.',null,false,st.npc.name)}
+  speak(REST_LINE,null,false,st.npc.name)}
 
 /* ================= THE DAY LOG (for the report) ================= */
 const dKey=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -1697,18 +1751,31 @@ function finishChallenge(st,first,n,coins,lvl,mode,lost,silent){
     {k:'silver',t:'🥈 Medalha de Prata',why:'Você acertou a metade ou mais de primeira.',next:'Para o ouro 🥇: acerte todas de primeira.'},
     {k:'medal',t:'🥇 Medalha de Ouro',why:'Tudo certo de primeira!',next:`Faça isso no nível 3 e ganhe a TAÇA 🏆. Você jogou no nível ${lvl}.`},
     {k:'copa',t:`🏆 TAÇA DE OURO: ${st.name}`,why:'Tudo certo de primeira no nível 3, o mais difícil!',next:''}][tr.medal];
-  openSheet(`<div class="result"><h2>${stars===3?'Incrível!':stars===2?'Muito bom!':stars===1?'Você conseguiu!':'Vamos treinar mais!'}</h2><div class="bigstars">${[1,2,3].map(k=>`<span class="${k<=stars?'':'off'}">⭐</span>`).join('')}</div>
+  openSheet(`<div class="result"><h2>${RESULT_H2[stars]}</h2><div class="bigstars">${[1,2,3].map(k=>`<span class="${k<=stars?'':'off'}">⭐</span>`).join('')}</div>
     <p>${mode?mode.n:st.name}: acertou <b>${first} de ${n}</b> de primeira.</p><p>Ganhou <b>${coins} 🪙</b>${bonus?` (com o bônus de ${bonus})`:''} e <b>${stars} ⭐</b>.</p>${msg?`<div class="pillmsg">${msg}</div>`:''}${misMsg?`<div class="pillmsg">${misMsg}</div>`:''}${freed&&!(mn&&mn.done)?'<div class="pillmsg">✏️ Troca liberada na Loja: compre ou troque <b>uma</b> coisa!</div>':''}${restMsg?`<div class="pillmsg">${restMsg}</div>`:''}${newCele?`<div class="pillmsg">🎉 Comemoração nova: <b>${newCele.n}</b> (${newCele.who}). Toque no 🎉 para escolher e comemorar!</div>`:''}${owed.length?`<p class="small">Vai aparecer de novo para treinar: ${owed.join(' · ')}</p>`:''}
     ${tr.champ?`<div class="award"><canvas id="aw-ch" width="320" height="320"></canvas><b>🏆 TAÇA DOS CAMPEÕES!</b><span>Você ganhou a taça de ouro em TODAS as estações! +${CHAMP_COINS} 🪙</span></div>`:''}
     ${M?`<div class="award"><canvas id="aw-cv" width="320" height="320"></canvas><b>${M.t}${tr.medal===4?'!':''}</b><span>${M.why}</span>${tr.gained?`<span>É a sua melhor medalha aqui! +${MEDAL_COINS[tr.gained]} 🪙</span>`:''}${M.next?`<small>${M.next}</small>`:''}<small>A melhor medalha de cada estação fica na Sala de Troféus.</small></div>`
       :'<p class="small">Sem medalha desta vez. Acerte pelo menos uma pergunta de primeira para ganhar o bronze 🥉.</p>'}
     <div class="btns">${again?'<button class="btn go" id="r-again">▶ De novo</button>':''}${S.misOn?'<button class="btn" id="r-mis">🎯 Missão</button>':''}<button class="btn gold" id="r-go">🏃 Explorar</button></div></div>`);
-  if(M)drawCupArt($('#aw-cv'),M.k);if(tr.champ)drawCupArt($('#aw-ch'),'champions');if(tr.gained===4)speak(M.t);else if(tr.champ)speak('Taça dos Campeões!');
+  if(M)drawCupArt($('#aw-cv'),M.k);if(tr.champ)drawCupArt($('#aw-ch'),'champions');/* the host says how it went, in their own voice; a cup is then announced by the narrator */
+  const cup=tr.gained===4?M.t:tr.champ?'Taça dos Campeões!':'';speak(RESULT_H2[stars],cup?()=>{if($('.result'))speak(cup,null,false,null)}:null,false,st.npc.name);
   if($('#r-again'))$('#r-again').onclick=()=>{sfx.tap();closeSheet();startMode(st,mode||st.modes[0])};if($('#r-mis'))$('#r-mis').onclick=()=>{sfx.tap();openMission()};$('#r-go').onclick=()=>{sfx.tap();closeSheet()}}
 
 /* ================= CHALLENGE FRAMEWORK ================= */
 let CH=null;const mis=$('#mission');
 const CHEERS=['Isso aí!','Mandou bem!','Show de bola!','Acertou!','Muito bem!','Que fera!'];
+/* Each character cheers in words of their own, and says them with their own recorded voice (vozes/).
+   A line that changes here has to be recorded again (tools/vozes); until then it is said with the device voice. */
+const CHEERS_OF={Rafa:['Show de bola!','Mandou bem!','Irado!','É isso aí!','Acertou em cheio!'],Juca:['Que golaço!','Que rapidez!','Na mosca!','É isso aí!','Que fera!'],
+  Bia:['Isso mesmo!','Arrasou!','Muito bem!','Que legal!','Acertou!'],Theo:['Que beleza!','Certinho!','Muito bem!','Isso mesmo!','Mandou bem!'],
+  Lia:['Que mágico!','Que lindo!','Perfeito!','Brilhante!','Isso mesmo!'],'Seu Zé':['Muito bem, freguês!','Isso mesmo!','Que capricho!','Certinho!','Parabéns!'],
+  Duda:['Na mosca!','Mandou bem!','Excelente!','É isso aí!','Acertou!'],Nina:['Perfeito!','Na medida certa!','Muito bem!','Isso mesmo!','Que capricho!'],
+  Mestre:['Isso mesmo!','Perfeito!','Mandou bem!','Obedeceu direitinho!']};
+const cheersOf=who=>CHEERS_OF[who]||CHEERS,hostCheer=()=>pick(cheersOf(speaker()));
+/* the other lines the characters have recorded */
+const REST_LINE='Você ganhou ouro aqui! Este jogo está descansando. Jogue os outros para ele voltar.',RESULT_H2=['Vamos treinar mais!','Você conseguiu!','Muito bom!','Incrível!'],
+  FRIEND_ASK=['Me ajuda?','Você me ajuda?','Tenho uma charada!'],FRIEND_BYE='Valeu pela ajuda! Volte daqui a pouquinho que eu tenho outra charada.',
+  SHOP_HI=['Bem-vindo à loja!','Pode olhar à vontade!','Que bom te ver por aqui!'],sampleLine=who=>`Oi! Eu sou ${withArt(who)}.`;
 /* The mission panel can be folded to a small chip (button ▴, a tap on the text, or key M) so it does not cover the scene.
    While folded, each new question opens it for a few seconds and folds it again. */
 let misKey='',misPeek=null;
@@ -1718,7 +1785,8 @@ function setMission(html){mis.hidden=false;html=html.replace(/(<\/span>)(\d+\/\d
   const key=html.replace(/<small[\s\S]*?<\/small>/g,'');if(key===misKey)return;misKey=key;
   if(S.misMin){clearTimeout(misPeek);misFold(false);misPeek=setTimeout(()=>{if(S.misMin)misFold(true)},6000)}}
 $('#m-min').onclick=toggleMission;$('#m-text').onclick=toggleMission;if(S.misMin)misFold(true);
-$('#m-spk').onclick=()=>{const d=document.createElement('div');d.innerHTML=$('#m-text').innerHTML;d.querySelectorAll('.vt,.cnt').forEach(x=>x.remove());speak(d.textContent.replace(/^\s*·/,''),null,true)};
+/* hearing the instructions again: the master says his order again (recorded), the others are read without the timer and the hearts */
+$('#m-spk').onclick=()=>{if(CH&&CH.type==='simon'&&CH.q)return speak(plain(CH.q.text),null,true);const d=document.createElement('div');d.innerHTML=$('#m-text').innerHTML;d.querySelectorAll('.vt,.cnt,.live').forEach(x=>x.remove());speak(d.textContent.replace(/^\s*·/,''),null,true)};
 function sayQ(text,tip,cb){speak(plain(text)+(tip?'. '+plain(tip):''),cb)}
 $('#m-quit').onclick=()=>{sfx.tap();quit3D(false)};
 function quit3D(silent){if(!CH)return;
@@ -1777,7 +1845,7 @@ function updatePickups(items,held,dt,max){items.forEach(o=>{if(o.state==='ground
   if(CH.locked)return;for(const o of items){if(o.state==='ground'&&held.length<(max||12)&&Math.hypot(P.x-o.x,P.z-o.z)<1.15&&P.y<2.5){o.state='held';o.sp.scale.set(1,1,1);held.push(o);sfx.pop()}}}
 function dropToGround(o,a){const p=L2W(CH.st,a[0]+Math.random()*(a[1]-a[0]),a[2]+Math.random()*(a[3]-a[2]));o.x=p.x;o.z=p.z;o.state='ground';o.sp.visible=true;o.sp.scale.set(o.s,o.s,1);o.sp.position.set(o.x,1,o.z)}
 function okRound(gain,msg,ms,next){CH.locked=true;const first=CH.tries===0;record(CH.st.id,first,CH.skill);if(first)CH.first++;const g=gain==null?coinFor(first):gain;CH.coins+=g;addCoins(g);sfx.ok();confetti(first?18:8);playAnim('cheer');
-  const cheer=pick(CHEERS),t=ms||(msg?4200:2600);toast(`<b>${cheer}</b>${coinTxt(g)}${msg?'<br>'+msg:''}`,t);speak(cheer+(msg?' '+plain(msg):''));later(next,t+200)}
+  const cheer=hostCheer(),t=ms||(msg?4200:2600);toast(`<b>${cheer}</b>${coinTxt(g)}${msg?'<br>'+msg:''}`,t);speak(cheer+(msg?' '+plain(msg):''));later(next,t+200)}
 function failRound(msg,ms,next){CH.locked=true;record(CH.st.id,false,CH.skill);sfx.bad();playAnim('sad');const t=ms||5200;toast(msg,t,true);later(next,t+200)}
 function hintBad(msg,anim){sfx.bad();playAnim(anim||'sad');toast('💡 '+msg,4800,true)}
 
@@ -2042,7 +2110,7 @@ function updateBuild(dt){updatePickups(CH.items,CH.held,dt,10);
   edge('pronto',isNear(CH.pads.pronto,1.4),()=>{if(CH.held.length){toast('Coloque os blocos que estão na cabeça primeiro!',1800);return}const n=CH.steps.length;if(!n){toast('Monte a escada antes do PRONTO.',2200);return}
     if(CH.q.check(n)){CH.locked=true;const first=CH.tries===0;record(CH.st.id,first,CH.skill);if(first)CH.first++;const g=coinFor(first);CH.coins+=g;addCoins(g);sfx.ok();confetti(16);
       const k=n,A=2.2+(k-1)*1.25,w=L2W(CH.st,A,-2),cm=new THREE.Group();cm.add(mesh(BOX(.9,.6,.7),'#8B5A2B',0,.3,0),mesh(BOX(.95,.25,.75),'#FFC83D',0,.68,0));cm.position.set(w.x,k*.7,w.z);scene.add(cm);CHX.objs.push(cm);
-      CH.chest={m:cm,x:w.x,z:w.z,y:k*.7,g};CH.chestT=40;playAnim('cheer');toast(`<b>${pick(CHEERS)}</b>${coinTxt(g)} Agora SUBA a escada e pegue o baú! 🎁`,4500,true);return}
+      CH.chest={m:cm,x:w.x,z:w.z,y:k*.7,g};CH.chestT=40;playAnim('cheer');toast(`<b>${hostCheer()}</b>${coinTxt(g)} Agora SUBA a escada e pegue o baú! 🎁`,4500,true);return}
     CH.tries++;if(CH.tries>=2)return failRound(`Sua escada tem ${n} degraus. ${CH.q.explain}`,null,nextBuild);hintBad(`Sua escada tem ${n} degraus. ${CH.q.hint}`)})}
 function nextBuild(){if(!CH||CH.type!=='build')return;CH.idx++;if(CH.idx>=CH.n)return done3D();loadBuildQ()}
 
@@ -2384,7 +2452,7 @@ function genSimon(L){const F=SMF,act=[F.go,F.jump,F.color,F.ring,F.around,F.tag,
   const t=steps.map(s=>s.t),cap=s=>s[0].toUpperCase()+s.slice(1),n=steps.length;
   const text=trick?`${cap(t[0])}!`:n===1?`O mestre mandou: ${t[0]}!`:n===2?`O mestre mandou: PRIMEIRO ${t[0]}, DEPOIS ${t[1]}!`:`O mestre mandou: PRIMEIRO ${t[0]}, DEPOIS ${t[1]} e POR FIM ${t[2]}!`;
   return {steps,trick,text,skill:tag('vocab',trick?'pegadinha':'cmd'+n),time:trick?6:(9+12*n+sum(steps.map(s=>s.T||0)))*(L===1?1.3:1)}}
-function startSimon(st){CH={type:'simon',st,n:6,idx:0,first:0,coins:0,hearts:3};clearArena();const G=beginArena(st),C=CH,lab=(t,A,y,B,s)=>{const sp=sprite(texOf(g=>bigText(g,t,128,128,236,52,INK)),s||2.2,s||2.2);sp.position.set(A,y,B);G.add(sp)};
+function startSimon(st){voPreload('Mestre');CH={type:'simon',st,n:6,idx:0,first:0,coins:0,hearts:3};clearArena();const G=beginArena(st),C=CH,lab=(t,A,y,B,s)=>{const sp=sprite(texOf(g=>bigText(g,t,128,128,236,52,INK)),s||2.2,s||2.2);sp.position.set(A,y,B);G.add(sp)};
   dHouse(10,-9)(G);lab('CASA',10,4.8,-9);
   [[2,4.6],[2,11.4]].forEach(([A,B])=>{G.add(mesh(BOX(.8,2.4,.8),'#8B5A2B',A,1.2,B),mesh(BOX(2.6,2.2,2.6),'#2FA84F',A,3.4,B));addColl(A,B,.7)});
   G.add(mesh(BOX(5.2,.04,5.2),'#FFF1B8',11,.03,7,false));[[11,4.4,5.2,.2],[11,9.6,5.2,.2],[13.6,7,.2,5.2]].forEach(([A,B,wa,wb])=>{G.add(mesh(BOX(wa,.9,wb),'#E0A800',A,.45,B));platAt(st,A,B,wa/2,wb/2,.9,true,null,.05)});lab('CERCADO',11,2.4,7,2.4);
@@ -2480,7 +2548,7 @@ function obbyMission(){const q=CH.qs[CH.row];setMission(`<span class="vt">⬆ PU
 function updateObby(){if(!onGround||!standing||standing.row==null||standing.used||standing.row!==CH.row)return;const p=standing,q=CH.qs[CH.row];p.used=true;
   if(p.correct){const first=CH.tries===0,gain=coinFor(first);if(CH.tries<2)record(CH.st.id,first,q.skill);if(first)CH.first++;CH.coins+=gain;addCoins(gain);
     platLabel(p,p.val,'#7CE3A0',true);drawBoard(CH.row,`${q.a} ${q.op} ${q.b} = ${q.ans}`,true,q);sfx.ok();confetti(14);checkpoint=OBBY.checkpoints[CH.row];CH.row++;CH.tries=0;if(CH.row<5)revealObby(CH.row);
-    playAnim('cheer');if(CH.row>=5){setMission('🏆 Você chegou à taça! O portal vermelho leva de volta ao começo.');done3D()}else{toast(`${pick(CHEERS)}${coinTxt(gain)}`,2000);setTimeout(()=>{if(CH&&CH.type==='obby')obbyMission()},900)}}
+    playAnim('cheer');if(CH.row>=5){setMission('🏆 Você chegou à taça! O portal vermelho leva de volta ao começo.');done3D()}else{toast(`${hostCheer()}${coinTxt(gain)}`,2000);setTimeout(()=>{if(CH&&CH.type==='obby')obbyMission()},900)}}
   else{CH.tries++;noteErr(q.skill,`${q.a} ${q.op} ${q.b}`,q.ans,p.val);if(CH.tries===2)record(CH.st.id,false,q.skill);p.active=false;p.falling=true;p.sign.visible=false;platLabel(p,p.val,'#FF8A80',false);sfx.bad();toast(`Ops! ${q.a} ${q.op} ${q.b} não dá ${p.val}. Tente outra plataforma!`,4500,true)}}
 const numTexCache={};
 function numTex(n,col){const k=n+col;return numTexCache[k]||(numTexCache[k]=tex(cv(128,128,g=>{g.fillStyle=col;g.fillRect(0,0,128,128);g.lineWidth=10;g.strokeStyle=INK;g.strokeRect(5,5,118,118);
@@ -2560,7 +2628,7 @@ function kartDrive(dt,jx,jy){const C=CH;yaw=-Math.PI/2;
   PL.legL.rotation.x=PL.legR.rotation.x=-1.5;PL.armL.rotation.x=PL.armR.rotation.x=-1.15;applyAnim(dt);PL.g.position.y=P.y-.25}
 function kartGate(lane){const C=CH,q=C.qs[C.idx],g=C.gates[C.idx],ok=lane===q.ans;record(C.st.id,ok,q.skill);
   g.signs.forEach((s,i)=>{if(i===q.ans||i===lane){kartSign(q.labels[i],i===q.ans)(s.c.getContext('2d'));s.t.needsUpdate=true}});
-  if(ok){const g=coinFor(true);C.first++;C.coins+=g;addCoins(g);C.boost=1.6;C.streak++;sfx.ok();confetti(10);toast(`<b>${pick(CHEERS)}</b>${coinTxt(g)}${C.streak>1?` · TURBO x${Math.min(3,C.streak)} 🔥`:''}`,1800)}
+  if(ok){const g=coinFor(true);C.first++;C.coins+=g;addCoins(g);C.boost=1.6;C.streak++;sfx.ok();confetti(10);toast(`<b>${hostCheer()}</b>${coinTxt(g)}${C.streak>1?` · TURBO x${Math.min(3,C.streak)} 🔥`:''}`,1800)}
   else{if(q.ask)noteErr(q.skill,q.ask,+q.labels[q.ans],+q.labels[lane]);C.spin=.9;C.streak=0;sfx.dizzy();toast(`Era o portão <b>${q.labels[q.ans]}</b>. ${q.explain}`,4200,true)}
   C.idx++;if(C.idx<C.n){kartMission();if(ok)speak(plain(C.qs[C.idx].text));else later(()=>speak(plain(C.qs[C.idx].text)),2600)}else setMission('<span class="vt">🏎️ KART</span>Agora é só cruzar a CHEGADA! 🏁')}
 function update3D(dt){if(!CH||paused)return;const t=CH.type;
@@ -2591,7 +2659,7 @@ function updateWorld(dt){T+=dt;frameN++;
 const TABS=[['hat','Chapéus'],['kit','⚽ Futebol'],['cele','🎉 Comemorações'],['shirt','Camisas'],['pants','Calças'],['pet','Bichinhos'],['power','Poderes'],['hair','Cabelo'],['skin','Pele']];
 let shopTab='hat',shopY=0,buySum=null;
 /* the player turns the back to the stall, so the camera in front shows the character (and what was just put on) instead of the shopkeeper's back */
-function openShop(){const k=NPCS.find(n=>n.kind==='shop');if(k&&Math.hypot(P.x-k.x,P.z-k.z)>.5){rotY=Math.atan2(P.x-k.x,P.z-k.z);PL.g.rotation.y=rotY}camMode='front';shopY=0;renderShop()}
+function openShop(){speak(pick(SHOP_HI),null,false,'Lojista');const k=NPCS.find(n=>n.kind==='shop');if(k&&Math.hypot(P.x-k.x,P.z-k.z)>.5){rotY=Math.atan2(P.x-k.x,P.z-k.z);PL.g.rotation.y=rotY}camMode='front';shopY=0;renderShop()}
 function renderShop(){if(shopTab==='cele')return openCeles(true);const items=CAT[shopTab],slot=slotOf(shopTab),prev=t=>shopTab==='kit'?`<img class="jr" src="${kitURL(t)}" alt="">`:shopTab==='hair'?`<img class="jr" src="${hairURL(t)}" alt="">`:shopTab==='shirt'||shopTab==='pants'||shopTab==='skin'?`<span class="sw" style="--k:${t.c}"></span>`:t.e;
   const inUse=t=>owns(shopTab,t.k)&&(shopTab==='power'||S.look[slot]===t.k),free=shopTab==='skin';
   openSheet(`<div class="shop-h"><span class="h2">🛍️ Loja</span><span class="chip" style="background:var(--ink)">Você tem 🪙 ${S.coins}</span><button class="xbtn" id="s-x" aria-label="Fechar">✕</button></div>
@@ -2695,17 +2763,34 @@ function openReport(){const R=reportData(),dot=s=>`<span class="dot" style="back
     try{if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t).then(done,()=>fallbackCopy(t,done))}catch(e){}fallbackCopy(t,done)}}
 function fallbackCopy(t,done){try{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();if(ok)return done()}catch(e){}toast('Não consegui copiar neste aparelho.',3000)}
 
-/* ================= VOICES: hear every character, and see which voices this device has ================= */
-function openVoices(){pickVoice();const n=ptVoices.length,used=new Set(Object.keys(VOICES).map(w=>voiceFor(w).voice)).size;
-  const who=[['','Narrador','f'],...Object.keys(VOICES).map(w=>[w,w,VOICES[w].g])];
+/* ================= VOICES: hear every character, and see which voice the narrator has ================= */
+const KIDS=['Ana','Pedro','Léo'],sampleTail=who=>CHEERS_OF[who]?CHEERS_OF[who][0]:KIDS.includes(who)?FRIEND_ASK[1]:who==='Lojista'?SHOP_HI[0]:'';
+const NARR_LINE='Oi! Eu sou o narrador: eu leio as perguntas. Quanto é dois mais três?';
+function openVoices(){pickVoice();const n=ptVoices.length,good=ptVoice&&voiceRank(ptVoice)>=3,vName=v=>v.name.replace(/\s*[-(].*$/,'').replace(/^Microsoft\s+/,'');
+  const who=[['','Narrador'],...Object.keys(VOICES).map(w=>[w,w])];
   openSheet(`<div class="shop-h"><span class="h2">🗣️ Vozes</span><button class="xbtn" id="s-x" aria-label="Fechar">✕</button></div>
-    <div class="pass ${n>1?'on':'off'}" id="v-info">${!window.speechSynthesis||!n?'Este aparelho <b>não tem voz em português</b> para o navegador usar, então as falas ficam só escritas.'
-      :n===1?`Este aparelho tem <b>uma só</b> voz em português (${ptVoices[0].name}). Por isso todos falam com ela, e o jogo muda só o <b>tom</b> e o <b>ritmo</b> de cada personagem.`
-      :`Este aparelho tem <b>${n}</b> vozes em português, e os personagens usam <b>${used}</b> delas. Além da voz, cada um tem o seu tom e o seu ritmo.`}</div>
-    ${n<3?`<p class="small" style="padding:0 16px;margin:0 0 8px">Para ter vozes de homem e de mulher de verdade, o aparelho precisa de mais vozes em português. No <b>Windows</b>, o navegador <b>Edge</b> já traz várias. No <b>iPhone/iPad</b>: Ajustes → Acessibilidade → Conteúdo Falado → Vozes. No <b>Android</b>: Configurações → Acessibilidade → Conversão de texto em voz. Depois de instalar, abra o jogo de novo.</p>`:''}
-    <div class="items">${who.map(([k,nm,g])=>{const v=voiceFor(k||null).voice;return `<button class="item" data-k="${k}"><span class="pv">${g==='m'?'🧑':'👩'}</span><span>${nm}</span><small>${v?v.name.replace(/\s*[-(].*$/,''):'sem voz'}</small><span class="st">▶ Ouvir</span></button>`}).join('')}</div>`);
-  $('#s-x').onclick=()=>{sfx.tap();closeSheet()};
-  $$('.item').forEach(b=>b.onclick=()=>{const k=b.dataset.k,g=k?VOICES[k].g:'f';speak(k?`Oi! Eu sou ${g==='f'?'a':'o'} ${k}. Quanto é dois mais três?`:'Oi! Eu sou a voz que lê as perguntas. Quanto é dois mais três?',null,true,k||null)})}
+    <div class="pass ${VO?'on':'off'}" id="v-info">${VO?'Cada personagem tem a <b>sua própria voz</b>, gravada: a apresentação, as comemorações, o fim da rodada e todas as ordens do Mestre.'
+      :'As vozes gravadas dos personagens ainda não chegaram: abra o jogo com internet uma vez.'}
+      ${!window.speechSynthesis||!n?' As <b>perguntas</b> ficam só escritas, porque este aparelho não tem voz em português para o narrador.'
+      :` As <b>perguntas</b> mudam a cada vez, então quem lê é o <b>narrador</b>, com a voz do aparelho (${vName(ptVoice)}${n>1?`, a mais natural das ${n} que ele tem`:''}).`}</div>
+    ${n&&!good?`<p class="small" style="padding:0 16px;margin:0 0 8px">Para o narrador ter uma voz mais natural: no <b>Windows</b>, use o navegador <b>Edge</b> (ele já traz vozes naturais). No <b>iPhone/iPad</b>: Ajustes → Acessibilidade → Conteúdo Falado → Vozes → Português (Brasil), e baixe uma voz <b>Aprimorada</b>. No <b>Android</b>: Configurações → Acessibilidade → Conversão de texto em voz. Depois, abra o jogo de novo.</p>`:''}
+    <div class="items">${who.map(([k,nm])=>`<button class="item" data-k="${k}"><span class="pv">${!k?'📖':KIDS.includes(k)?'🧒':VOICES[k].g==='m'?'🧑':'👩'}</span><span>${nm}</span><small>${k?(VO&&VO[k]?'voz gravada':'voz do aparelho'):ptVoice?vName(ptVoice):'sem voz'}</small><span class="st">▶ Ouvir</span></button>`).join('')}</div>`);
+  $('#s-x').onclick=()=>{sfx.tap();closeSheet()};Object.keys(VOICES).forEach(voPreload);
+  $$('.item').forEach(b=>b.onclick=()=>{const k=b.dataset.k;speak(k?(sampleLine(k)+' '+sampleTail(k)).trim():NARR_LINE,null,true,k||null)})}
+/* Every line the characters have recorded, as the game says it: tools/vozes reads this list from the game and records it, so the words
+   on the screen and the recordings never drift apart. The orders of the master are drawn many times to find every piece they are made of. */
+function mestreLines(){const out=['O mestre mandou:','Isso! Agora,','Isso! E agora?','O tempo acabou!','Não era isso!','Acabaram os corações!','O mestre mandou outra coisa.',
+    'O mestre te viu! Fique bem atrás, do lado que ele não enxerga.','O pegador te pegou!','Estátua não se mexe!','O mestre NÃO mandou! Só obedeça quando ouvir "O mestre mandou".',
+    'Muito bem! O mestre não mandou, e você não fez.','Você fez certinho!','Você fez os 2 passos na ordem certa!','Você fez os 3 passos na ordem certa!'];
+  PAINTS.forEach(c=>out.push(`Esse círculo é o ${c.n}.`));SM.items.forEach(it=>out.push(`Isso é ${it.n}.`));SM.kids.forEach(k=>out.push(`Esse é o amigo de camisa ${k[1]}.`));
+  /* every step alone (for "Isso! Agora, ..." and "O mestre mandou: ..." after a mistake), and every piece of the orders as they are said */
+  const steps=[],parts=[];for(let L=1;L<=3;L++)for(let i=0;i<4000;i++){const q=genSimon(L);q.steps.forEach(s=>steps.push(s.t[0].toUpperCase()+s.t.slice(1)+'!'));clauses(cleanSpeech(q.text)).forEach(c=>parts.push(c))}
+  return out.concat(steps,parts)}
+function voiceScript(){const out={},add=(who,...ts)=>{const m=out[who]||(out[who]=new Map());ts.forEach(t=>{const c=cleanSpeech(t),k=voKey(c);if(k&&!m.has(k))m.set(k,c)})};
+  Object.keys(VOICES).forEach(w=>add(w,sampleLine(w),...(CHEERS_OF[w]||[])));
+  STATIONS.forEach(st=>add(st.npc.name,introText(st),REST_LINE,...RESULT_H2));
+  KIDS.forEach(w=>add(w,...FRIEND_ASK,FRIEND_BYE,'Isso! Valeu!'));add('Lojista',...SHOP_HI);add('Mestre',...mestreLines());
+  return Object.fromEntries(Object.entries(out).map(([w,m])=>[w,[...m].map(([k,t])=>({k,t}))]))}
 
 /* ================= MENU / PARENTS / TUTORIAL ================= */
 function openMenu(){
@@ -2800,7 +2885,7 @@ $('#b-sound').onclick=()=>{S.sound=!S.sound;save();hud();if(ambBus)ambBus.gain.s
 $('#b-music').onclick=()=>{if(!S.music){S.music=true;S.musStyle='rock'}else if(S.musStyle!=='calma')S.musStyle='calma';else S.music=false;save();hud();ensureAudio();musicOn(S.music);toast(!S.music?'Música desligada':S.musStyle==='calma'?'Música calma 🎹':'Rock ligado 🎸',1600)};
 $('#b-cele').onclick=()=>{if(paused)return;sfx.tap();openCeles()};
 $('#b-mis').onclick=()=>{if(paused)return;sfx.tap();openMission()};
-$('#b-voice').onclick=()=>{S.voice=!S.voice;save();hud();if(!S.voice)try{speechSynthesis.cancel()}catch(e){}toast(S.voice?'A voz vai ler as perguntas 🗣️':'Voz desligada',1800,S.voice)};
+$('#b-voice').onclick=()=>{S.voice=!S.voice;save();hud();if(!S.voice)stopSpeech();toast(S.voice?'A voz vai ler as perguntas 🗣️':'Voz desligada',1800,S.voice)};
 
 /* ================= LOOP ================= */
 function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();if(CH&&CH.fp)scopeFov();if(CH){CH.camTop=0;if(CH.type==='gol')CH.relay=true}layoutTop()}
@@ -2812,7 +2897,7 @@ function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math
   if(!paused&&!document.hidden)dayT+=dt;
   updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();breakCheck(dt);renderer.render(scene,camera)}
 function boot(){if(S.lite)setQuality(0);resize();buildPlayer();hud();STATIONS.forEach(updateSign);updateHall();camera.position.set(P.x,P.y+5,P.z+10);requestAnimationFrame(tick);if(!S.tut)openTut()}
-window.__ilhaDebug={CAT,buyQ,speak,mission,newMission,missionNote,restNote,resting,openMission,talk,parents,openReport,reportData,reportText,skillState,DAY,noteErr,flushTime,set dayT(v){dayT=v},pickVoice,openVoices,openSiu,playSiu,get siu(){return siuData},get siuBuf(){return !!siuBuf},camera,SCOPE,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
+window.__ilhaDebug={CAT,buyQ,speak,mission,newMission,missionNote,restNote,resting,openMission,talk,parents,openReport,reportData,reportText,skillState,DAY,noteErr,flushTime,set dayT(v){dayT=v},pickVoice,openVoices,voiceScript,voPlan,voKey,voClip,clauses,cleanSpeech,stopSpeech,introText,genSimon,get saying(){return !!sayNode},get VO(){return VO},set VO(v){VO=v},get ptVoice(){return ptVoice},openSiu,playSiu,get siu(){return siuData},get siuBuf(){return !!siuBuf},camera,SCOPE,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
   aim:()=>CH&&CH.type==='shoot'?aimBalloon():null,set pitch(v){pitch=v},step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateCam(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
 const fontsReady=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('400 20px Andika')]):Promise.resolve();
 Promise.race([fontsReady,new Promise(r=>setTimeout(r,1800))]).then(()=>{OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));boot()}).catch(boot);
