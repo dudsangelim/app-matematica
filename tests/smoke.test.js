@@ -1053,6 +1053,27 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     assert(r.tricks[0] === 0 && r.tricks[1] > 80 && r.tricks[2] > 80, `tricks per level: ${r.tricks}`);
   });
 
+  await test('parents: "Recomeçar o jogo" puts levels, stars, medals, mission and report back to the start, and keeps coins, what was bought, the look and the celebrations', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), M = D.STM, out = {}; D.closeSheet();
+      const hat = D.CAT.hat.find(i => i.p > 0), shirt = D.CAT.shirt.find(i => i.p > 0);
+      S.coins = 137; S.owned = ['hat:' + hat.k, 'shirt:' + shirt.k]; S.look.hat = hat.k; S.look.shirt = shirt.k; S.celes = 4; S.cele = D.CELES[2].k; S.musStyle = 'calma'; S.restOn = false; S.caps = true;
+      for (let i = 0; i < 3; i++) D.finishChallenge(M.formas, 5, 5, 5, 1, null, false, true); D.finishChallenge(M.contas, 3, 5, 3, 1, M.contas.modes[3], false, true); D.noteErr('contas.sub', '9 − 4', 5, 6); D.record('contas', false, 'contas.sub');
+      const coins = S.coins, celes = S.celes, cele = S.cele; /* the rounds above won medals, and each medal unlocks and picks a celebration */
+      out.before = [S.stars > 0, S.st.formas.rounds, S.trophies.formas > 0, Object.keys(S.sk).length > 0, S.errs.length, Object.keys(S.days).length];
+      D.parents(); const b = document.querySelector('#p-rc'); b.click(); out.armed = [/de novo/.test(b.textContent), D.S().stars > 0]; b.click(); const N = D.S();
+      out.reset = [N.stars, Object.keys(M).reduce((n, id) => n + ((N.st[id] || {}).rounds || 0) + ((N.st[id] || {}).total || 0) + (((N.st[id] || {}).level || 1) - 1), 0), Object.keys(N.trophies).length, N.champ, Object.keys(N.sk).length, Object.keys(N.wk).length, N.errs.length, Object.keys(N.days).length, Object.keys(N.rest).length, N.mis.n];
+      out.kept = [N.name, N.coins === coins, N.owned.join() === ['hat:' + hat.k, 'shirt:' + shirt.k].join(), N.look.hat === hat.k && N.look.shirt === shirt.k, N.celes === celes && celes > 4, N.cele === cele && !!cele, N.musStyle, N.restOn, N.caps, N.tut];
+      out.screen = [document.querySelector('#ov').hidden, D.mission().length, D.mission().every(i => !i.done), D.reportData().week.q, +document.querySelector('#h-stars').textContent, +document.querySelector('#h-troph').textContent, +document.querySelector('#h-coins').textContent === coins];
+      return out; });
+    eq(r.before, [true, 3, true, true, 1, 1], 'before');
+    eq([r.armed, r.reset, r.kept, r.screen], [[true, true], [0, 0, 0, false, 0, 0, 0, 0, 0, 0], ['Teste', true, true, true, true, true, 'calma', false, true, true], [true, 3, true, 0, 0, 0, true]], 'fresh start');
+    /* and that is what was saved: a reload brings the same */
+    await p.reload(); await p.waitForFunction(() => window.__ilhaDebug);
+    eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.stars, Object.keys(S.trophies).length, S.coins > 100, S.owned.length, S.celes >= 4, S.look.hat !== 'nenhum']; }), [0, 0, true, 2, true, true], 'after a reload');
+    await p.context().close();
+  });
+
   await test('master game: the catcher starts far from the player, wherever the player stands, and holds for a moment before running', async () => {
     await enter(page, 'vocab');
     const r = await page.evaluate(() => {
