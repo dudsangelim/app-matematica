@@ -697,7 +697,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await enter(page, 'contas');
     const r = await page.evaluate(() => {
       const D = __ilhaDebug, S = D.S(), st = D.STM.contas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, out = {}, quit = () => { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); };
-      const play = (L, want) => { let g = 0; do { quit(); S.st.contas = S.st.contas || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; S.st.contas.level = L; D.startMode(st, st.modes[3]); } while (want && !want(D.CH.q) && ++g < 300); return D.CH; };
+      const play = (L, want) => { let g = 0; do { quit(); S.st.contas = S.st.contas || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; S.st.contas.level = L; D.startMode(st, st.modes.find(m => m.k === 'bus')); } while (want && !want(D.CH.q) && ++g < 300); return D.CH; };
       const toAsk = C => { const seen = { a: C.seated.length, closedAtMove: null }; for (let i = 0; i < 1500 && C.ph !== 'ask'; i++) { D.step(1 / 60); if (C.ph === 'move' && seen.closedAtMove === null) seen.closedAtMove = C.closed; } run(3); return seen; };
       const btns = () => [...document.querySelectorAll('#picks .pk')], btn = v => btns().find(b => +b.textContent === v), step = (C, v) => { btn(v).click(); run(4); };
       /* level 1, adding: everybody in sight; the player waits at the stop and cannot walk; no buttons before the question */
@@ -752,9 +752,9 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
   });
 
   await test('balloon game: played through a scope - the player stands still, the stick moves the aim, and the shot goes to the balloon under the cross', async () => {
-    await enter(page, 'contas');
+    await enter(page, 'formas');
     const r = await page.evaluate(() => {
-      const D = __ilhaDebug, st = D.STM.contas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[1]);
+      const D = __ilhaDebug, st = D.STM.formas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes.find(m => m.k === 'shoot'));
       const C = D.CH, sc = document.querySelector('#scope'), alive = () => C.balloons.filter(b => b.alive).length, n0 = alive(), out = {}; run(2);
       out.view = [!sc.hidden, document.body.classList.contains('fp'), Math.round(D.camera.fov), D.PL.g.visible, getComputedStyle(document.querySelector('#b-jump')).display, !document.querySelector('#b-fire').hidden];
       out.eye = Math.hypot(D.camera.position.x - D.P.x, D.camera.position.z - D.P.z) < .01 && Math.abs(D.camera.position.y - D.P.y - D.SCOPE.eye) < .01;
@@ -1142,7 +1142,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         text: [/ADIÇÃO E SUBTRAÇÃO/.test(text), /Subtração \(conta escrita\): Precisa de ajuda \(2\/6 de primeira\)/.test(text), /9 − 4: respondeu 6, era 5/.test(text), /O QUE FAZER AGORA/.test(text), /<b>|undefined|NaN/.test(text)] }; });
     eq(r, { states: [4, 2, 1, 0], hist: '1111101111', pat: { n: 4, by1: 3, swap: 1, first: 0 }, week: [1, 26, 15, 1, true], day: [26, 15, 1, true, 1], tips: [true, true, true], errs: 4, text: [true, true, true, true, false] }, 'report data');
     await p.evaluate(() => { __ilhaDebug.parents(); document.querySelector('#p-rep').click(); });
-    eq(await p.evaluate(() => [!!document.querySelector('.rep'), document.querySelectorAll('.rep .tbl')[0].querySelectorAll('tbody tr').length, document.querySelectorAll('.week .wd').length, document.querySelectorAll('.week .wd.on').length, document.querySelectorAll('.errs span').length, document.querySelectorAll('.rep .tbl')[1].querySelectorAll('tbody tr').length, document.querySelectorAll('.hist i').length >= 19]), [true, 11, 7, 1, 4, 8, true], 'report on screen');
+    eq(await p.evaluate(() => [!!document.querySelector('.rep'), document.querySelectorAll('.rep .tbl')[0].querySelectorAll('tbody tr').length, document.querySelectorAll('.week .wd').length, document.querySelectorAll('.week .wd.on').length, document.querySelectorAll('.errs span').length, document.querySelectorAll('.rep .tbl')[1].querySelectorAll('tbody tr').length, document.querySelectorAll('.hist i').length >= 19]), [true, 10, 7, 1, 4, 8, true], 'report on screen'); /* 10 sums skills: the balloons (and their "ways to make a number") left */
     await p.click('#rp-back'); eq(await p.evaluate(() => !!document.querySelector('#p-rep')), true, 'back to the parents area');
     await p.context().close();
   });
