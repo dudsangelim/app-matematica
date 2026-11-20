@@ -1730,6 +1730,9 @@ function quit3D(silent){if(!CH)return;
 /* The result sheet opens a moment after the round ends. If the player starts something else first, the round is still scored (quietly). */
 let pendFin=null;
 function flushFin(){if(!pendFin)return;const p=pendFin;clearTimeout(p.t);p.fn(true)}
+/* before the progress is wiped or started afresh: a round just finished is scored into the old progress, and a round still being played
+   is ended, so that nothing of it is written into the new one */
+function endRound(){flushFin();if(CH)quit3D(true)}
 function done3D(lost){const c=CH;clearArena();CH=null;mis.hidden=true;checkpoint=null;leaveScope();hideSure();hideHud();camLook=1.7;
   const fn=silent=>{pendFin=null;finishChallenge(c.st,c.first,c.n,c.coins,c.level,c.mode,lost,silent===true)};
   if(lost)playAnim('sad');else{playAnim('win');toast(`<b>Fim da rodada!</b> 🎉`,2400)}
@@ -2741,7 +2744,7 @@ function openTut(){openSheet(`<div class="pad"><div class="h2">Bem-vindo à Cida
 function parentGate(){const a=rnd(6,9),b=rnd(6,9);
   openSheet(`<form class="pad" id="gate"><div class="h2">Só para adultos</div><p style="font-family:var(--fb);font-size:20px">Quanto é ${a} × ${b}?</p><div class="field"><input id="g-in" type="number" inputmode="numeric" autocomplete="off" aria-label="Resposta"><button class="btn gold">Entrar</button><button type="button" class="btn" id="g-x">Voltar</button></div></form>`);
   $('#g-x').onclick=()=>closeSheet();$('#gate').onsubmit=e=>{e.preventDefault();if(+$('#g-in').value===a*b)parents();else{shake($('#gate'));$('#g-in').value=''}}}
-function parents(){const nm=esc(S.name||'Jogador'),pc=(f,n)=>n?`${f}/${n} (${Math.round(100*f/n)}%)`:'—',rows=STATIONS.map(s=>({s,t:stat(s.id)}));let arm=false,armDel=false,armIm=false;
+function parents(){const nm=esc(S.name||'Jogador'),pc=(f,n)=>n?`${f}/${n} (${Math.round(100*f/n)}%)`:'—',rows=STATIONS.map(s=>({s,t:stat(s.id)}));let arm=false,armDel=false,armIm=false,armRc=false;
   const sk=Object.keys(S.sk).map(id=>({id,k:S.sk[id],st:STM[id.split('.')[0]]})).filter(x=>x.st&&x.k.n>0).sort((a,b)=>a.k.r-b.k.r||b.k.n-a.k.n);
   const state=k=>k.n<3?['#C9CED6','Começando']:k.r>=.8&&!k.w?['#22B35E','Dominou']:k.r<.5?['#E53935','Precisa de ajuda']:['#FFC83D','Treinando'];
   const weak=sk.filter(x=>x.k.n>=3&&x.k.r<.5).slice(0,3),wks=[3,2,1,0].map(o=>weekKey(o)),any=wks.some(w=>S.wk[w]);
@@ -2765,6 +2768,9 @@ function parents(){const nm=esc(S.name||'Jogador'),pc=(f,n)=>n?`${f}/${n} (${Mat
     <div class="sec">Cópia de segurança</div>
     <div class="small" style="margin-bottom:8px">O progresso fica só neste aparelho. Salve uma cópia para não perder, ou para levar a outro aparelho.</div>
     <div class="btns" style="justify-content:flex-start"><button class="btn" id="p-ex">💾 Salvar cópia</button><button class="btn" id="p-im">📂 Restaurar cópia</button><input type="file" id="p-file" accept="application/json,.json" hidden></div>
+    <div class="sec">Recomeçar</div>
+    <div class="small" style="margin-bottom:8px"><b>Recomeçar o jogo</b> volta níveis, estrelas, medalhas, missão e relatório ao começo, e guarda o que foi conquistado: as moedas, tudo o que foi comprado na Loja, o visual do boneco e as comemorações. <b>Apagar progresso</b> zera tudo, inclusive isso.</div>
+    <div class="btns" style="justify-content:flex-start"><button class="btn" id="p-rc">🔄 Recomeçar o jogo</button></div>
     <div class="btns" style="justify-content:flex-start;margin-top:18px"><button class="btn" id="p-rs" style="background:var(--badbg)">Apagar progresso deste jogador</button>${PF.ids.length>1?'<button class="btn" id="p-del" style="background:var(--badbg)">Remover este jogador</button>':''}</div></div>`);
   $('#p-x').onclick=()=>closeSheet();$('#p-rep').onclick=()=>{sfx.tap();openReport()};
   $('#p-mis').onchange=e=>{S.misOn=e.target.checked;save();hud();toast(S.misOn?'Missão ligada: só ela libera a troca da Loja.':'Missão desligada: qualquer rodada com estrela libera a troca.',3200)};
@@ -2777,7 +2783,11 @@ function parents(){const nm=esc(S.name||'Jogador'),pc=(f,n)=>n?`${f}/${n} (${Mat
   $('#p-im').onclick=()=>{if(!armIm){armIm=true;$('#p-im').textContent='Toque de novo: substitui este jogador';return}$('#p-file').click()};
   $('#p-file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onerror=()=>toast('Não consegui ler o arquivo.');
     r.onload=()=>{try{const d=JSON.parse(r.result);if(!isObj(d)||d.app!=='ilha-dos-numeros'||!isObj(d.save)||!isObj(d.save.st))throw 0;S=normalize(d.save);S.tut=true;save();location.reload()}catch(_){toast('Esse arquivo não é uma cópia do jogo.')}};r.readAsText(f)};
-  $('#p-rs').onclick=()=>{if(!arm){arm=true;$('#p-rs').textContent='Toque de novo para confirmar';return}S=normalize({name:S.name,tut:true,sound:S.sound,music:S.music,musStyle:S.musStyle,voice:S.voice,caps:S.caps,breakMin:S.breakMin,misOn:S.misOn,restOn:S.restOn});save();hud();buildPlayer();STATIONS.forEach(updateSign);updateHall();closeSheet();toast('Progresso apagado.')};
+  /* a fresh start that keeps what was won: coins, what was bought, the look, the celebrations (and the settings); levels, stars, medals,
+     the mission, the rest of the stations and everything the report is made of go back to the beginning */
+  $('#p-rc').onclick=()=>{if(!armRc){armRc=true;$('#p-rc').textContent='Toque de novo para recomeçar';return}
+    endRound();S=normalize(Object.assign({},S,{stars:0,st:{},trophies:{},champ:false,sk:{},wk:{},mis:{n:0,list:[]},rest:{},errs:[],days:{}}));dayT=0;save();hud();buildPlayer();STATIONS.forEach(updateSign);updateHall();closeSheet();toast('Jogo recomeçado! A Loja e as comemorações continuam com você. 🎉',3600)};
+  $('#p-rs').onclick=()=>{if(!arm){arm=true;$('#p-rs').textContent='Toque de novo para confirmar';return}endRound();S=normalize({name:S.name,tut:true,sound:S.sound,music:S.music,musStyle:S.musStyle,voice:S.voice,caps:S.caps,breakMin:S.breakMin,misOn:S.misOn,restOn:S.restOn});save();hud();buildPlayer();STATIONS.forEach(updateSign);updateHall();closeSheet();toast('Progresso apagado.')};
   if($('#p-del'))$('#p-del').onclick=()=>{if(!armDel){armDel=true;$('#p-del').textContent='Toque de novo para remover';return}try{localStorage.removeItem(KEY)}catch(e){}PF.ids=PF.ids.filter(i=>i!==PF.cur);PF.cur=PF.ids[0];savePF();location.reload()}}
 /* optional reminder to take a break (set in the parents area); it waits for the current challenge to end */
 let playT=0;
