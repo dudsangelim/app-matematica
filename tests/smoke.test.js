@@ -238,7 +238,9 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
   await test('friend riddle in the city can always be closed, also after two wrong answers', async () => {
     const p = await open(1024, 768);
     for (let round = 0; round < 6; round++) {
-      await p.evaluate(() => { const D = __ilhaDebug, f = D.FRIENDS[0]; f.cool = 0; D.closeSheet(); D.P.set(f.x + 1.2, 0, f.z); for (let i = 0; i < 3; i++) D.step(1 / 60); });
+      /* the button talks to the nearest friend, and now and then another one stands closer than the one the player walked up to:
+         every friend is made ready for a new riddle, not only that one (it used to fail on the second visit when that happened) */
+      await p.evaluate(() => { const D = __ilhaDebug, f = D.FRIENDS[0]; D.FRIENDS.forEach(x => x.cool = 0); D.closeSheet(); D.P.set(f.x + 1.2, 0, f.z); for (let i = 0; i < 3; i++) D.step(1 / 60); });
       await p.waitForSelector('#b-act:not([hidden])'); await p.click('#b-act', { force: true }); await p.waitForSelector('.quiz .btn.big');
       for (let k = 0; k < 2; k++) { const b = await p.$('.quiz .btn.big:not([disabled])'); if (!b) break; await b.click(); }
       await p.waitForSelector('#q-x', { timeout: 3000 }); await p.click('#q-x');
@@ -1071,6 +1073,11 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     /* and that is what was saved: a reload brings the same */
     await p.reload(); await p.waitForFunction(() => window.__ilhaDebug);
     eq(await p.evaluate(() => { const S = __ilhaDebug.S(); return [S.stars, Object.keys(S.trophies).length, S.coins > 100, S.owned.length, S.celes >= 4, S.look.hat !== 'nenhum']; }), [0, 0, true, 2, true, true], 'after a reload');
+    /* in the middle of a round: the round is ended, and nothing of it is written into the fresh start; the same goes for wiping the progress */
+    eq(await p.evaluate(() => { const D = __ilhaDebug, M = D.STM, out = []; for (const id of ['#p-rc', '#p-rs']) { D.closeSheet(); D.enterWorld(M.contas); D.startMode(M.contas, M.contas.modes.find(m => m.k === 'bus')); const C = D.CH; C.first = 3; C.coins = 3; C.idx = 4;
+        D.parents(); const b = document.querySelector(id); b.click(); b.click(); for (let i = 0; i < 30; i++) D.step(1 / 60); const N = D.S();
+        out.push([D.CH === null, document.querySelector('#mission').hidden, document.querySelector('#picks').hidden, (N.st.contas || {}).rounds || 0, N.stars, Object.keys(N.trophies).length]); }
+      return out; }), [[true, true, true, 0, 0, 0], [true, true, true, 0, 0, 0]], 'restarting in the middle of a round');
     await p.context().close();
   });
 

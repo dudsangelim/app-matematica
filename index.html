@@ -1730,6 +1730,9 @@ function quit3D(silent){if(!CH)return;
 /* The result sheet opens a moment after the round ends. If the player starts something else first, the round is still scored (quietly). */
 let pendFin=null;
 function flushFin(){if(!pendFin)return;const p=pendFin;clearTimeout(p.t);p.fn(true)}
+/* before the progress is wiped or started afresh: a round just finished is scored into the old progress, and a round still being played
+   is ended, so that nothing of it is written into the new one */
+function endRound(){flushFin();if(CH)quit3D(true)}
 function done3D(lost){const c=CH;clearArena();CH=null;mis.hidden=true;checkpoint=null;leaveScope();hideSure();hideHud();camLook=1.7;
   const fn=silent=>{pendFin=null;finishChallenge(c.st,c.first,c.n,c.coins,c.level,c.mode,lost,silent===true)};
   if(lost)playAnim('sad');else{playAnim('win');toast(`<b>Fim da rodada!</b> 🎉`,2400)}
@@ -2783,8 +2786,8 @@ function parents(){const nm=esc(S.name||'Jogador'),pc=(f,n)=>n?`${f}/${n} (${Mat
   /* a fresh start that keeps what was won: coins, what was bought, the look, the celebrations (and the settings); levels, stars, medals,
      the mission, the rest of the stations and everything the report is made of go back to the beginning */
   $('#p-rc').onclick=()=>{if(!armRc){armRc=true;$('#p-rc').textContent='Toque de novo para recomeçar';return}
-    S=normalize(Object.assign({},S,{stars:0,st:{},trophies:{},champ:false,sk:{},wk:{},mis:{n:0,list:[]},rest:{},errs:[],days:{}}));dayT=0;save();hud();buildPlayer();STATIONS.forEach(updateSign);updateHall();closeSheet();toast('Jogo recomeçado! A Loja e as comemorações continuam com você. 🎉',3600)};
-  $('#p-rs').onclick=()=>{if(!arm){arm=true;$('#p-rs').textContent='Toque de novo para confirmar';return}S=normalize({name:S.name,tut:true,sound:S.sound,music:S.music,musStyle:S.musStyle,voice:S.voice,caps:S.caps,breakMin:S.breakMin,misOn:S.misOn,restOn:S.restOn});save();hud();buildPlayer();STATIONS.forEach(updateSign);updateHall();closeSheet();toast('Progresso apagado.')};
+    endRound();S=normalize(Object.assign({},S,{stars:0,st:{},trophies:{},champ:false,sk:{},wk:{},mis:{n:0,list:[]},rest:{},errs:[],days:{}}));dayT=0;save();hud();buildPlayer();STATIONS.forEach(updateSign);updateHall();closeSheet();toast('Jogo recomeçado! A Loja e as comemorações continuam com você. 🎉',3600)};
+  $('#p-rs').onclick=()=>{if(!arm){arm=true;$('#p-rs').textContent='Toque de novo para confirmar';return}endRound();S=normalize({name:S.name,tut:true,sound:S.sound,music:S.music,musStyle:S.musStyle,voice:S.voice,caps:S.caps,breakMin:S.breakMin,misOn:S.misOn,restOn:S.restOn});save();hud();buildPlayer();STATIONS.forEach(updateSign);updateHall();closeSheet();toast('Progresso apagado.')};
   if($('#p-del'))$('#p-del').onclick=()=>{if(!armDel){armDel=true;$('#p-del').textContent='Toque de novo para remover';return}try{localStorage.removeItem(KEY)}catch(e){}PF.ids=PF.ids.filter(i=>i!==PF.cur);PF.cur=PF.ids[0];savePF();location.reload()}}
 /* optional reminder to take a break (set in the parents area); it waits for the current challenge to end */
 let playT=0;
