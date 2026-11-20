@@ -323,7 +323,7 @@ const CELES=[{k:'siu',n:'Siuuu!',who:'Cristiano Ronaldo',e:'🚀',d:3.2,f:'wow'}
 const celeOf=k=>CELES.find(c=>c.k===k)||null;
 const DEF={name:'',coins:0,stars:0,sound:true,music:true,voice:true,caps:false,breakMin:0,tut:false,look:{skin:'s2',hair:'castanho',shirt:'azul',pants:'jeans',hat:'nenhum',pet:'nenhum'},lite:false,misMin:false,edit:true,musStyle:'rock',celes:-1,cele:'',misOn:true,restOn:true,mis:{n:0,list:[]},rest:{},errs:[],days:{},owned:[],st:{},trophies:{},champ:false,sk:{},wk:{}};
 const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
-function normalize(raw){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),isObj(raw)?raw:{}),oldTiers=isObj(raw)&&!(raw.v>=2);s.v=2;s.look=Object.assign({},DEF.look,isObj(s.look)?s.look:{});
+function normalize(raw){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),isObj(raw)?raw:{}),oldTiers=isObj(raw)&&!(raw.v>=2),oldModes=isObj(raw)&&!(raw.v>=3);s.v=3;s.look=Object.assign({},DEF.look,isObj(s.look)?s.look:{});
   ['st','trophies','sk','wk'].forEach(k=>{if(!isObj(s[k]))s[k]={}});if(!Array.isArray(s.owned))s.owned=[];s.name=String(s.name||'').slice(0,14);s.coins=Math.max(0,Math.round(+s.coins)||0);s.stars=Math.max(0,Math.round(+s.stars)||0);s.breakMin=[0,15,20,30,45].includes(+s.breakMin)?+s.breakMin:0;
   const num=(o,ks)=>ks.forEach(k=>o[k]=Math.max(0,+o[k]||0));
   Object.keys(s.st).forEach(k=>{const t=s.st[k];if(!isObj(t))return delete s.st[k];num(t,['rounds','first','total','stars']);t.level=Math.min(3,Math.max(1,Math.round(+t.level)||1))});
@@ -336,6 +336,8 @@ function normalize(raw){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),is
   /* mission, rest, the last mistakes and the day log (which stations exist is checked when the mission is read: they are not known yet here) */
   s.misOn=s.misOn!==false;s.restOn=s.restOn!==false;if(!isObj(s.mis))s.mis={};s.mis.n=Math.max(0,Math.round(+s.mis.n)||0);
   s.mis.list=(Array.isArray(s.mis.list)?s.mis.list:[]).filter(isObj).slice(0,3).map(i=>({id:String(i.id||''),mi:Number.isInteger(i.mi)?i.mi:-1,done:!!i.done}));
+  /* before the portals were sorted out, the sums portal listed obby, balloons, kart, bus, number line, goal: a mission of the balloons becomes one of the obby */
+  if(oldModes)s.mis.list.forEach(i=>{if(i.id==='contas'&&i.mi>=0){const m=[0,0,1,2,3,4][i.mi];i.mi=m===undefined?-1:m}});
   if(!isObj(s.rest))s.rest={};Object.keys(s.rest).forEach(k=>{const r=s.rest[k];if(!isObj(r)||!Array.isArray(r.need))delete s.rest[k];else r.need=r.need.filter(x=>typeof x==='string')});
   s.errs=(Array.isArray(s.errs)?s.errs:[]).filter(isObj).slice(-40).map(e=>({s:String(e.s||''),q:String(e.q||'').slice(0,40),r:+e.r||0,g:+e.g||0,d:+e.d||0}));
   if(!isObj(s.days))s.days={};Object.keys(s.days).forEach(k=>{const d=s.days[k];if(!/^\d{4}-\d\d-\d\d$/.test(k)||!isObj(d))return delete s.days[k];['t','q','f','r','m'].forEach(x=>d[x]=Math.max(0,+d[x]||0));if(!isObj(d.st))d.st={}});return s}
@@ -356,7 +358,7 @@ const SKN={'vocab.cima':'Em cima e embaixo','vocab.dentro':'Dentro e fora','voca
   'medidas.comp':'Comprimento','medidas.altura':'Altura','medidas.peso':'Peso','medidas.capac':'Cheio e vazio','medidas.tempo':'Manhã e noite','medidas.semana':'Dias da semana','medidas.clipes':'Medir com clipes','medidas.esc1':'Escada: contar degraus','medidas.esc2':'Escada: a mais e a menos','medidas.esc3':'Escada: entre duas alturas','medidas.esc4':'Escada: somar degraus',
   'contas.juntar':'Juntar: quantos ficam quando chegam mais (ônibus, gols)','contas.tirar':'Tirar: quantos ficam quando saem (ônibus, gols anulados)','contas.falta':'Descobrir a parte que falta (quantos subiram, quantos gols faltam)','contas.comparar':'Comparar: quantos gols a mais','contas.retamais':'Somar pulando para a frente na reta','contas.retamenos':'Subtrair pulando para trás na reta',
   'contas.soma':'Adição (conta escrita)','contas.sub':'Subtração (conta escrita)','contas.decompor':'Jeitos de formar um número',
-  'ordem.depois':'O número que vem depois','ordem.antes':'O número que vem antes','ordem.maior':'Achar um número maior','ordem.menor':'Achar um número menor','ordem.salto':'Contar pulando: 2, 5, 10','ordem.seq':'Sequência crescente','ordem.seqdec':'Sequência decrescente',
+  'ordem.depois':'O número que vem depois','ordem.entre':'O número que fica entre dois','ordem.antes':'O número que vem antes','ordem.maior':'Achar um número maior','ordem.menor':'Achar um número menor','ordem.salto':'Contar pulando: 2, 5, 10','ordem.seq':'Sequência crescente','ordem.seqdec':'Sequência decrescente',
   'formas.tfig':'Figuras planas pelo nome','formas.tsol':'Sólidos pelo nome','formas.lados4':'Figuras de 4 lados','formas.lados3':'Figuras de 3 lados','formas.rolam':'Formas que rolam','formas.semcanto':'Figuras sem cantos'};
 const skillName=id=>SKN[id]||'Reconhecer: '+id.split('.')[1];
 const dayNum=()=>{const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()};
@@ -475,12 +477,14 @@ const sfx={
   dizzy(){[1200,900,1300,1000].forEach((f,i)=>tone(f,.1,'sine',.04,i*.1))}
 };
 /* --- voices --- */
-/* Every character has a voice of their own, recorded beforehand with an open neural voice (tools/vozes makes them): vozes/<character>.mp3 holds all
-   the lines of one character, one after the other, and vozes/vozes.json says where each line starts. The file stays packed in memory and only the line
-   being said is unpacked, so the recordings take little memory.
-   What changes every time (the questions, the sums, the explanations) cannot be recorded, so the narrator reads it with the voice of the device.
-   A host says "Mandou bem!" in their own voice and the narrator goes on with the sum. The orders of the master are put together from recorded pieces.
-   When a recording cannot be played (the files did not load yet, an old browser), the character falls back to the voice of the device,
+/* Who speaks, and with which voice. Every line has one owner and is said whole by that owner: a sentence never starts in one voice and ends in another.
+   - The narrator (a woman's voice of the device) says everything inside the games: questions, hints, cheers, explanations, the result. These change
+     every time, so they cannot be recorded.
+   - A character speaks only when shown speaking, with their name on the screen: a host's welcome and the rest of the gold, the friends, the shopkeeper.
+     These lines are recorded with a voice of their own (tools/vozes makes them): vozes/<character>.mp3 holds all the lines of one character,
+     one after the other, and vozes/vozes.json says where each line starts. The file stays packed in memory and only the line being said is unpacked.
+   - The master is the voice of his own game: his orders are put together from recorded pieces, and so are his cheers and his corrections.
+   When a recording cannot be played (the files did not load yet, an old browser), the character says the line with a voice of the device instead,
    with a pitch (p) and a pace (r) of their own, kept close to a real voice so that nobody sounds like a robot or a chipmunk. */
 const VOICES={'Seu Zé':{p:.78,r:.86,g:'m'},Mestre:{p:.8,r:.88,g:'m'},Lojista:{p:.9,r:.96,g:'m'},Theo:{p:.95,r:.92,g:'m'},Rafa:{p:1,r:.98,g:'m'},Juca:{p:1.08,r:1.02,g:'m'},Pedro:{p:1.2,r:1,g:'m'},'Léo':{p:1.25,r:.95,g:'m'},
   Duda:{p:1.02,r:.94,g:'f'},Nina:{p:1.08,r:.92,g:'f'},Bia:{p:1.14,r:.97,g:'f'},Lia:{p:1.2,r:.9,g:'f'},Ana:{p:1.35,r:1,g:'f'}},NARR={p:1,r:.92,g:'f'};
@@ -492,8 +496,11 @@ const ROBOT=/\b(eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley|albert|bad new
 const voiceRank=v=>(/natural|neural|premium|enhanced|aprimorad|melhorad|siri/i.test(v.name)?4:0)+(/online/i.test(v.name)?1:0)+(/^google/i.test(v.name)?2:0)+(ROBOT.test(v.name)?-6:0)+(/pt[-_]BR/i.test(v.lang)?1:0);
 let ptVoice=null,ptVoices=[],voiceMap={},speechOK=false;
 function pickVoice(){try{const vs=speechSynthesis.getVoices();ptVoices=vs.filter(v=>/pt[-_]BR/i.test(v.lang));if(!ptVoices.length)ptVoices=vs.filter(v=>/^pt/i.test(v.lang));
-  /* the narrator gets the most natural voice of the device (the list keeps its order between voices of the same rank) */
-  ptVoices=ptVoices.map((v,i)=>[v,i]).sort((a,b)=>voiceRank(b[0])-voiceRank(a[0])||a[1]-b[1]).map(x=>x[0]);ptVoice=ptVoices[0]||null;castVoices()}catch(e){}}
+  /* the voices from the most natural down (the list keeps its order between voices of the same rank); the narrator takes the most natural woman's
+     voice (the Google voice of Chrome is a woman's), and any voice only when the device has no woman's voice that is not robotic */
+  ptVoices=ptVoices.map((v,i)=>[v,i]).sort((a,b)=>voiceRank(b[0])-voiceRank(a[0])||a[1]-b[1]).map(x=>x[0]);
+  ptVoice=ptVoices.find(v=>womanVoice(v)&&voiceRank(v)>=0)||ptVoices[0]||null;castVoices()}catch(e){}}
+const womanVoice=v=>(FEM.test(v.name)||/^google/i.test(v.name))&&!MASC.test(v.name);
 /* deal the voices of the device out to the characters, for when a recording cannot be played */
 function castVoices(){voiceMap={};if(ptVoices.length<2)return;
   /* the Google voices of desktop Chrome ignore the pitch: they are kept for the narrator when the device has any other */
@@ -503,18 +510,20 @@ function castVoices(){voiceMap={};if(ptVoices.length<2)return;
   const take=list=>{let best=list[0];for(const v of list)if((uses.get(v)||0)<(uses.get(best)||0))best=v;uses.set(best,(uses.get(best)||0)+1);return best};
   Object.keys(VOICES).forEach(who=>{const own=(VOICES[who].g==='m'?men:women).concat(other);voiceMap[who]=take(own.length?own:pool)})}
 function voiceFor(who){const v=VOICES[who]||NARR;return {pitch:v.p,rate:v.r,voice:voiceMap[who]||ptVoice}}
-/* who is talking when nothing says otherwise: the master in his game, the host of the station in the others, the narrator outside them */
-const speaker=()=>CH?(CH.type==='simon'?'Mestre':CH.st.npc.name):null;
+/* who is talking when nothing says otherwise: the master in his game, the narrator everywhere else (also in the games of the hosts) */
+const speaker=()=>CH&&CH.type==='simon'?'Mestre':null;
 if(window.speechSynthesis){pickVoice();try{speechSynthesis.onvoiceschanged=pickVoice}catch(e){}}
 function unlockSpeech(){if(speechOK||!window.speechSynthesis)return;speechOK=true;try{const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u)}catch(e){}}
 const ORD={1:'primeiro',2:'segundo',3:'terceiro',4:'quarto',5:'quinto'};
-/* words in capitals are said as words (some voices spell them out letter by letter) */
-function cleanSpeech(t){return String(t).replace(/\p{Extended_Pictographic}|️|[⬆⭕✓➜⏱⟲⟳➖↺⬇·]/gu,' ').replace(/R\$\s?1\b/g,'1 real').replace(/R\$\s?(\d+)/g,'$1 reais')
+/* The words to say, from what is on the screen. Tags are taken out here, whoever calls: some device voices read "<b>" out loud,
+   which made "Pegue o número <b>9</b>" sound like "b... nove... b". Words in capitals are said as words (some voices spell them out letter by letter). */
+const ENT={nbsp:' ',amp:'&',lt:'<',gt:'>',quot:'"',apos:"'"};
+function cleanSpeech(t){return String(t).replace(/<\/?[a-z][^>]*>/gi,' ').replace(/&(nbsp|amp|lt|gt|quot|apos);/g,(m,e)=>ENT[e]).replace(/\p{Extended_Pictographic}|️|[⬆⭕✓➜⏱⟲⟳➖↺⬇·]/gu,' ').replace(/R\$\s?1\b/g,'1 real').replace(/R\$\s?(\d+)/g,'$1 reais')
   .replace(/(\d)º/g,(m,d)=>ORD[d]||m).replace(/ − /g,' menos ').replace(/ \+ /g,' mais ').replace(/ × /g,' vezes ').replace(/(^|[^\p{L}])(\p{Lu}{2,})(?![\p{L}])/gu,(m,a,w)=>a+w.toLowerCase()).replace(/\?(\s*$)/,'?').replace(/\s+/g,' ').trim()}
 /* --- the recorded lines --- */
 let VO=null,voBus=null,sayTok=0,sayNode=null,speakCb=null;const voFiles={},voBufs=new Map();
 const voKey=t=>String(t).toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
-fetch('vozes/vozes.json').then(r=>r.ok?r.json():null).then(j=>{if(j&&j.chars)VO=j.chars}).catch(()=>{});
+fetch('vozes/vozes.json').then(r=>r.ok?r.json():null).then(j=>{if(j&&j.chars){VO=j.chars;['Ana','Pedro','Léo','Lojista'].forEach(voPreload)}}).catch(()=>{});
 /* the packed file of a character, fetched once */
 function voFile(who){const c=VO&&VO[who];if(!c)return Promise.reject(new Error('no voice'));
   return voFiles[who]||(voFiles[who]=fetch('vozes/'+c.f).then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer()}).catch(e=>{delete voFiles[who];throw e}))}
@@ -526,12 +535,11 @@ function voClip(who,k){const id=who+'|'+k;if(voBufs.has(id)){const b=voBufs.get(
     .then(b=>{voBufs.set(id,b);while(voBufs.size>40)voBufs.delete(voBufs.keys().next().value);return b})}
 /* a text in pieces at its pauses (after . ! ? : , ; and before "e por fim"), so that recorded pieces can be found in it */
 const clauses=t=>String(t).replace(/([.!?:,;])\s+/g,'$1\u0001').replace(/\s+(e por fim\b)/gi,'\u0001$1').split('\u0001').filter(s=>voKey(s));
-/* What a character says, as recordings ({k,d,t}) and text for the narrator. The longest recorded run of pieces is taken first.
-   Recordings are only looked for at the start of the text: once the narrator takes over, he reads to the end.
-   The master is all or nothing: an order he has not recorded is said whole with the device voice, so that his voice does not change in the middle of it. */
+/* What a character says, as a row of their recordings ({k,d,t}), the longest recorded run of pieces first. All or nothing: a line that is not
+   recorded from end to end is said whole with the device voice (null), so that nobody's voice changes in the middle of a sentence. */
 function voPlan(who,text){const L=VO&&VO[who]&&VO[who].l;if(!L)return null;const cs=clauses(text),out=[];let i=0;
   while(i<cs.length){let j=cs.length;for(;j>i;j--){const k=voKey(cs.slice(i,j).join(' '));if(L[k]){out.push({k,d:L[k][2],t:cs.slice(i,j).join(' ')});break}}
-    if(j>i){i=j;continue}if(who==='Mestre')return null;out.push(cs.slice(i).join(' '));break}
+    if(j===i)return null;i=j}
   return out}
 /* stops what is being said; whoever waited for the end of it goes on, as when the device voice is interrupted */
 function stopSpeech(){sayTok++;if(sayNode){const n=sayNode;sayNode=null;try{n.onended=null;n.stop()}catch(e){}}try{if(window.speechSynthesis)speechSynthesis.cancel()}catch(e){}
@@ -540,25 +548,25 @@ function stopSpeech(){sayTok++;if(sayNode){const n=sayNode;sayNode=null;try{n.on
 function ttsSay(text,who,tok,end){if(tok!==sayTok)return;if(!window.speechSynthesis||!voKey(text))return end();
   try{const u=new SpeechSynthesisUtterance(text);u.lang='pt-BR';const vc=voiceFor(who);if(vc.voice)u.voice=vc.voice;u.pitch=vc.pitch;u.rate=vc.rate;
     let fired=false;const e=()=>{if(fired)return;fired=true;if(tok===sayTok)end()};u.onend=e;u.onerror=e;speechSynthesis.speak(u);setTimeout(e,Math.max(4000,text.length*120))}catch(x){end()}}
-/* one recorded line; if it is not ready in time, fail() hands the rest to the device voice */
-function playClip(who,k,tok,end,fail){let wait=setTimeout(()=>{wait=0;if(tok===sayTok)fail()},1500);
+/* one recorded line; if it is not ready in time (the file still on its way), fail() hands the rest to the device voice */
+function playClip(who,k,tok,end,fail){let wait=setTimeout(()=>{wait=0;if(tok===sayTok)fail()},3000);
   voClip(who,k).then(b=>{if(!wait)return;clearTimeout(wait);wait=0;if(tok!==sayTok)return;
     if(!voBus){voBus=actx.createGain();voBus.connect(actx.destination)}
-    const s=actx.createBufferSource();s.buffer=b;s.connect(voBus);s.onended=()=>{if(sayNode===s)sayNode=null;if(tok===sayTok)end()};sayNode=s;s.start()},
+    const s=actx.createBufferSource();s.buffer=b;s.who=who;s.k=k;s.connect(voBus);s.onended=()=>{if(sayNode===s)sayNode=null;if(tok===sayTok)end()};sayNode=s;s.start()},
     ()=>{if(wait){clearTimeout(wait);wait=0;if(tok===sayTok)fail()}})}
 function speak(text,cb,force,who){if(speakCb){const c=speakCb;speakCb=null;c()}
   const n=String(text).length,fallback=()=>{if(cb)setTimeout(cb,1500+n*45)};
   if(!(S.voice||force))return fallback();
   stopSpeech();if(who===undefined)who=speaker();const tok=sayTok,clean=cleanSpeech(text);
-  /* without recordings (or before the sound is on) the character speaks with the device voice, as before */
+  /* the character's recordings; the narrator, a line nobody recorded, or no sound yet: the device voice says it all */
   const plan=actx&&actx.state==='running'?voPlan(who,clean):null,parts=plan&&plan.length?plan:[{tts:clean}];
   /* nothing recorded and no voice on the device: the text is only written, and whoever waits gets the time to read it */
   if(!window.speechSynthesis&&!parts.some(p=>p.k))return fallback();
   let done=false;const fin=()=>{if(done)return;done=true;duck(false);if(speakCb===fin)speakCb=null;if(cb)setTimeout(cb,600)};speakCb=fin;duck(true);
-  setTimeout(fin,Math.max(4000,parts.reduce((s,p)=>s+(p.k?p.d*1000+500:Math.max(2500,(p.tts||p).length*120)),0)+2000));
+  setTimeout(fin,Math.max(4000,parts.reduce((s,p)=>s+(p.k?p.d*1000+500:Math.max(2500,p.tts.length*120)),0)+2000));
   let i=0;const next=()=>{if(tok!==sayTok)return;if(i>=parts.length)return fin();const p=parts[i++];
-    if(p.k)playClip(who,p.k,tok,next,()=>{const rest=parts.slice(i-1).map(x=>x.k?x.t:x).join(' ');i=parts.length;ttsSay(rest,who,tok,next)});
-    else ttsSay(p.tts||p,p.tts?who:null,tok,next)};
+    if(p.k)playClip(who,p.k,tok,next,()=>{const rest=parts.slice(i-1).map(x=>x.t).join(' ');i=parts.length;ttsSay(rest,who,tok,next)});
+    else ttsSay(p.tts,who,tok,next)};
   next()}
 /* the words of a bit of HTML; a line break counts as a space, so that the sentences on both sides of it do not run together */
 const plain=html=>{const d=document.createElement('div');d.innerHTML=String(html).replace(/<br\s*\/?>/gi,' ');return d.textContent};
@@ -762,6 +770,14 @@ const FRN=[['🍎','maçã','a'],['🍌','banana','a'],['🍇','uva','a'],['🍊
 /* the three paints; a paint question names one (or two) of them, and the colour is checked together with the answer */
 const PAINTS=[{k:'vermelho',c:'#E8413A',n:'VERMELHO'},{k:'azul',c:'#2E8BF0',n:'AZUL'},{k:'amarelo',c:'#FFC83D',n:'AMARELO'}];
 const pchip=c=>`<span class="pc" style="--k:${c.c}">${c.n}</span>`;
+/* A portal whose game keeps to its own actions turns the pick-one questions into them: in the village they are circled
+   (Circula e Pinta), in the farm the answer is carried to the basket (Leve ao Cesto). */
+function toCircle(q){if(q.verb!=='jump'||!q.opts.every(o=>o.pic&&!o.size&&!o.model))return q;
+  q.verb='circle';q.text=q.text.replace(/PULE EM CIMA d([oa]s?) /,'CIRCULE $1 ');q.opts.forEach(o=>{o.cr=o.cr||.9});return q}
+function toCarry(q){if(q.verb==='carry'||!q.opts||!q.opts.every(o=>o.pic))return q;const ans=q.ans;
+  q.text=q.text.replace(/PULE EM CIMA d([oa]s?) /,'LEVE para o cesto $1 ').replace(/CIRCULE ([oa]s?) /,'LEVE para o cesto $1 ');
+  return Object.assign(q,{verb:'carry',one:true,items:q.opts.map((o,i)=>({pic:o.pic,v:i,s:2})),check:v=>v.length===1&&v[0]===ans,solIdx:[ans],
+    count:v=>v.length>1?`Tem ${v.length} no cesto: leve só a resposta.`:'Essa não é a resposta.'})}
 function say(verb,a,rest){if(verb==='jump')return `PULE EM CIMA d${a} ${rest}`;if(verb==='circle')return `CIRCULE ${a} ${rest}`;return `PINTE ${a} ${rest}`}
 function optNums(ans,cands,min,max,count){count=count||4;const s=new Set([ans]);
   shuffle(cands||[]).forEach(v=>{if(s.size<count&&v>=min&&v<=max)s.add(v)});
@@ -814,8 +830,10 @@ function genVocab(L){
   const an=sample(ANIMAIS,4),i=rnd(0,1);
   return {verb:'jump',text:say('jump','o',`animal que está <b>ENTRE</b> o ${an[i][1]} e o ${an[i+2][1]}`),opts:an.map(a=>({pic:pEmo(a[0])})),ans:i+1,hint:'ENTRE é no meio dos dois.'};
 }
+/* the questions of Leve ao Cesto: counting is carrying to the basket ('leve'), making 10 too ('enche'), and every pick-one question is
+   answered by carrying the right one to the basket (toCarry, in the station) */
 function genN10(L){
-  const t=pickSkill('n10',L===1?['leve','cont','grupo','depois','pint','padrao','grafico']:L===2?['pint','compl','leve','cont','grupo','palavra','padrao','grafico','chance']:['compl','enche','palavra','cont','grupo','depois','padrao','grafico','chance']);
+  const t=pickSkill('n10',L===1?['leve','cont','grupo','depois','padrao','grafico']:L===2?['enche','leve','cont','grupo','palavra','padrao','grafico','chance']:['enche','leve','palavra','cont','grupo','depois','padrao','grafico','chance']);
   const [e,nm,g]=pick(COUNT);
   if(t==='padrao'){const its=sample(FRUTA,3),pat=L===1?[0,1]:L===2?pick([[0,0,1],[0,1,1]]):pick([[0,1,2],[0,0,1,1]]),len=L===3?7:6,seq=range(0,len).map(i=>pat[i%pat.length]),opts=shuffle([0,1,2]);
     return {verb:'jump',text:`Olhe a fileira da placa. ${say('jump','a','fruta que vem <b>DEPOIS</b>, continuando o padrão')}`,board:bPat(seq.slice(0,len).map(i=>its[i])),opts:opts.map(i=>({pic:pEmo(its[i])})),ans:opts.indexOf(seq[len]),
@@ -829,13 +847,6 @@ function genN10(L){
     const balls=k===0?Array(n).fill(c1[0]):k===2?Array(n).fill(c2[0]):shuffle([...Array(m).fill(c1[0]),...Array(n-m).fill(c2[0])]),opts=shuffle([0,1,2]),low=c1[1].toLowerCase();
     return {verb:'jump',text:`Vou tirar uma bola do saco sem olhar. Vai sair uma bola <b>${c1[1]}</b>? PULE EM CIMA da resposta`,board:bBag(balls),opts:opts.map(i=>({pic:pWord(K[i])})),ans:opts.indexOf(k),
       hint:`Olhe as bolas do saco. Todas são da cor ${low}? Só algumas? Nenhuma?`,explain:k===0?`Só tem bola ${low}. Então sai com certeza!`:k===2?`Não tem nenhuma bola ${low}. Então é impossível!`:`Tem bola ${low} e de outra cor. Então talvez saia.`}}
-  if(t==='pint'){const n=rnd(L===1?2:4,L===1?9:10);
-    if(L>=2&&Math.random()<.6){const [c1,c2]=sample(PAINTS,2),a=rnd(1,n-1),b=n-a;
-      return {verb:'paint',multi:true,layout:'tiles',cols:{[c1.k]:a,[c2.k]:b},text:`PINTE <b>${a}</b> de ${pchip(c1)} e <b>${b}</b> de ${pchip(c2)}`,opts:range(1,10).map(()=>({})),check:s=>s.length===n,sol:range(0,n-1),solCol:[...Array(a).fill(c1.k),...Array(b).fill(c2.k)],
-        count:s=>`Você pintou ${s.length}.`,hint:`São ${a} de ${c1.n} e ${b} de ${c2.n}. Conte cada cor.`,explain:`${a} + ${b} = ${n}`}}
-    return {verb:'paint',multi:true,layout:'tiles',text:`PINTE <b>${n}</b> quadrados do chão`,opts:range(1,10).map(()=>({})),check:s=>s.length===n,sol:range(0,n-1),count:s=>`Você pintou ${s.length}.`,hint:`Conte enquanto pinta. Precisa dar ${n}.`}}
-  if(t==='compl'){const k=rnd(2,8);
-    return {verb:'paint',multi:true,layout:'tiles',text:`Já tem ${k} pintados. PINTE os que faltam para dar <b>10</b>`,opts:range(0,9).map(i=>i<k?{locked:true}:{}),check:s=>s.length===10-k,sol:range(k,9),count:s=>`Agora tem ${k+s.length}.`,hint:'Conte os quadrados cinza e continue contando até 10.',explain:`${k} + ${10-k} = 10`}}
   if(t==='leve'){const one=L===1,n=one?rnd(2,5):rnd(4,10),total=Math.min(14,n+rnd(2,4));
     return {verb:'carry',one,text:`LEVE <b>${n}</b> ${nm} para o cesto 🧺${one?`, ${g==='a'?'uma':'um'} de cada vez`:''}`,items:range(1,total).map(()=>({e,v:1})),check:v=>v.length===n,solIdx:range(0,n-1),count:v=>`Tem ${v.length} no cesto.`,hint:`Conte um por um. Precisa ter ${n} no cesto. Para tirar, pise no ➖.`}}
   if(t==='enche'){const k=rnd(2,7),need=10-k;
@@ -843,7 +854,7 @@ function genN10(L){
   if(t==='cont'){const n=L===3?rnd(0,10):rnd(1,10),q=numJump(n,[n+1,n-1,n+2],0,10);
     return Object.assign(q,{text:say('jump','o',`número que mostra quant${g}s ${nm} tem na placa`),board:bEmo(e,n),hint:'Conte um por um, apontando com o dedo.',explain:n===0?'Não tem nenhum. Nenhum é ZERO!':''})}
   if(t==='grupo'){const cnt=sample(L===1?range(1,6):range(1,10),3),x=pick(cnt);
-    return {verb:'circle',text:say('circle','o',`prato que tem <b>${x}</b> ${nm}`),opts:cnt.map(n=>({model:mPlate(e,n),cr:1.4})),ans:cnt.indexOf(x),hint:'Conte cada prato.'}}
+    return {verb:'jump',text:say('jump','o',`prato que tem <b>${x}</b> ${nm}`),opts:cnt.map(n=>({pic:pEmoGrid(e,n)})),ans:cnt.indexOf(x),hint:'Conte cada prato.'}}
   if(t==='depois'){const x=rnd(1,9),before=L>=2&&Math.random()<.4,ans=before?x-1:x+1,q=numJump(ans,[x,ans+1,ans-1],0,10);
     return Object.assign(q,{text:say('jump','o',`número que vem <b>${before?'ANTES':'DEPOIS'}</b> do ${x}`),board:bBig(before?`? ➜ ${x}`:`${x} ➜ ?`),hint:before?'ANTES é um a menos.':'DEPOIS é um a mais.'})}
   const n=rnd(0,10);
@@ -873,9 +884,11 @@ function genMoney(L){
   const B=rnd(4,9),gs=sample(GOODS,4),prices=shuffle([rnd(1,B),rnd(1,B),rnd(B+1,B+6),rnd(B+1,B+6)]),sol=prices.map((p,i)=>p<=B?i:-1).filter(i=>i>=0);
   return {verb:'paint',multi:true,layout:'grid',text:`Você tem <b>R$ ${B}</b>. PINTE tudo o que dá para comprar (uma coisa de cada vez)`,opts:gs.map((g2,i)=>({pic:pGoods(g2[0],prices[i])})),check:s=>setEq(s,sol),sol,hint:`Só dá para comprar o que custa R$ ${B} ou menos.`};
 }
-function genN100(L){
+/* the tower has two games: Monte o Número (only 'monte', with bars of 10 and little cubes) and Quadro do 100 (the rest, every answer picked
+   from three; it also has the sums with tens of the old floor of lava) */
+function genN100(L,game){
   const M=[39,69,99][L-1];
-  const t=pickSkill('n100',L===1?['dez','viz','maior','fam','monte']:L===2?['dez','quadro','monte','fam','seq']:['quadro','monte','maior','seq','viz','fam']);
+  const t=game==='monte'?pickSkill('n100',['monte']):pickSkill('n100',L===1?['dez','viz','maior','fam']:L===2?['dez','quadro','fam','seq','viz']:['quadro','maior','seq','viz','fam','conta']);
   if(t==='dez'){const n=rnd(11,M),d=Math.floor(n/10),u=n%10,sw=u*10+d,q=numJump(n,[u&&sw<=100&&sw!==n?sw:n+10,n+10,n-10,n+1],10,100);
     return Object.assign(q,{text:say('jump','o',`número que mostra quantos cubinhos tem na placa`),board:bRods(d,u),hint:'Cada barra azul tem 10. Conte 10, 20, 30... e depois some os cubinhos vermelhos.',explain:`${d} dezenas e ${u} unidades = ${n}`})}
   if(t==='monte'){const n=rnd(L===1?12:21,M),d=Math.floor(n/10),u=n%10;
@@ -889,12 +902,13 @@ function genN100(L){
   if(t==='viz'){const x=rnd(10,M-1),m=pick(['depois','antes','entre']),ans=m==='depois'?x+1:m==='antes'?x-1:x;
     const q=numJump(ans,[m==='entre'?x+2:x,ans+1,ans-1,ans+10],0,100);
     return Object.assign(q,{text:say('jump','o',m==='entre'?`número que fica <b>ENTRE</b> ${x-1} e ${x+1}`:`número que vem <b>${m.toUpperCase()}</b> do ${x}`),board:bBig(m==='entre'?`${x-1}  ?  ${x+1}`:m==='antes'?`? ➜ ${x}`:`${x} ➜ ?`),hint:m==='antes'?'ANTES é um a menos.':m==='depois'?'DEPOIS é um a mais.':'O do meio é o que fica entre.'})}
-  if(t==='fam'){const d=rnd(1,Math.floor(M/10)),ins=sample(range(d*10,d*10+9),3),outs=sample(range(10,M).filter(v=>Math.floor(v/10)!==d),3);
-    const all=shuffle([...ins,...outs]),sol=all.map((v,i)=>Math.floor(v/10)===d?i:-1).filter(i=>i>=0);
-    return {verb:'paint',multi:true,layout:'grid',text:`PINTE os números de <b>${d*10} até ${d*10+9}</b>`,opts:all.map(v=>({pic:pNum(v)})),check:s=>setEq(s,sol),sol,hint:`Olhe o primeiro algarismo. Ele precisa ser ${d}.`}}
+  if(t==='fam'){const d=rnd(1,Math.floor(M/10)),x=rnd(d*10,d*10+9),outs=sample(range(10,M).filter(v=>Math.floor(v/10)!==d&&Math.abs(v-x)<25),2),arr=shuffle([x,...outs]);
+    return {verb:'jump',text:say('jump','o',`número que é da família do <b>${d*10}</b> (de ${d*10} até ${d*10+9})`),opts:arr.map(v=>({pic:pNum(v)})),ans:arr.indexOf(x),hint:`Olhe o primeiro algarismo. Ele precisa ser ${d}.`}}
+  if(t==='conta'){const a=rnd(2,7)*10,b=Math.random()<.5?rnd(1,2)*10:rnd(1,8),ans=a+b,q=numJump(ans,[ans+10,ans-10,ans+1,a+b*10<=99?a+b*10:ans-1],0,99);
+    return Object.assign(q,{text:say('jump','o',`resultado de <b>${a} + ${b}</b>`),board:bBig(`${a} + ${b}`),hint:'Some primeiro as dezenas, depois as unidades.',explain:`${a} + ${b} = ${ans}`})}
   if(t==='maior'){const a=rnd(1,Math.floor(M/10)),b=rnd(1,9),nums=new Set([a*10+b]);if(b*10+a<=M&&b!==a)nums.add(b*10+a);
     while(nums.size<3)nums.add(rnd(10,M));const arr=shuffle([...nums]),ask=pick(['MAIOR','MENOR']);
-    return {verb:'circle',text:say('circle','o',`número <b>${ask}</b>`),opts:arr.map(v=>({pic:pNum(v)})),ans:arr.indexOf(ask==='MAIOR'?Math.max(...arr):Math.min(...arr)),hint:'Compare primeiro as dezenas (o algarismo da frente).'}}
+    return {verb:'jump',text:say('jump','o',`número <b>${ask}</b>`),opts:arr.map(v=>({pic:pNum(v)})),ans:arr.indexOf(ask==='MAIOR'?Math.max(...arr):Math.min(...arr)),hint:'Compare primeiro as dezenas (o algarismo da frente).'}}
   const step=L===2?10:pick([10,5,2]),start=step*rnd(1,step===10?4:6),seq=range(0,4).map(i=>start+i*step),m=rnd(1,4),ans=seq[m],q=numJump(ans,[ans+1,ans-1,ans+step,ans-step],0,100);
   return Object.assign(q,{text:say('jump','o',`número que falta. Conte de <b>${step} em ${step}</b>`),board:bSeq(seq,m),hint:`Some ${step} ao número que vem antes.`});
 }
@@ -950,20 +964,6 @@ function genShapeQ(L,prev){const names=Object.keys(SHAPE_INFO).filter(n=>n!==pre
   else text=`Encoste na forma <b>${I.prop}</b>`;return {n,text,skill:lastSkill}}
 
 /* --- NEW: 🎯 shooter --- */
-function mkExpr(v,L){const sub=Math.random()<(L===1?.3:.45);
-  if(L<3){if(sub){const b=rnd(1,L===1?5:9),a=v+b;if(a>(L===1?10:20))return null;return `${a} − ${b}`}if(v<2)return null;const a=rnd(1,v-1);return `${a} + ${v-a}`}
-  if(sub){const b=pick([10,20,1,2,3]),a=v+b;if(a>99)return null;return `${a} − ${b}`}
-  const tens=Math.floor(v/10),u=v%10;if(Math.random()<.5&&tens>=2){const x=rnd(1,tens-1)*10;return `${x} + ${v-x}`}if(u>=1){const k=rnd(1,u);return `${v-k} + ${k}`}return `${v-10} + 10`}
-/* Levels 1 and 2: one sum, and balloons with numbers - a single thing to work out. Level 3 keeps the hunt for every sum that makes a number
-   (several sums to work out for one question), with fewer balloons than before. */
-function genShootArith(L){
-  if(L<3){const dk=S.sk['contas.decompor'];if(dk)dk.w=0;const q=genArith(L),ask=`${q.a} ${q.op} ${q.b}`,nums=optNums(q.ans,[q.ans+1,q.ans-1,q.ans+2,q.ans-2,q.op==='+'?Math.abs(q.a-q.b):q.a+q.b,q.ans+10],0,30,5);
-    return {T:q.ans,ask,text:`Quanto é <b>${ask}</b>? Estoure o balão com a resposta`,items:nums.map(v=>({label:String(v),ok:v===q.ans})),explain:`${ask} = ${q.ans}`}}
-  tag('contas','decompor');const T=pick([20,30,40,50,60,70,80])+(Math.random()<.5?0:rnd(1,8));
-  const ok=new Set();let g=0;while(ok.size<2&&g<200){g++;const e=mkExpr(T,L);if(e)ok.add(e)}
-  const bad=new Set();g=0;while(bad.size<4&&g<400){g++;const v=T+pick([-10,-2,-1,1,2,10]);if(v<1)continue;const e=mkExpr(v,L);if(e&&!ok.has(e))bad.add(e)}
-  const items=shuffle([...[...ok].map(l=>({label:l,ok:true})),...[...bad].map(l=>({label:l,ok:false}))]);
-  return {T,text:`Estoure TODOS os balões que dão <b>${T}</b>`,items,explain:`Todos esses dão ${T}!`}}
 const FIGS=['círculo','quadrado','triângulo','retângulo'],SOLS=['esfera','cubo','cilindro','cone','pirâmide','bloco'];
 const PLUR={'círculo':'CÍRCULOS','quadrado':'QUADRADOS','triângulo':'TRIÂNGULOS','retângulo':'RETÂNGULOS','esfera':'ESFERAS','cubo':'CUBOS','cilindro':'CILINDROS','cone':'CONES','pirâmide':'PIRÂMIDES','bloco':'BLOCOS'};
 function genShootShapes(L){const cols=['#E8413A','#2E8BF0','#FFC83D','#2DB34A','#8B4CF0','#FF8A1F'];
@@ -983,26 +983,21 @@ function genShootShapes(L){const cols=['#E8413A','#2E8BF0','#FFC83D','#2DB34A','
 function floorQ(text,pred,pool,needOk,explain){const oks=shuffle(pool.filter(pred)),bads=shuffle(pool.filter(v=>!pred(v))),k=Math.min(oks.length,needOk,9);
   const vals=shuffle([...oks.slice(0,k),...bads.slice(0,9-k)]);return {text,labels:vals.map(String),ok:vals.map(pred),explain}}
 const near9=(n,lo,hi)=>range(Math.max(lo,n-9),Math.min(hi,n+9));
-function genFloorOrder(L){const max=L===1?20:L===2?60:100,t=pickSkill('ordem',L===1?['depois','antes','depois']:L===2?['depois','antes','maior','menor']:['salto','maior','depois','antes']);
+function genFloorOrder(L){const max=L===1?20:L===2?60:100,t=pickSkill('ordem',L===1?['depois','antes','depois']:L===2?['depois','antes','maior','menor','entre']:['salto','maior','depois','antes','entre']);
+  if(t==='entre'){const x=rnd(2,max-1);return floorQ(`Pise no número que fica <b>ENTRE</b> ${x-1} e ${x+1}`,v=>v===x,near9(x,0,max),1,`${x-1}, ${x}, ${x+1}`)}
   if(t==='depois'||t==='antes'){const x=rnd(1,max-1),ans=t==='depois'?x+1:x-1;return floorQ(`Pise no número que vem <b>${t.toUpperCase()}</b> do ${x}`,v=>v===ans,near9(ans,0,max),1,`${t==='depois'?`${x}, ${ans}`:`${ans}, ${x}`}`)}
   if(t==='maior'||t==='menor'){const x=rnd(10,max-10);return floorQ(`Pise em um número <b>${t.toUpperCase()}</b> que ${x}`,t==='maior'?v=>v>x:v=>v<x,range(Math.max(0,x-20),Math.min(max,x+20)),3,`Os números ${t==='maior'?'maiores':'menores'} que ${x} ficaram.`)}
   const s=pick([2,5,10]),a=s*rnd(1,s===10?6:8),ans=a+2*s;return floorQ(`Conte de ${s} em ${s}: ${a}, ${a+s}, <b>?</b>`,v=>v===ans,near9(ans,0,100).concat([ans+s,a]).filter((v,i,ar)=>ar.indexOf(v)===i),1,`${a}, ${a+s}, ${ans}`)}
-function genFloorN100(L){const M=[39,69,99][L-1],t=({dez:'du',fam:'familia',viz:'entre'})[pickSkill('n100',L===1?['dez','fam','viz']:L===2?['dez','fam','maior','viz']:['dez','maior','conta','fam'])]||lastSkill.split('.')[1];
-  if(t==='du'){const n=rnd(11,M),d=Math.floor(n/10),u=n%10,pool=near9(n,10,M).concat(u&&u*10+d<=99?[u*10+d]:[]).filter((v,i,a)=>a.indexOf(v)===i);return floorQ(`Pise no número com <b>${d} dezena${d>1?'s':''} e ${u} unidade${u===1?'':'s'}</b>`,v=>v===n,pool,1,`${d} dezenas e ${u} unidades = ${n}`)}
-  if(t==='familia'){const d=rnd(1,Math.floor(M/10));return floorQ(`Pise em um número de <b>${d*10} até ${d*10+9}</b>`,v=>Math.floor(v/10)===d,range(1,M),3,`Começam com ${d}: são da família do ${d*10}.`)}
-  if(t==='entre'){const x=rnd(11,M-1);return floorQ(`Pise no número que fica <b>ENTRE</b> ${x-1} e ${x+1}`,v=>v===x,near9(x,0,M),1,`${x-1}, ${x}, ${x+1}`)}
-  if(t==='maior'){const x=rnd(20,M-10);return floorQ(`Pise em um número <b>MAIOR</b> que ${x}`,v=>v>x,range(x-20,Math.min(99,x+20)),3,`Ficaram os maiores que ${x}.`)}
-  const a=rnd(2,7)*10,b=Math.random()<.5?rnd(1,2)*10:rnd(1,8),ans=a+b;return floorQ(`Pise no resultado de <b>${a} + ${b}</b>`,v=>v===ans,near9(ans,0,99).concat([a+b+10,a+b-10]).filter((v,i,ar)=>ar.indexOf(v)===i&&v>=0),1,`${a} + ${b} = ${ans}`)}
 
 /* --- NEW: 🤝 help friends (share / deliver) --- */
 function genShareN10(L){const [e,nm,ar]=pick([['🍪','biscoitos','os'],['🍎','maçãs','as'],['🍓','morangos','os'],['⚽','bolas','as'],['🍬','balas','as']]);
   if(pickSkill('n10',['dividir','entregar'])==='dividir'){const f=L===1?2:L===2?pick([2,3]):pick([3,4]),p=L===1?rnd(1,4):L===2?rnd(1,4):rnd(2,3),tot=f*p;
     const items=range(1,tot).map(()=>({e,v:1})),sol=range(0,f-1).map(i=>range(i*p,i*p+p-1));
-    return {text:`Divida ${ar} <b>${tot} ${nm}</b> IGUALMENTE entre os ${f} amigos. Use tod${ar}!`,friends:range(1,f).map(()=>({bubble:pBubble('Divida','igualmente!')})),items,sol,
-      check:a=>a.every(x=>x.length===p),count:a=>`Cada um ficou com: ${a.map(x=>x.length).join(', ')}.`,hint:'Dê um para cada amigo, depois mais um para cada, até acabar.',explain:`${tot} dividido entre ${f} amigos dá ${p} para cada um.`}}
+    return {baskets:true,text:`Divida ${ar} <b>${tot} ${nm}</b> IGUALMENTE entre os ${f} cestos. Use tod${ar}!`,friends:range(1,f).map(()=>({sign:''})),items,sol,
+      check:a=>a.every(x=>x.length===p),count:a=>`Cada cesto ficou com: ${a.map(x=>x.length).join(', ')}.`,hint:'Ponha um em cada cesto, depois mais um em cada, até acabar.',explain:`${tot} dividido em ${f} cestos dá ${p} em cada um.`}}
   const f=L===1?2:3,wants=range(1,f).map(()=>rnd(1,5)),tot=sum(wants),items=range(1,tot+2).map(()=>({e,v:1}));let k=0;const sol=wants.map(w=>{const s=range(k,k+w-1);k+=w;return s});
-  return {text:`Cada amigo pediu ${nm}. Entregue o que cada um pediu!`,friends:wants.map(w=>{if(L>=2&&w>=2){const a=rnd(1,w-1);return {bubble:pBubble(`Quero ${a} + ${w-a}`,e)}}return {bubble:pBubble(`Quero ${w}`,e)}}),items,sol,
-    check:a=>a.every((x,i)=>x.length===wants[i]),count:a=>`Você entregou: ${a.map(x=>x.length).join(', ')}.`,hint:'Leia o balão de cada amigo e conte antes de entregar.',explain:`Eles queriam ${wants.join(', ')}.`}}
+  return {baskets:true,text:`Cada cesto tem uma placa. Ponha em cada cesto quant${ar} ${nm} a placa pede!`,friends:wants.map(w=>{if(L>=2&&w>=2){const a=rnd(1,w-1);return {sign:`${a} + ${w-a}`}}return {sign:String(w)}}),items,sol,
+    check:a=>a.every((x,i)=>x.length===wants[i]),count:a=>`Você pôs: ${a.map(x=>x.length).join(', ')}.`,hint:'Leia a placa de cada cesto e conte antes de colocar.',explain:`As placas pediam ${wants.join(', ')}.`}}
 function genShareMoney(L){tag('dinheiro','trocado');const f=L===1?2:3,dens=L===1?[1,2]:L===2?[1,2,5]:[1,2,5,10],hi=L===1?6:L===2?12:25,wants=range(1,f).map(()=>rnd(L===1?2:4,hi));
   const parts=wants.map(w=>compose(w,dens)),vals=[...parts.flat(),pick(dens),pick(dens)],items=vals.map(v=>({pic:pMoney(v),v,s:2.1}));let k=0;const sol=parts.map(p=>{const s=range(k,k+p.length-1);k+=p.length;return s});
   return {text:'Os clientes pediram dinheiro trocado. Entregue o valor certo para cada um!',friends:wants.map(w=>({bubble:pBubble('Quero',`R$ ${w}`)})),items,sol,
@@ -1019,27 +1014,27 @@ function genBuild(L){
 
 /* ================= STATIONS / WORLDS ================= */
 const STATIONS=[
-  {id:'contas',name:'Obby das Contas',sub:'Adição e subtração',color:'#E8413A',world:'Ilhas do Mar',sky:'#FFD9A8',ground:['#F2D99B','#E5C77F'],prop:'palm',npc:{name:'Rafa',skin:'#C98E5F',shirt:'#E8413A',pants:'#1F3F8A',hat:'bone'},
-    intro:'Eu sou o Rafa! Aqui no mar a gente faz contas de mais e de menos. Escolha o jogo:',modes:[{k:'obby',i:'⬆',n:'Obby das Contas',d:'Pule na plataforma com a resposta. Errou? Cai na água!'},{k:'shoot',gen:genShootArith,i:'🎯',n:'Estoura-Balão',d:'Mire e estoure os balões com a conta certa.'},{k:'kart',i:'🏎️',n:'Kart das Contas',o:5,d:'Acelere, freie para pensar e passe pelo portão com o resultado.'},{k:'bus',o:1,i:'🚌',n:'Ônibus dos Números',d:'Veja quem sobe e quem desce e descubra quantos ficaram.'},{k:'line',o:2,i:'🦘',n:'Pulos na Reta',d:'Somar é pular para a frente. Tirar é pular para trás.'},{k:'gol',o:.5,i:'⚽',n:'Gol de Placa',d:'Veja os gols no placar, faça a conta e chute no número certo.'}]},
+  {id:'contas',name:'Ilha das Contas',sub:'Adição e subtração',color:'#E8413A',world:'Ilhas do Mar',sky:'#FFD9A8',ground:['#F2D99B','#E5C77F'],prop:'palm',npc:{name:'Rafa',skin:'#C98E5F',shirt:'#E8413A',pants:'#1F3F8A',hat:'bone'},
+    intro:'Eu sou o Rafa! Aqui no mar a gente faz contas de mais e de menos. Escolha o jogo:',modes:[{k:'obby',i:'⬆',n:'Obby das Contas',d:'Pule na plataforma com a resposta. Errou? Cai na água!'},{k:'kart',i:'🏎️',n:'Kart das Contas',o:5,d:'Acelere, freie para pensar e passe pelo portão com o resultado.'},{k:'bus',o:1,i:'🚌',n:'Ônibus dos Números',d:'Veja quem sobe e quem desce e descubra quantos ficaram.'},{k:'line',o:2,i:'🦘',n:'Pulos na Reta',d:'Somar é pular para a frente. Tirar é pular para trás.'},{k:'gol',o:.5,i:'⚽',n:'Gol de Placa',d:'Veja os gols no placar, faça a conta e chute no número certo.'}]},
   {id:'ordem',name:'Corrida dos Números',sub:'A ordem dos números',color:'#FF8A1F',world:'Estádio',sky:'#9FDBFF',ground:['#4CB84A','#43A743'],prop:'stand',npc:{name:'Juca',skin:'#FFD9B3',shirt:'#FF8A1F',pants:'#20242E',hat:'nenhum'},
-    intro:'Oi, eu sou o Juca! Bem-vindo ao estádio dos números. Bora correr?',modes:[{k:'order',i:'🏃',n:'Corrida dos Cubos',d:'Pegue os cubos na ordem certa.'},{k:'floor',gen:genFloorOrder,i:'🌋',n:'Chão de Lava',d:'Fique no número certo antes do tempo acabar!'}]},
+    intro:'Oi, eu sou o Juca! Bem-vindo ao estádio dos números. Bora correr?',modes:[{k:'order',i:'🏃',n:'Corrida dos Cubos',d:'Pegue os cubos na ordem certa.'},{k:'floor',gen:genFloorOrder,i:'🌋',n:'Chão de Lava',d:'Fique no número certo antes do tempo acabar! Até 100.'}]},
   {id:'vocab',name:'Vila das Posições',sub:'Vocabulário fundamental',color:'#2DB34A',world:'Vila',sky:'#BFE8FF',ground:['#7ED36B','#6CC25B'],prop:'house',npc:{name:'Bia',skin:'#8D5A3B',shirt:'#2DB34A',pants:'#5B6475',hat:'nenhum'},
-    intro:'Oi, eu sou a Bia! Aqui a gente aprende EM CIMA, EMBAIXO, DENTRO, FORA, PERTO, LONGE e ENTRE. E brinca de O Mestre Mandou!',modes:[{k:'act',gen:genVocab,i:'⭕',n:'Desafios da Vila',d:'Circule, pule e pinte as posições certas.'},{k:'simon',i:'🗣️',n:'O Mestre Mandou',d:'Ordens de até 3 passos, com pega-pega e esconde-esconde.'}]},
+    intro:'Oi, eu sou a Bia! Aqui a gente aprende EM CIMA, EMBAIXO, DENTRO, FORA, PERTO, LONGE e ENTRE. E brinca de O Mestre Mandou!',modes:[{k:'act',gen:L=>toCircle(genVocab(L)),i:'⭕',n:'Circula e Pinta',d:'Circule e pinte o que está em cima, dentro, perto, na frente...'},{k:'simon',i:'🗣️',n:'O Mestre Mandou',d:'Ordens de até 3 passos, com pega-pega e esconde-esconde.'}]},
   {id:'n10',name:'Fazenda do 10',sub:'Números até 10',color:'#E0A800',world:'Fazenda',sky:'#CDEFFF',ground:['#9CCB5B','#8DBB4E'],prop:'fence',npc:{name:'Theo',skin:'#E9B07F',shirt:'#FFC83D',pants:'#1F4FA0',hat:'nenhum'},
-    intro:'Eu sou o Theo! Na fazenda a gente conta tudo até 10.',modes:[{k:'act',gen:genN10,i:'🧺',n:'Desafios da Fazenda',d:'Pinte, leve ao cesto e pule nos números.'},{k:'share',gen:genShareN10,i:'🤝',n:'Ajude os Amigos',d:'Divida igualmente e entregue o que cada um pediu.'}]},
+    intro:'Eu sou o Theo! Na fazenda a gente conta tudo até 10.',modes:[{k:'act',gen:L=>toCarry(genN10(L)),i:'🧺',n:'Leve ao Cesto',d:'Conte e leve ao cesto: frutas, números, padrões e gráficos.'},{k:'share',gen:genShareN10,i:'🧺',n:'Cestos Iguais',d:'Divida igualmente e ponha em cada cesto o que ele pede.'}]},
   {id:'formas',name:'Parque das Formas',sub:'Figuras geométricas',color:'#8B4CF0',world:'Parque',sky:'#E5D9FF',ground:['#C7B4F5','#B9A4EE'],prop:'shape',npc:{name:'Lia',skin:'#FFD9B3',shirt:'#8B4CF0',pants:'#20242E',hat:'mago'},
     intro:'Oi! Eu sou a Lia. Aqui tudo tem forma: cubos, esferas, cones, triângulos...',modes:[{k:'shapes',i:'🔷',n:'Caça às Formas',d:'Corra e encoste na forma certa.'},{k:'shoot',gen:genShootShapes,i:'🎯',n:'Tiro às Formas',d:'Estoure só os balões com a forma pedida.'}]},
   {id:'dinheiro',name:'Mercadinho',sub:'Nosso dinheiro',color:'#16A34A',world:'Rua do Mercado',sky:'#FFE7C2',ground:['#D9D2C5','#CBC3B4'],prop:'stall',npc:{name:'Seu Zé',skin:'#C98E5F',shirt:'#FFFFFF',pants:'#7A4B2A',hat:'bone'},
-    intro:'Bem-vindo ao Mercadinho! Aqui a gente aprende a usar o real.',modes:[{k:'act',gen:genMoney,i:'💵',n:'Desafios do Mercado',d:'Pague certinho, leve ao caixa e ache o troco.'},{k:'share',gen:genShareMoney,i:'🧑‍🤝‍🧑',n:'Atenda os Clientes',d:'Entregue o dinheiro que cada cliente pediu.'}]},
+    intro:'Bem-vindo ao Mercadinho! Aqui a gente aprende a usar o real.',modes:[{k:'act',gen:genMoney,i:'💵',n:'Caixa do Mercado',d:'Pague certinho, leve ao caixa e ache o troco.'},{k:'share',gen:genShareMoney,i:'🧑‍🤝‍🧑',n:'Atenda os Clientes',d:'Entregue o dinheiro que cada cliente pediu.'}]},
   {id:'n100',name:'Torre do 100',sub:'Números até 39 e até 100',color:'#2E8BF0',world:'Cidade Alta',sky:'#A9C8FF',ground:['#9FB8E8','#8EA9DD'],prop:'tower',npc:{name:'Duda',skin:'#E9B07F',shirt:'#2E8BF0',pants:'#5B6475',hat:'capacete'},
-    intro:'Eu sou a Duda! Aqui moram os números grandes, até 100.',modes:[{k:'act',gen:genN100,i:'🔟',n:'Desafios da Torre',d:'Monte números com barras de 10 e pule no quadro.'},{k:'floor',gen:genFloorN100,i:'🌋',n:'Chão de Lava 100',d:'Fique em cima do número certo para não cair!'}]},
+    intro:'Eu sou a Duda! Aqui moram os números grandes, até 100.',modes:[{k:'act',gen:L=>genN100(L,'monte'),i:'🧱',n:'Monte o Número',d:'Leve barras de 10 e cubinhos para a caixa.'},{k:'act',gen:L=>genN100(L,'quadro'),i:'🔟',n:'Quadro do 100',d:'Dezenas, vizinhos, de 10 em 10 e contas até 100.'}]},
   {id:'medidas',name:'Oficina das Medidas',sub:'Grandezas e medidas',color:'#A0522D',world:'Oficina',sky:'#F2E4CF',ground:['#C9A27A','#BB936B'],prop:'bench',npc:{name:'Nina',skin:'#8D5A3B',shirt:'#A0522D',pants:'#1F4FA0',hat:'nenhum'},
-    intro:'Oi, eu sou a Nina! Na oficina a gente mede tudo: comprido, alto, pesado, cheio.',modes:[{k:'act',gen:genMeasure,i:'📏',n:'Desafios da Oficina',d:'Lápis gigantes, prédios, copos e balança.'},{k:'build',gen:genBuild,i:'🏗️',n:'Construa a Escada',d:'Monte a escada do tamanho certo e suba no baú!'}]}
+    intro:'Oi, eu sou a Nina! Na oficina a gente mede tudo: comprido, alto, pesado, cheio.',modes:[{k:'act',gen:genMeasure,i:'📏',n:'Compare e Meça',d:'Lápis gigantes, prédios, copos, balança e calendário.'},{k:'build',gen:genBuild,i:'🏗️',n:'Construa a Escada',d:'Monte a escada do tamanho certo e suba no baú!'}]}
 ];
 const STM=Object.fromEntries(STATIONS.map(s=>[s.id,s]));
 STATIONS.forEach(s=>{s.npc.hair=({Rafa:'#1E1A1A',Juca:'#E8C15A',Bia:'#1E1A1A',Theo:'#5A3A22',Lia:'#C1502A','Seu Zé':'#B3BCC7',Duda:'#5A3A22',Nina:'#2A1C14'})[s.npc.name]});
 const withArt=name=>`${({'Bia':'a','Lia':'a','Duda':'a','Nina':'a','Ana':'a'})[name]||'o'} ${name}`;
-window.__ilha={genBus,genLine,genGol,genSimon,genVocab,genN10,genMoney,genN100,genMeasure,genArith,genShapeQ,genShootArith,genShootShapes,genFloorOrder,genFloorN100,genShareN10,genShareMoney,genBuild};
+window.__ilha={genBus,genLine,genGol,genSimon,genVocab,genN10,genMoney,genN100,genMeasure,genArith,genShapeQ,genShootShapes,genFloorOrder,genShareN10,genShareMoney,genBuild,toCircle,toCarry};
 if(typeof THREE==='undefined'){document.body.insertAdjacentHTML('beforeend','<div id="err">Não consegui carregar o mundo 3D. Verifique a internet e abra a página de novo.</div>');return}
 
 /* ================= THREE BASICS ================= */
@@ -1604,6 +1599,8 @@ const tmpV=new THREE.Vector3(),tmpC=new THREE.Vector3();
 let camLook=1.7;
 let fixOn=false,stillOn=false;
 function updateCam(dt){
+  /* in the penalty of Gol de Placa the camera stands right behind the kicker, and the name over the head would cover the numbers in the goal */
+  if(PL&&PL.ns)PL.ns.visible=!(CH&&CH.type==='gol');
   /* through the scope: the camera is the player's eye, turned by the aim (with a small kick up after a shot) */
   if(CH&&CH.fp){const a=CH.a0+CH.ax,e=CH.ay+CH.kick*.12,c=Math.cos(e),y=P.y+SCOPE.eye;camera.position.set(P.x,y,P.z);camera.lookAt(P.x+Math.sin(a)*c*10,y+Math.sin(e)*10,P.z+Math.cos(a)*c*10);return}
   const fix=!!(CH&&CH.fixCam&&camMode==='follow');if(fix!==fixOn){fixOn=fix;document.body.classList.toggle('fix',fix)}
@@ -1634,7 +1631,7 @@ const fadeEl=$('#fade');
 function travel(fn,label){if(fadeEl.classList.contains('on'))return;sfx.portal();endAnim(true);fadeEl.textContent=label||'';fadeEl.classList.add('on');paused=true;
   setTimeout(()=>{fn();camera.position.set(P.x+Math.sin(yaw)*10,P.y+5,P.z+Math.cos(yaw)*10);setTimeout(()=>{fadeEl.classList.remove('on');if($('#ov').hidden)paused=false},120)},380)}
 function enterWorld(st){flushFin();quit3D(true);travel(()=>{WORLD=st;checkpoint=null;P.set(st.spawn.x,0,st.spawn.z);vy=0;yaw=-Math.PI/2;rotY=Math.PI/2;setSky(st.sky);
-    $('#where').textContent=`${st.world} · ${st.name}`;portalCD=1.2;setSong(st.id);voPreload(st.npc.name);toast(`Bem-vindo ${({contas:'ao',formas:'ao',dinheiro:'ao'})[st.id]||'à'} <b>${st.name}</b>! Fale com ${withArt(st.npc.name)} ❗`,4000,true)},`🌀 ${st.name}`)}
+    $('#where').textContent=`${st.world} · ${st.name}`;portalCD=1.2;setSong(st.id);voPreload(st.npc.name);if(st.id==='vocab')voPreload('Mestre');toast(`Bem-vindo ${({formas:'ao',dinheiro:'ao'})[st.id]||'à'} <b>${st.name}</b>! Fale com ${withArt(st.npc.name)} ❗`,4000,true)},`🌀 ${st.name}`)}
 function leaveWorld(){const st=WORLD;flushFin();quit3D(true);travel(()=>{WORLD=null;checkpoint=null;const p=st?st.portal:{x:0,z:12};const ux=-p.x/31,uz=-p.z/31;
     P.set(p.x+ux*4,0,p.z+uz*4);vy=0;yaw=Math.atan2(P.x-(P.x+ux),P.z-(P.z+uz));rotY=Math.atan2(ux,uz);setSky(HUB_SKY);$('#where').textContent='Cidade dos Números';portalCD=1.2;setSong('hub')},'🏙️ Cidade dos Números')}
 function updatePortals(dt){portalCD-=dt;PORTALS.forEach(p=>{p.disc.rotation.z+=dt*1.5});if(portalCD>0||paused)return;
@@ -1662,13 +1659,15 @@ function startMode(st,m){flushFin();endAnim(true);/* a celebration still playing
   else if(m.k==='shoot')startShoot(st,m.gen);else if(m.k==='floor')startFloor(st,m.gen);else if(m.k==='share')startShare(st,m.gen);else if(m.k==='build')startBuild(st,m.gen);else if(m.k==='simon')startSimon(st);else if(m.k==='kart')startKart(st,m.gen);else if(m.k==='bus')startBus(st);else if(m.k==='line')startLine(st);else if(m.k==='gol')startGol(st);
   if(CH){CH.mode=m;CH.level=lvl}}
 function friendTalk(f){if(f.cool>0){openSheet(`<div class="quiz"><p><b>${f.name}:</b> ${FRIEND_BYE} 😄</p><button class="btn go" id="q-x">Tchau!</button></div>`);$('#q-x').onclick=()=>closeSheet();speak(FRIEND_BYE,null,false,f.name);return}
-  const L=Math.max(stat('contas').level,stat('n10').level),q=genArith(L),thing=pick([['figurinhas','a'],['balas','a'],['carrinhos','o'],['bolinhas de gude','a'],['adesivos','o']]);
+  const L=Math.max(stat('contas').level,stat('n10').level),q=genArith(L),thing=pick([['figurinhas','a','figurinha'],['balas','a','bala'],['carrinhos','o','carrinho'],['bolinhas de gude','a','bolinha de gude'],['adesivos','o','adesivo']]),nm=n=>n===1?thing[2]:thing[0];
   const other=pick(FRIENDS.map(x=>x.name).filter(n=>n!==f.name)),kind=q.op==='+'?'juntar':pick(['tirar','comparar','completar']);
-  const ask=pick(FRIEND_ASK),text=ask+' '+(kind==='juntar'?`Eu tinha <b>${q.a}</b> ${thing[0]} e ganhei mais <b>${q.b}</b>. Com quant${thing[1]}s eu fiquei?`:kind==='tirar'?`Eu tinha <b>${q.a}</b> ${thing[0]} e dei <b>${q.b}</b> para minha irmã. Quant${thing[1]}s sobraram?`
-    :kind==='comparar'?`Eu tenho <b>${q.a}</b> ${thing[0]} e ${withArt(other)} tem <b>${q.b}</b>. Quant${thing[1]}s eu tenho <b>a mais</b>?`:`Eu tenho <b>${q.b}</b> ${thing[0]}. Quero ter <b>${q.a}</b>. Quant${thing[1]}s <b>faltam</b>?`);
+  /* the friend asks for help in their own voice; the riddle is told about them, and the narrator reads it */
+  const me=withArt(f.name),Me=me[0].toUpperCase()+me.slice(1),ele=f.name==='Ana'?'ela':'ele',ask=pick(FRIEND_ASK);
+  const text=kind==='juntar'?`${Me} tinha <b>${q.a}</b> ${nm(q.a)} e ganhou mais <b>${q.b}</b>. Com quant${thing[1]}s ${ele} ficou?`:kind==='tirar'?`${Me} tinha <b>${q.a}</b> ${nm(q.a)} e deu <b>${q.b}</b> para a irmã. Quant${thing[1]}s sobraram?`
+    :kind==='comparar'?`${Me} tem <b>${q.a}</b> ${nm(q.a)} e ${withArt(other)} tem <b>${q.b}</b>. Quant${thing[1]}s ${me} tem <b>a mais</b>?`:`${Me} tem <b>${q.b}</b> ${nm(q.b)} e quer ter <b>${q.a}</b>. Quant${thing[1]}s <b>faltam</b>?`;
   const tip={juntar:'Dica: junte as duas quantidades.',tirar:'Dica: tire e conte o que sobrou.',comparar:'Dica: tire a quantidade menor da maior.',completar:`Dica: conte a partir do ${q.b} até chegar no ${q.a}.`}[kind];let tries=0;
-  openSheet(`<div class="quiz"><span class="dlg-name" style="--c:#2E8BF0">${f.name}</span><p>${text}</p><div class="btns">${q.opts.map(v=>`<button class="btn big" data-v="${v}">${v}</button>`).join('')}</div><div class="fb" id="q-fb"></div><button class="btn icon" id="q-spk" aria-label="Ouvir">🗣️</button></div>`);
-  $('#q-spk').onclick=()=>speak(plain(text),null,true,f.name);speak(plain(text),null,false,f.name);
+  openSheet(`<div class="quiz"><span class="dlg-name" style="--c:#2E8BF0">${f.name}</span><p><b>${ask}</b></p><p>${text}</p><div class="btns">${q.opts.map(v=>`<button class="btn big" data-v="${v}">${v}</button>`).join('')}</div><div class="fb" id="q-fb"></div><button class="btn icon" id="q-spk" aria-label="Ouvir">🗣️</button></div>`);
+  $('#q-spk').onclick=()=>speak(plain(text),null,true,null);speak(ask,()=>{if($('#q-fb')&&sayTok===asked)speak(plain(text),null,false,null)},false,f.name);const asked=sayTok;
   $$('.quiz .btn.big').forEach(b=>b.onclick=()=>{if(+b.dataset.v===q.ans){sfx.ok();confetti(14);playAnim('cheer');speak('Isso! Valeu!',null,false,f.name);f.cool=90;const g=coinFor(tries===0);addCoins(g);
       $('#sheet').innerHTML=`<div class="quiz"><p><b>${f.name}:</b> Isso! ${q.a} ${q.op} ${q.b} = ${q.ans}. Valeu!${g?' Toma <b>1 🪙</b>.':''}</p><button class="btn go" id="q-x">De nada!</button></div>`;$('#q-x').onclick=()=>closeSheet()}
     else{tries++;sfx.bad();shake(b);b.disabled=true;if(tries<2){$('#q-fb').textContent=tip;return}
@@ -1682,7 +1681,7 @@ function friendTalk(f){if(f.cool>0){openSheet(`<div class="quiz"><p><b>${f.name}
    the mission can always be played, resting or not. Both can be switched off in the parents area. */
 const MIS_COINS=5;
 const resting=st=>!!(S.restOn&&S.rest[st.id]);
-function newMission(){const lv=stat('contas').level,C=STM.contas,pool=lv<3?['bus','gol','line','obby','gol','kart']:['obby','bus','kart','gol','line','shoot'],mi=C.modes.findIndex(x=>x.k===pool[S.mis.n%pool.length]);
+function newMission(){const lv=stat('contas').level,C=STM.contas,pool=lv<3?['bus','gol','line','obby','gol','kart']:['obby','bus','kart','gol','line','gol'],mi=C.modes.findIndex(x=>x.k===pool[S.mis.n%pool.length]);
   /* the weakest station: one hardly played yet comes first, then the lowest share of answers right at the first try */
   const prev=(S.mis.list[1]||{}).id,cand=STATIONS.filter(s=>s.id!=='contas'&&s.id!==prev),open=cand.filter(s=>!resting(s)),from=open.length?open:cand;
   const score=s=>{const t=stat(s.id);return t.total<5?-1+t.rounds*.01:t.first/t.total},weak=from.slice().sort((a,b)=>score(a)-score(b))[0];
@@ -1744,7 +1743,7 @@ function finishChallenge(st,first,n,coins,lvl,mode,lost,silent){
   const misMsg=!mn?'':mn.done?`🎯 <b>Missão completa!</b> +${MIS_COINS} 🪙${freed?' e <b>1 troca</b> na Loja':had?' (a troca da Loja já estava guardada)':''}. Já tem missão nova.`:mn.hit>=0?`🎯 Valeu para a missão! ${mn.left>1?`Faltam <b>${mn.left}</b> rodadas`:'Falta <b>1</b> rodada'}.`:'🎯 A missão pede outros jogos agora. Toque em <b>Missão</b> para ver quais.';
   const restMsg=(rs.rest?'💤 <b>Ouro!</b> Este jogo vai descansar. Ele volta quando você ganhar uma medalha em cada um dos outros.':'')+(rs.back.length?`${rs.rest?'<br>':''}🎈 ${rs.back.map(x=>`<b>${x.name}</b>`).join(', ')} ${rs.back.length>1?'voltaram':'voltou'} a abrir!`:'');
   const again=!resting(st)||(S.misOn&&mission().some(i=>!i.done&&i.id===st.id&&(i.mi<0||i.mi===st.modes.indexOf(mode))));
-  const owed=Object.keys(S.sk).filter(k=>k.startsWith(st.id+'.')&&S.sk[k].w>0&&!(k==='contas.decompor'&&lvl<3)).sort((a,b)=>S.sk[b].d-S.sk[a].d).slice(0,2).map(skillName);
+  const owed=Object.keys(S.sk).filter(k=>k.startsWith(st.id+'.')&&S.sk[k].w>0).sort((a,b)=>S.sk[b].d-S.sk[a].d).slice(0,2).map(skillName);
   sfx.win();confetti(tr.gained||tr.champ?80:stars?40:12);
   /* the medal of this round, why it was earned, and what the next one takes */
   const M=[null,{k:'bronze',t:'🥉 Medalha de Bronze',why:'Você terminou a rodada.',next:'Para a prata 🥈: acerte pelo menos a metade de primeira.'},
@@ -1757,22 +1756,18 @@ function finishChallenge(st,first,n,coins,lvl,mode,lost,silent){
     ${M?`<div class="award"><canvas id="aw-cv" width="320" height="320"></canvas><b>${M.t}${tr.medal===4?'!':''}</b><span>${M.why}</span>${tr.gained?`<span>É a sua melhor medalha aqui! +${MEDAL_COINS[tr.gained]} 🪙</span>`:''}${M.next?`<small>${M.next}</small>`:''}<small>A melhor medalha de cada estação fica na Sala de Troféus.</small></div>`
       :'<p class="small">Sem medalha desta vez. Acerte pelo menos uma pergunta de primeira para ganhar o bronze 🥉.</p>'}
     <div class="btns">${again?'<button class="btn go" id="r-again">▶ De novo</button>':''}${S.misOn?'<button class="btn" id="r-mis">🎯 Missão</button>':''}<button class="btn gold" id="r-go">🏃 Explorar</button></div></div>`);
-  if(M)drawCupArt($('#aw-cv'),M.k);if(tr.champ)drawCupArt($('#aw-ch'),'champions');/* the host says how it went, in their own voice; a cup is then announced by the narrator */
-  const cup=tr.gained===4?M.t:tr.champ?'Taça dos Campeões!':'';speak(RESULT_H2[stars],cup?()=>{if($('.result'))speak(cup,null,false,null)}:null,false,st.npc.name);
+  if(M)drawCupArt($('#aw-cv'),M.k);if(tr.champ)drawCupArt($('#aw-ch'),'champions');/* the narrator says how it went, and the cup when there is one */
+  const cup=tr.gained===4?M.t:tr.champ?'Taça dos Campeões!':'';speak(RESULT_H2[stars]+(cup?' '+cup:''),null,false,null);
   if($('#r-again'))$('#r-again').onclick=()=>{sfx.tap();closeSheet();startMode(st,mode||st.modes[0])};if($('#r-mis'))$('#r-mis').onclick=()=>{sfx.tap();openMission()};$('#r-go').onclick=()=>{sfx.tap();closeSheet()}}
 
 /* ================= CHALLENGE FRAMEWORK ================= */
 let CH=null;const mis=$('#mission');
 const CHEERS=['Isso aí!','Mandou bem!','Show de bola!','Acertou!','Muito bem!','Que fera!'];
-/* Each character cheers in words of their own, and says them with their own recorded voice (vozes/).
-   A line that changes here has to be recorded again (tools/vozes); until then it is said with the device voice. */
-const CHEERS_OF={Rafa:['Show de bola!','Mandou bem!','Irado!','É isso aí!','Acertou em cheio!'],Juca:['Que golaço!','Que rapidez!','Na mosca!','É isso aí!','Que fera!'],
-  Bia:['Isso mesmo!','Arrasou!','Muito bem!','Que legal!','Acertou!'],Theo:['Que beleza!','Certinho!','Muito bem!','Isso mesmo!','Mandou bem!'],
-  Lia:['Que mágico!','Que lindo!','Perfeito!','Brilhante!','Isso mesmo!'],'Seu Zé':['Muito bem, freguês!','Isso mesmo!','Que capricho!','Certinho!','Parabéns!'],
-  Duda:['Na mosca!','Mandou bem!','Excelente!','É isso aí!','Acertou!'],Nina:['Perfeito!','Na medida certa!','Muito bem!','Isso mesmo!','Que capricho!'],
-  Mestre:['Isso mesmo!','Perfeito!','Mandou bem!','Obedeceu direitinho!']};
+/* The cheer of a right answer is said by whoever speaks in the game: the narrator, or the master in his game, with words of his own that he
+   has recorded (vozes/). A line that changes here has to be recorded again (tools/vozes); until then it is said with the device voice. */
+const CHEERS_OF={Mestre:['Isso mesmo!','Perfeito!','Mandou bem!','Obedeceu direitinho!']};
 const cheersOf=who=>CHEERS_OF[who]||CHEERS,hostCheer=()=>pick(cheersOf(speaker()));
-/* the other lines the characters have recorded */
+/* the lines the characters say when they are shown speaking, all recorded */
 const REST_LINE='Você ganhou ouro aqui! Este jogo está descansando. Jogue os outros para ele voltar.',RESULT_H2=['Vamos treinar mais!','Você conseguiu!','Muito bom!','Incrível!'],
   FRIEND_ASK=['Me ajuda?','Você me ajuda?','Tenho uma charada!'],FRIEND_BYE='Valeu pela ajuda! Volte daqui a pouquinho que eu tenho outra charada.',
   SHOP_HI=['Bem-vindo à loja!','Pode olhar à vontade!','Que bom te ver por aqui!'],sampleLine=who=>`Oi! Eu sou ${withArt(who)}.`;
@@ -2068,16 +2063,20 @@ function nextFloor(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadFloorQ(false)}
 function startShare(st,gen){CH={type:'share',st,gen,n:4,idx:0,first:0,coins:0};loadShareQ()}
 function loadShareQ(){clearArena();const st=CH.st,G=beginArena(st),q=CH.gen(stat(st.id).level);Object.assign(CH,{q,skill:lastSkill,tries:0,locked:false,held:[],pads:{}});
   const f=q.friends.length,sp=f===2?7:f===3?5.6:4.6;
-  CH.friends=q.friends.map((fr,i)=>{const B=(i-(f-1)/2)*sp,ch=makeChar(randomLook(i)),w=L2W(st,10.5,B);ch.g.position.set(w.x,0,w.z);ch.g.rotation.y=-Math.PI/2;scene.add(ch.g);CHX.objs.push(ch.g);addColl(10.5,B,.7);
+  /* people to help (each with a speech bubble), or, in the farm, baskets (each with a sign) */
+  CH.friends=q.friends.map((fr,i)=>{const B=(i-(f-1)/2)*sp,pw=L2W(st,8,B);
+    if(q.baskets){G.add(mesh(new THREE.CylinderGeometry(1.5,1.1,1.1,20,1,true),new THREE.MeshLambertMaterial({color:'#C98A4B',side:THREE.DoubleSide}),8,.55,B),mesh(new THREE.CylinderGeometry(1.1,1.1,.08,20),'#8A552D',8,.04,B));
+      if(fr.sign){const sg=sprite(texOf(g=>{g.fillStyle='#FFF7E0';rr(g,14,60,228,136,24);g.fill();g.lineWidth=8;g.strokeStyle=INK;g.stroke();bigText(g,fr.sign,128,130,200,64,INK)}),2.6,2.6);sg.position.set(pw.x,3.4,pw.z);scene.add(sg);CHX.sprites.push(sg)}return {x:pw.x,z:pw.z,items:[],basket:true}}
+    const ch=makeChar(randomLook(i)),w=L2W(st,10.5,B);ch.g.position.set(w.x,0,w.z);ch.g.rotation.y=-Math.PI/2;scene.add(ch.g);CHX.objs.push(ch.g);addColl(10.5,B,.7);
     G.add(mesh(new THREE.CylinderGeometry(1.25,1.25,.1,28),'#FFFFFF',8,.05,B,false));const ring=new THREE.Mesh(new THREE.RingGeometry(1.3,1.5,40),new THREE.MeshBasicMaterial({color:st.color}));ring.rotation.x=-Math.PI/2;ring.position.set(8,.08,B);G.add(ring);
-    const bub=sprite(texOf(fr.bubble),3,3);const bw=L2W(st,10.5,B);bub.position.set(bw.x,5,bw.z);scene.add(bub);CHX.sprites.push(bub);const pw=L2W(st,8,B);return {x:pw.x,z:pw.z,items:[],ch}});
+    const bub=sprite(texOf(fr.bubble),3,3);const bw=L2W(st,10.5,B);bub.position.set(bw.x,5,bw.z);scene.add(bub);CHX.sprites.push(bub);return {x:pw.x,z:pw.z,items:[],ch}});
   CH.area=[-.5,4.5,-9,9];CH.items=spawnPickups(q.items,CH.area);
   padSprite(G,'PRONTO ✓',-7.4,2.6,'#22B35E');padSprite(G,'DEVOLVER ↺',-7.4,-3.4,'#E8413A');CH.pads={pronto:L2W(st,-7.4,2.6),dev:L2W(st,-7.4,-3.4)};
   const w=L2W(st,-4.8,0),f2=L2W(st,8,0);teleport(w.x,w.z,f2.x,f2.z);
-  const tip='Encoste para pegar, leve até o círculo de cada amigo. Depois pise no PRONTO ✓.';
-  setMission(`<span class="vt">🤝 AJUDAR</span>${CH.idx+1}/${CH.n} · ${q.text}<small>${tip}</small>`);sayQ(q.text,CH.idx===0?tip:'')}
-function placeFriend(fr){fr.items.forEach((o,k)=>{const a=k*2.4,r=k===0?0:.75;o.sp.position.set(fr.x+Math.cos(a)*r,.9+Math.floor(k/7)*.55,fr.z+Math.sin(a)*r);o.sp.scale.set(1.1,1.1,1)})}
-function updateShare(dt){updatePickups(CH.items,CH.held,dt,12);CH.friends.forEach(fr=>{fr.ch.armR.rotation.x=CH.locked?-Math.abs(Math.sin(T*8))*2:0});if(CH.locked)return;
+  const tip=q.baskets?'Encoste para pegar e leve até cada cesto. Depois pise no PRONTO ✓.':'Encoste para pegar, leve até o círculo de cada amigo. Depois pise no PRONTO ✓.';
+  setMission(`<span class="vt">${q.baskets?'🧺 CESTOS':'🤝 AJUDAR'}</span>${CH.idx+1}/${CH.n} · ${q.text}<small>${tip}</small>`);sayQ(q.text,CH.idx===0?tip:'')}
+function placeFriend(fr){fr.items.forEach((o,k)=>{const a=k*2.4,r=k===0?0:.75;o.sp.position.set(fr.x+Math.cos(a)*r,(fr.basket?1.45:.9)+Math.floor(k/7)*.55,fr.z+Math.sin(a)*r);o.sp.scale.set(1.1,1.1,1)})}
+function updateShare(dt){updatePickups(CH.items,CH.held,dt,12);CH.friends.forEach(fr=>{if(fr.ch)fr.ch.armR.rotation.x=CH.locked?-Math.abs(Math.sin(T*8))*2:0});if(CH.locked)return;
   CH.friends.forEach(fr=>{if(CH.held.length&&isNear(fr,1.8)){CH.held.forEach(o=>{o.state='friend';fr.items.push(o)});CH.held=[];placeFriend(fr);sfx.coin()}});
   edge('dev',isNear(CH.pads.dev,1.4),()=>{CH.friends.forEach(fr=>{fr.items.forEach(o=>dropToGround(o,CH.area));fr.items=[]});sfx.tap();toast('Tudo voltou para o chão.',1500)});
   edge('pronto',isNear(CH.pads.pronto,1.4),()=>{if(CH.held.length){toast('Entregue o que está na sua cabeça primeiro!',1800);return}
@@ -2243,7 +2242,8 @@ function nextBus(){CH.idx++;if(CH.idx>=CH.n)return done3D();loadBusQ()}
    The balls are always in sight, to be counted. Level 1: joining and taking away up to 10. Level 2: the two other stories come in.
    Level 3: up to 20.
    The scoreboard is a board fixed on the screen, under the instructions: on a wide screen it takes the left half and the goal is on
-   the right, with the kick coming from the side; on a tall one it goes across the top and the goal is under it, with a penalty kick.
+   the right; on a tall one it goes across the top and the goal is under it. Either way the ball is on the penalty mark, in front of
+   the middle of the goal (it used to stand by the corner of the goal area on a wide screen, where a goal kick is taken).
    Turning the screen in the middle of a question builds the scene again for the new shape, and the question goes on.
    The player stands still by the ball; a button on the screen picks the number, the player kicks at it, and the goalkeeper dives:
    the wrong way when the number is right (goal!), onto the ball when it is not. After a save the scoreboard counts ball by ball. */
@@ -2293,8 +2293,9 @@ function loadGolQ(){hideHud();const C=CH,lvl=stat(C.st.id).level,q=genGol(lvl);
 /* builds the scene of the question for the shape of the screen; it is built again, in the middle of a question, when the screen is turned */
 function golScene(){clearArena();const C=CH,q=C.q,G=beginArena(C.st),A=GOL.A,w=GOL.w,h=GOL.h,W='#F4F6FA';G.rotation.y=Math.PI/2;C.relay=false;
   /* a wide screen has the scoreboard on its left half and the goal on the right; a tall one has the scoreboard across the top and the
-     goal under it. Everything of the goal (lines, nets, goalkeeper, ball, numbers) lives in a group centred on it. */
-  const wide=golWide(),gz=wide?6.3:0,z0=wide?-6.2:0,sx=wide?2.6:GOL.spot,GG=new THREE.Group();GG.position.z=gz;G.add(GG);C.gz=gz;C.bz0=z0;C.sx=sx;C.wide=wide;
+     goal under it. Everything of the goal (lines, nets, goalkeeper, ball, numbers) lives in a group centred on it.
+     The ball is on the penalty mark: GOL.spot in front of the goal line, in line with the middle of the goal. */
+  const wide=golWide(),gz=wide?6.3:0,z0=0,sx=GOL.spot,GG=new THREE.Group();GG.position.z=gz;G.add(GG);C.gz=gz;C.bz0=z0;C.sx=sx;C.wide=wide;
   for(let k=0;k<6;k++){const m=mesh(BOX(3,.06,32),k&1?'#3FA650':'#49B55B',A-13.5+k*3,.03,0,false);m.receiveShadow=true;G.add(m)}
   G.add(mesh(BOX(.14,.02,32),W,A,.07,0,false));
   GG.add(mesh(BOX(.14,.02,17),W,A-7.6,.07,0,false),mesh(BOX(7.6,.02,.14),W,A-3.8,.07,-8.5,false),mesh(BOX(7.6,.02,.14),W,A-3.8,.07,8.5,false),
@@ -2313,8 +2314,10 @@ function golScene(){clearArena();const C=CH,q=C.q,G=beginArena(C.st),A=GOL.A,w=G
   C.tg=q.opts.map((v,i)=>{const s=sprite(texOf(g=>{g.fillStyle='#fff';g.beginPath();g.arc(128,128,122,0,7);g.fill();g.fillStyle=GOL.col[i];g.beginPath();g.arc(128,128,104,0,7);g.fill();bigText(g,v,128,134,170,128,'#fff')}),1.8,1.8);s.position.set(A-.2,GOL.ty,GOL.tz[i]);s.visible=false;GG.add(s);return s});
   if(C.asked){const bs=picksB.querySelectorAll('.pk');C.tg.forEach((s,i)=>s.visible=!(bs[i]&&bs[i].disabled))}
   /* the camera starts behind the kicker, with the goal clear of the scoreboard: on the right half of a wide screen, under it on a tall one */
-  const foot=innerHeight<=430?80:104;C.fixCam=wide?{x:A,z:-2.25,ly:1.35,len:25,min:13.5,up:.09,hgt:4.8,foot}:{x:A,z:0,ly:1.1,len:12.5,min:12,up:.11,hgt:6.6,foot,under:true};
-  const p=wide?FW(C.st,A-sx-.25,gz+z0-1.7):FW(C.st,A-sx-1.6,-.5),f=wide?FW(C.st,A-1.2,gz):FW(C.st,A,0);teleport(p.x,p.z,f.x,f.z);C.p0=p;C.p1=wide?FW(C.st,A-sx-.15,gz+z0-.8):FW(C.st,A-sx-.8,-.3)}
+  const foot=innerHeight<=430?80:104;C.fixCam=wide?{x:A,z:-.7,ly:1.35,len:25,min:17,up:.34,hgt:4.8,foot}:{x:A,z:0,ly:1.1,len:12.5,min:12,up:.11,hgt:6.6,foot,under:true};
+  /* the kicker waits behind the ball and to its left, as a penalty taker does, so that both the ball on the mark and the goal stay in
+     sight, and runs up to it on a slant to kick */
+  const p=FW(C.st,A-sx-1.3,gz-2.1),f=FW(C.st,A,gz);teleport(p.x,p.z,f.x,f.z);C.p0=p;C.p1=FW(C.st,A-sx-.6,gz-.7)}
 const golHead=()=>`<span class="vt">⚽ GOL DE PLACA</span>${CH.idx+1}/${CH.n} · `;
 const golAsk=()=>setMission(`${golHead()}${CH.q.text}<small>Toque no número certo para chutar · Você ${CH.gols} × ${CH.defs} Goleiro 🧤</small>`);
 function golPhase(ph){const C=CH,q=C.q,d=C.bd,h=golHead(),gs=q.a===1?'gol':'gols';C.ph=ph;C.t=0;
@@ -2659,7 +2662,7 @@ function updateWorld(dt){T+=dt;frameN++;
 const TABS=[['hat','Chapéus'],['kit','⚽ Futebol'],['cele','🎉 Comemorações'],['shirt','Camisas'],['pants','Calças'],['pet','Bichinhos'],['power','Poderes'],['hair','Cabelo'],['skin','Pele']];
 let shopTab='hat',shopY=0,buySum=null;
 /* the player turns the back to the stall, so the camera in front shows the character (and what was just put on) instead of the shopkeeper's back */
-function openShop(){speak(pick(SHOP_HI),null,false,'Lojista');const k=NPCS.find(n=>n.kind==='shop');if(k&&Math.hypot(P.x-k.x,P.z-k.z)>.5){rotY=Math.atan2(P.x-k.x,P.z-k.z);PL.g.rotation.y=rotY}camMode='front';shopY=0;renderShop()}
+function openShop(){const k=NPCS.find(n=>n.kind==='shop');if(k&&Math.hypot(P.x-k.x,P.z-k.z)>.5){rotY=Math.atan2(P.x-k.x,P.z-k.z);PL.g.rotation.y=rotY}camMode='front';shopY=0;renderShop();const hi=pick(SHOP_HI);toast(`🛍️ <b>Lojista:</b> ${hi}`,2600);speak(hi,null,false,'Lojista')}
 function renderShop(){if(shopTab==='cele')return openCeles(true);const items=CAT[shopTab],slot=slotOf(shopTab),prev=t=>shopTab==='kit'?`<img class="jr" src="${kitURL(t)}" alt="">`:shopTab==='hair'?`<img class="jr" src="${hairURL(t)}" alt="">`:shopTab==='shirt'||shopTab==='pants'||shopTab==='skin'?`<span class="sw" style="--k:${t.c}"></span>`:t.e;
   const inUse=t=>owns(shopTab,t.k)&&(shopTab==='power'||S.look[slot]===t.k),free=shopTab==='skin';
   openSheet(`<div class="shop-h"><span class="h2">🛍️ Loja</span><span class="chip" style="background:var(--ink)">Você tem 🪙 ${S.coins}</span><button class="xbtn" id="s-x" aria-label="Fechar">✕</button></div>
@@ -2694,7 +2697,7 @@ function buyQ(t){const have=S.coins,left=have-t.p;
 function buyQuiz(t){const tab=shopTab,Q=buyQ(t);
   openSheet(`<div class="quiz"><div class="h2">Antes de comprar...</div><p>${Q.html}</p><p class="small">Só vale <b>uma</b> resposta: se errar, só depois de ${S.misOn?'outra missão':'outro joguinho'}. Pense com calma!</p>
     <div class="btns">${Q.opts.map(v=>`<button class="btn big" data-v="${v}">${v}</button>`).join('')}</div><div class="btns"><button class="btn" id="q-back">Voltar</button><button class="btn icon" id="q-spk" aria-label="Ouvir">🗣️</button></div></div>`);
-  $('#q-back').onclick=()=>{sfx.tap();renderShop()};$('#q-spk').onclick=()=>speak(Q.say,null,true,'Lojista');speak(Q.say,null,false,'Lojista');
+  $('#q-back').onclick=()=>{sfx.tap();renderShop()};$('#q-spk').onclick=()=>speak(Q.say,null,true,null);speak(Q.say,null,false,null);
   $$('.quiz .btn.big').forEach(b=>b.onclick=()=>{if(!S.edit||owns(tab,t.k)||S.coins<t.p)return renderShop();buySum=null;
     if(+b.dataset.v===Q.ans){S.coins-=t.p;S.owned.push(tab+':'+t.k);if(tab!=='power'){S.look[slotOf(tab)]=t.k;buildPlayer()}S.edit=false;save();hud();sfx.coin();confetti(20);renderShop();playAnim('cheer');toast(`Comprou: <b>${t.n}</b>! ${Q.eq} ✓`,4000,true);return}
     /* a wrong answer: nothing is bought, and the pass is spent - the next try comes after another round (by then the coins, and so the change, are different) */
@@ -2711,7 +2714,7 @@ const dayPlayed=d=>!!d&&(d.q>0||d.r>0||d.t>=60);
 const REP_ST=[['#C9CED6','Ainda não praticou'],['#C9CED6','Pouco praticado'],['#E53935','Precisa de ajuda'],['#FFC83D','Em progresso'],['#22B35E','Domina']];
 function skillState(k){if(!k||!k.n)return 0;if(k.n<5)return 1;const h=k.h||'',rate=h.length>=5?(h.split('1').length-1)/h.length:k.f/k.n;return rate>=.85&&k.n>=8?4:rate>=.6?3:2}
 /* the sums skills, from understanding (objects in sight) to working out (the written sum) */
-const REP_SUMS=[['contas.juntar','Entender'],['contas.tirar','Entender'],['contas.retamais','Entender'],['contas.retamenos','Entender'],['contas.comparar','Entender'],['contas.falta','Pensar ao contrário'],['contas.soma','Calcular'],['contas.sub','Calcular'],['contas.decompor','Calcular'],['n100.conta','Aplicar'],['dinheiro.troco','Aplicar']];
+const REP_SUMS=[['contas.juntar','Entender'],['contas.tirar','Entender'],['contas.retamais','Entender'],['contas.retamenos','Entender'],['contas.comparar','Entender'],['contas.falta','Pensar ao contrário'],['contas.soma','Calcular'],['contas.sub','Calcular'],['n100.conta','Aplicar'],['dinheiro.troco','Aplicar']];
 function reportData(){const days=n=>{const out=[];for(let i=0;i<n;i++){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-i);out.push(dKey(d))}return out};
   flushTime();const agg=ks=>ks.reduce((a,k)=>{const d=S.days[k];if(dayPlayed(d)){a.days++;a.t+=d.t;a.q+=d.q;a.f+=d.f;a.r+=d.r;a.m+=d.m}return a},{days:0,t:0,q:0,f:0,r:0,m:0}),d14=days(14);
   const R={name:S.name||'Jogador',week:agg(d14.slice(0,7)),prev:agg(d14.slice(7)),last7:d14.slice(0,7).reverse().map(k=>[k,S.days[k]||null])};
@@ -2725,7 +2728,7 @@ function reportData(){const days=n=>{const out=[];for(let i=0;i<n;i++){const d=n
   /* what to do next, the most useful first */
   const tips=[],sm=id=>R.sums.find(x=>x.id===id).s,und=['contas.juntar','contas.tirar','contas.comparar','contas.retamais','contas.retamenos'],total=sum(R.areas.map(a=>a.t.total));
   if(total<10)tips.push('Ainda há poucas respostas para tirar conclusões. Depois de alguns dias de jogo este relatório fica mais preciso.');
-  if(und.every(id=>sm(id)<2))tips.push('Comece pelo <b>Gol de Placa</b>, pelo <b>Ônibus dos Números</b> e pelos <b>Pulos na Reta</b> (mundo Obby das Contas). Eles mostram o que é somar e tirar antes da conta escrita.');
+  if(und.every(id=>sm(id)<2))tips.push('Comece pelo <b>Gol de Placa</b>, pelo <b>Ônibus dos Números</b> e pelos <b>Pulos na Reta</b> (mundo Ilha das Contas). Eles mostram o que é somar e tirar antes da conta escrita.');
   else if(und.some(id=>sm(id)===2))tips.push(`No Gol de Placa, no Ônibus ou na Reta ainda há dificuldade em: <b>${und.filter(id=>sm(id)===2).map(skillName).join('</b>, <b>')}</b>. Jogue junto e peça para contar em voz alta as bolas do placar, quem está no ônibus, ou cada pulo. Em casa, repita com objetos (tampinhas, feijões).`);
   if(und.some(id=>sm(id)>=3)&&(sm('contas.soma')===2||sm('contas.sub')===2))tips.push('Com objetos e pulos vai bem, mas a <b>conta escrita</b> ainda trava. Antes de responder, peça para dizer: "vai ficar mais ou vai ficar menos?" e para contar a partir do primeiro número.');
   if(R.pat.n>=4&&R.pat.by1/R.pat.n>=.4)tips.push('Muitos erros são <b>por 1</b>. É comum quando a criança conta o número de partida: na reta, conte os <b>pulos</b>, não as casas.');
@@ -2765,15 +2768,15 @@ function fallbackCopy(t,done){try{const a=document.createElement('textarea');a.v
 
 /* ================= VOICES: hear every character, and see which voice the narrator has ================= */
 const KIDS=['Ana','Pedro','Léo'],sampleTail=who=>CHEERS_OF[who]?CHEERS_OF[who][0]:KIDS.includes(who)?FRIEND_ASK[1]:who==='Lojista'?SHOP_HI[0]:'';
-const NARR_LINE='Oi! Eu sou o narrador: eu leio as perguntas. Quanto é dois mais três?';
+const NARR_LINE='Oi! Eu sou a narradora: eu leio as perguntas. Quanto é dois mais três?';
 function openVoices(){pickVoice();const n=ptVoices.length,good=ptVoice&&voiceRank(ptVoice)>=3,vName=v=>v.name.replace(/\s*[-(].*$/,'').replace(/^Microsoft\s+/,'');
-  const who=[['','Narrador'],...Object.keys(VOICES).map(w=>[w,w])];
+  const who=[['','Narradora'],...Object.keys(VOICES).map(w=>[w,w])];
   openSheet(`<div class="shop-h"><span class="h2">🗣️ Vozes</span><button class="xbtn" id="s-x" aria-label="Fechar">✕</button></div>
-    <div class="pass ${VO?'on':'off'}" id="v-info">${VO?'Cada personagem tem a <b>sua própria voz</b>, gravada: a apresentação, as comemorações, o fim da rodada e todas as ordens do Mestre.'
+    <div class="pass ${VO?'on':'off'}" id="v-info">${VO?'Cada personagem tem a <b>sua própria voz</b>, gravada, e fala quando aparece com o nome na tela: os anfitriões ao receber você, os amigos, o lojista e o Mestre, que é a voz do jogo dele.'
       :'As vozes gravadas dos personagens ainda não chegaram: abra o jogo com internet uma vez.'}
-      ${!window.speechSynthesis||!n?' As <b>perguntas</b> ficam só escritas, porque este aparelho não tem voz em português para o narrador.'
-      :` As <b>perguntas</b> mudam a cada vez, então quem lê é o <b>narrador</b>, com a voz do aparelho (${vName(ptVoice)}${n>1?`, a mais natural das ${n} que ele tem`:''}).`}</div>
-    ${n&&!good?`<p class="small" style="padding:0 16px;margin:0 0 8px">Para o narrador ter uma voz mais natural: no <b>Windows</b>, use o navegador <b>Edge</b> (ele já traz vozes naturais). No <b>iPhone/iPad</b>: Ajustes → Acessibilidade → Conteúdo Falado → Vozes → Português (Brasil), e baixe uma voz <b>Aprimorada</b>. No <b>Android</b>: Configurações → Acessibilidade → Conversão de texto em voz. Depois, abra o jogo de novo.</p>`:''}
+      ${!window.speechSynthesis||!n?' As <b>perguntas</b> ficam só escritas, porque este aparelho não tem voz em português para a narradora.'
+      :` Dentro dos jogos, quem lê as perguntas, as dicas e os acertos é a <b>narradora</b>, com a voz do aparelho (${vName(ptVoice)}${!womanVoice(ptVoice)?': o aparelho não tem voz feminina em português':n>1?`, a voz feminina mais natural das ${n} que ele tem`:''}).`}</div>
+    ${n&&!good?`<p class="small" style="padding:0 16px;margin:0 0 8px">Para a narradora ter uma voz mais natural: no <b>Windows</b>, use o navegador <b>Edge</b> (ele já traz vozes naturais). No <b>iPhone/iPad</b>: Ajustes → Acessibilidade → Conteúdo Falado → Vozes → Português (Brasil), e baixe uma voz <b>Aprimorada</b>. No <b>Android</b>: Configurações → Acessibilidade → Conversão de texto em voz. Depois, abra o jogo de novo.</p>`:''}
     <div class="items">${who.map(([k,nm])=>`<button class="item" data-k="${k}"><span class="pv">${!k?'📖':KIDS.includes(k)?'🧒':VOICES[k].g==='m'?'🧑':'👩'}</span><span>${nm}</span><small>${k?(VO&&VO[k]?'voz gravada':'voz do aparelho'):ptVoice?vName(ptVoice):'sem voz'}</small><span class="st">▶ Ouvir</span></button>`).join('')}</div>`);
   $('#s-x').onclick=()=>{sfx.tap();closeSheet()};Object.keys(VOICES).forEach(voPreload);
   $$('.item').forEach(b=>b.onclick=()=>{const k=b.dataset.k;speak(k?(sampleLine(k)+' '+sampleTail(k)).trim():NARR_LINE,null,true,k||null)})}
@@ -2788,7 +2791,7 @@ function mestreLines(){const out=['O mestre mandou:','Isso! Agora,','Isso! E ago
   return out.concat(steps,parts)}
 function voiceScript(){const out={},add=(who,...ts)=>{const m=out[who]||(out[who]=new Map());ts.forEach(t=>{const c=cleanSpeech(t),k=voKey(c);if(k&&!m.has(k))m.set(k,c)})};
   Object.keys(VOICES).forEach(w=>add(w,sampleLine(w),...(CHEERS_OF[w]||[])));
-  STATIONS.forEach(st=>add(st.npc.name,introText(st),REST_LINE,...RESULT_H2));
+  STATIONS.forEach(st=>add(st.npc.name,introText(st),REST_LINE));
   KIDS.forEach(w=>add(w,...FRIEND_ASK,FRIEND_BYE,'Isso! Valeu!'));add('Lojista',...SHOP_HI);add('Mestre',...mestreLines());
   return Object.fromEntries(Object.entries(out).map(([w,m])=>[w,[...m].map(([k,t])=>({k,t}))]))}
 
@@ -2897,7 +2900,7 @@ function tick(now){requestAnimationFrame(tick);const raw=(now-last)/1000,dt=Math
   if(!paused&&!document.hidden)dayT+=dt;
   updatePlayer(dt);updatePet(dt);updateWorld(dt);update3D(dt);updatePortals(dt);updateFx(dt);updateCam(dt);updateNear();breakCheck(dt);renderer.render(scene,camera)}
 function boot(){if(S.lite)setQuality(0);resize();buildPlayer();hud();STATIONS.forEach(updateSign);updateHall();camera.position.set(P.x,P.y+5,P.z+10);requestAnimationFrame(tick);if(!S.tut)openTut()}
-window.__ilhaDebug={CAT,buyQ,speak,mission,newMission,missionNote,restNote,resting,openMission,talk,parents,openReport,reportData,reportText,skillState,DAY,noteErr,flushTime,set dayT(v){dayT=v},pickVoice,openVoices,voiceScript,voPlan,voKey,voClip,clauses,cleanSpeech,stopSpeech,introText,genSimon,get saying(){return !!sayNode},get VO(){return VO},set VO(v){VO=v},get ptVoice(){return ptVoice},openSiu,playSiu,get siu(){return siuData},get siuBuf(){return !!siuBuf},camera,SCOPE,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
+window.__ilhaDebug={CAT,buyQ,speak,friendTalk,FRIEND_ASK,mission,newMission,missionNote,restNote,resting,openMission,talk,parents,openReport,reportData,reportText,skillState,DAY,noteErr,flushTime,set dayT(v){dayT=v},pickVoice,openVoices,voiceScript,voPlan,voKey,voClip,clauses,cleanSpeech,stopSpeech,introText,genSimon,get saying(){return !!sayNode},get sayingWho(){return sayNode?sayNode.who+': '+sayNode.k:''},get VO(){return VO},set VO(v){VO=v},get ptVoice(){return ptVoice},openSiu,playSiu,get siu(){return siuData},get siuBuf(){return !!siuBuf},camera,SCOPE,CELES,HAIR_SHAPES,VOICES,voiceFor,celeSnd,playAnim,celebrate,openCeles,get PL(){return PL},get amb(){return !!ambSea},get camMode(){return camMode},SM,simonLoad:q=>loadSimonQ(q),buildPlayer,set forceVerb(v){forceVerb=v},set rotY(v){rotY=v},get rotY(){return rotY},set timeScale(v){TS=v},get onGround(){return onGround},scene,input,get QUAL(){return QUAL},setQuality,set autoQual(v){autoQual=v},renderer,PLATS,SHAPES,lastSkill:()=>lastSkill,record,starsFor,finishChallenge,flushFin,breakCheck,get keys(){return keys},get camRot(){return camRot},get pendFin(){return pendFin},get PF(){return PF},get CH(){return CH},get standing(){return standing},get yaw(){return yaw},set yaw(v){yaw=v},get WORLD(){return WORLD},P,L2W,STM,FRIENDS,HALL,PORTALS,
   aim:()=>CH&&CH.type==='shoot'?aimBalloon():null,set pitch(v){pitch=v},step:dt=>{updatePlayer(dt);update3D(dt);updatePortals(dt);updateCam(dt);updateNear()},startMode,enterWorld,leaveWorld,fire,closeSheet,playAnim,get ANIM(){return ANIM},audio:()=>({state:actx&&actx.state,step:mStep,bpm:song.bpm,parts:PARTS.length}),jump:()=>{input.jump=true},checkTrophies,S:()=>S};
 const fontsReady=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('400 20px Andika')]):Promise.resolve();
 Promise.race([fontsReady,new Promise(r=>setTimeout(r,1800))]).then(()=>{OBBY.boards.forEach((b,k)=>drawBoard(k,'? + ?',false));boot()}).catch(boot);

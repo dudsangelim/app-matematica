@@ -57,8 +57,8 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
   }
   const start = (page, id, mi, level) => page.evaluate(([id, mi, level]) => { const D = __ilhaDebug, st = D.STM[id]; D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); if (level) { D.S().st[id] = D.S().st[id] || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; D.S().st[id].level = level; } D.startMode(st, st.modes[mi]); return D.CH && D.CH.type; }, [id, mi, level]);
   const STATION_IDS = ['contas', 'ordem', 'vocab', 'n10', 'formas', 'dinheiro', 'n100', 'medidas'];
-  /* how many games each station offers (the sums station also has the kart) */
-  const MODES = { contas: [0, 1, 2, 3, 4, 5], ordem: [0, 1], vocab: [0, 1], n10: [0, 1], formas: [0, 1], dinheiro: [0, 1], n100: [0, 1], medidas: [0, 1] };
+  /* how many games each station offers (the sums station has five) */
+  const MODES = { contas: [0, 1, 2, 3, 4], ordem: [0, 1], vocab: [0, 1], n10: [0, 1], formas: [0, 1], dinheiro: [0, 1], n100: [0, 1], medidas: [0, 1] };
 
   console.log('Ilha dos Números: smoke tests');
   const page = await open(1024, 768, { tutorial: false });
@@ -76,8 +76,8 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       const G = window.__ilha, out = [], note = (k, m, q) => { if (out.length < 12) out.push(`${k}: ${m} :: ${String(q && q.text || JSON.stringify(q)).slice(0, 140)}`); };
       const val = s => { if (/^\d+$/.test(String(s))) return +s; const m = String(s).match(/^(\d+) ([+−]) (\d+)$/); return m ? (m[2] === '+' ? +m[1] + +m[3] : +m[1] - +m[3]) : NaN; };
       for (const L of [1, 2, 3]) for (let i = 0; i < N; i++) {
-        for (const g of ['genVocab', 'genN10', 'genMoney', 'genN100', 'genMeasure']) {
-          const k = `${g} L${L}`; let q; try { q = G[g](L); } catch (e) { note(k, 'threw ' + e.message); continue; }
+        for (const [g, gen] of Object.values(__ilhaDebug.STM).flatMap(st => st.modes.filter(m => m.k === 'act').map(m => [m.n, m.gen]))) {
+          const k = `${g} L${L}`; let q; try { q = gen(L); } catch (e) { note(k, 'threw ' + e.message); continue; }
           if (/undefined|NaN|null/.test(q.text + (q.hint || '') + (q.explain || ''))) note(k, 'broken text', q);
           if (!q.hint) note(k, 'no hint', q);
           if (q.verb === 'carry') { const pre = Array(q.pre || 0).fill(1); if (new Set(q.solIdx).size !== q.solIdx.length || q.solIdx.some(j => !(j >= 0 && j < q.items.length))) note(k, 'solution indexes', q); else if (!q.check([...pre, ...q.solIdx.map(j => q.items[j].v)])) note(k, 'stored solution is rejected', q); if (q.items.length > 20) note(k, 'too many things on the floor: ' + q.items.length, q); }
@@ -85,12 +85,11 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
           else { if (!(Number.isInteger(q.ans) && q.ans >= 0 && q.ans < q.opts.length)) note(k, 'answer index ' + q.ans, q); if (q.opts.length < 3 && !/balança/.test(q.text)) note(k, 'fewer than 3 options', q); }
         }
         { const q = G.genArith(L); if (q.opts.length !== 3 || new Set(q.opts).size !== 3 || !q.opts.includes(q.ans) || [q.a, q.b, q.ans, ...q.opts].some(v => v < 0) || !/^contas\.(soma|sub)$/.test(q.skill)) note('genArith L' + L, 'options', q); }
-        { const q = G.genShootArith(L), ok = q.items.filter(x => x.ok); if (ok.length !== (L < 3 ? 1 : 2) || q.items.length !== (L < 3 ? 5 : 6) || (L < 3 && (val(q.ask) !== q.T || q.items.some(x => !/^\d+$/.test(x.label)))) || ok.some(x => val(x.label) !== q.T) || q.items.some(x => !x.ok && val(x.label) === q.T) || q.items.some(x => isNaN(val(x.label))) || new Set(q.items.map(x => x.label)).size !== q.items.length) note('genShootArith L' + L, 'balloons', q); }
         { const q = G.genBus(L), cap = L === 3 ? 20 : 10; if (q.opts.length !== 3 || new Set(q.opts).size !== 3 || !q.opts.includes(q.ans) || q.opts.some(v => v < 0) || q.a < 1 || q.b < 1 || q.end < 1 || q.a > cap || q.end > cap || q.end !== (q.add ? q.a + q.b : q.a - q.b) || q.ans !== (q.kind === 'chg' ? q.b : q.end) || (q.kind === 'chg' && L < 3) || (L < 3 && q.b > (L === 1 ? 3 : 5)) || !/^contas\.(juntar|tirar|falta)$/.test(q.skill) || /undefined|NaN/.test(q.text + q.eq + q.ask)) note('genBus L' + L, 'bus question', q); }
         { const q = G.genGol(L), cap = L === 3 ? 20 : 10, plus = q.kind === 'add' || q.kind === 'need'; if (q.opts.length !== 3 || new Set(q.opts).size !== 3 || !q.opts.includes(q.ans) || q.opts.some(v => v < 1 || v > cap) || q.a < 1 || q.b < 1 || q.end < 1 || q.a > cap || q.end > cap || q.cap !== cap || q.end !== (plus ? q.a + q.b : q.a - q.b) || q.ans !== (q.kind === 'need' ? q.b : q.end) || (L === 1 && !/^(add|sub)$/.test(q.kind)) || (L === 1 && q.b > 3) || q.skill !== 'contas.' + { add: 'juntar', sub: 'tirar', dif: 'comparar', need: 'falta' }[q.kind] || /undefined|NaN/.test(q.text + q.eq + q.ask)) note('genGol L' + L, 'football question', q); }
         { const q = G.genLine(L); if (q.N !== (L === 1 ? 10 : 20) || q.a < 0 || q.a > q.N || q.ans < 0 || q.ans > q.N || q.b < 1 || q.ans !== (q.add ? q.a + q.b : q.a - q.b) || !/^contas\.(retamais|retamenos)$/.test(q.skill)) note('genLine L' + L, 'number line question', q); }
         { const q = G.genShootShapes(L); if (q.items.length !== 8 || !q.items.some(x => x.ok) || !q.items.some(x => !x.ok)) note('genShootShapes L' + L, 'balloons', q); }
-        for (const g of ['genFloorOrder', 'genFloorN100']) { const q = G[g](L); if (q.labels.length !== 9 || !q.ok.some(Boolean) || q.ok.every(Boolean) || new Set(q.labels).size !== 9 || q.labels.some(l => +l < 0)) note(`${g} L${L}`, 'tiles', q); }
+        for (const g of ['genFloorOrder']) { const q = G[g](L); if (q.labels.length !== 9 || !q.ok.some(Boolean) || q.ok.every(Boolean) || new Set(q.labels).size !== 9 || q.labels.some(l => +l < 0)) note(`${g} L${L}`, 'tiles', q); }
         for (const g of ['genShareN10', 'genShareMoney']) { const q = G[g](L); if (!q.check(q.sol.map(ix => ix.map(j => q.items[j].v))) || q.items.length > 17) note(`${g} L${L}`, 'solution or item count ' + q.items.length, q); }
         { const q = G.genBuild(L); if (!q.check(q.sol) || q.sol < 1 || q.sol > 12 || q.supply < q.sol) note('genBuild L' + L, 'stairs', q); }
         { const q = G.genShapeQ(L, null); if (/undefined/.test(q.text) || !q.skill) note('genShapeQ L' + L, 'text', q); }
@@ -100,7 +99,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     assert(!bad.length, bad.join('\n'));
   });
 
-  await test('all 20 game modes start at levels 1, 2 and 3 and run for a moment', async () => {
+  await test('all 19 games start at levels 1, 2 and 3 and run for a moment', async () => {
     eq(await page.evaluate(() => Object.fromEntries(Object.keys(__ilhaDebug.STM).map(id => [id, __ilhaDebug.STM[id].modes.map((m, i) => i)]))), MODES, 'games per station');
     const seen = new Set();
     for (const id of STATION_IDS) {
@@ -112,10 +111,10 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         assert(st.type === type && type, `${id} mode ${mi} level ${level}: challenge did not start`);
         assert(st.mission && st.text.length > 10 && !/undefined|NaN/.test(st.text), `${id} mode ${mi} level ${level}: mission text is "${st.text}"`);
         assert(errors.length === before, `${id} mode ${mi} level ${level}: ${errors.slice(before).join(' | ')}`);
-        seen.add(id + ':' + type);
+        seen.add(id + ':' + mi);
       }
     }
-    eq(seen.size, 20, 'distinct station:mode pairs started');
+    eq(seen.size, 19, 'distinct games started (the tower has two arena games)');
     await page.evaluate(() => document.querySelector('#m-quit').click());
   });
 
@@ -132,7 +131,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await enter(page, 'n100');
     const r = await page.evaluate(async () => {
       const D = __ilhaDebug, S = D.S(), st = D.STM.n100; let guard = 0;
-      do { D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[0]); } while (D.CH.q.verb !== 'jump' && ++guard < 80);
+      do { D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[1]); } while (D.CH.q.verb !== 'jump' && ++guard < 80);
       const t = D.CH.targets[D.CH.q.ans], total = S.st.n100.total, first = S.st.n100.first, coins = S.coins, skill = D.CH.skill, n0 = (S.sk[skill] || { n: 0 }).n;
       D.P.set(t.x, 3, t.z); for (let i = 0; i < 90 && !D.CH.locked; i++) D.step(1 / 60);
       return { verb: D.CH.q.verb, locked: D.CH.locked, dTotal: S.st.n100.total - total, dFirst: S.st.n100.first - first, dCoins: S.coins - coins, skill, dSkill: S.sk[skill] ? S.sk[skill].n - n0 : 0, week: Object.keys(S.wk).length };
@@ -145,7 +144,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await enter(page, 'n10');
     const r = await page.evaluate(() => {
       const D = __ilhaDebug, st = D.STM.n10; let guard = 0; D.S().st.n10.level = 1;
-      do { D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[0]); } while (D.CH.q.verb !== 'carry' && ++guard < 200);
+      do { D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[0]); } while (D.CH.skill !== 'n10.leve' && ++guard < 200);
       const pad = D.CH.pads.pronto, away = D.L2W(st, -6, -3), walk = p => { D.P.set(p.x, 0, p.z); for (let i = 0; i < 5; i++) D.step(1 / 60); };
       walk(away); walk(pad); const ignored = D.CH.tries === 0; walk(D.CH.items[0]); walk({ x: D.CH.basket.x - 1.9, z: D.CH.basket.z }); walk(away); walk(pad); walk(away); const afterFirst = D.CH.tries; walk(pad);
       return { verb: D.CH.q.verb, ignored, afterFirst, locked: D.CH.locked, ok: D.CH.q.check(D.CH.basket.items.map(o => o.v)), owed: (D.S().sk[D.CH.skill] || {}).w };
@@ -250,9 +249,9 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
   });
 
   await test('floor is lava: a wrong tile at the end of the time costs exactly one heart and the round goes on', async () => {
-    await enter(page, 'n100');
+    await enter(page, 'ordem');
     const r = await page.evaluate(async () => {
-      const D = __ilhaDebug, st = D.STM.n100; D.timeScale = .01; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[1]);
+      const D = __ilhaDebug, st = D.STM.ordem; D.timeScale = .01; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[1]);
       const C = D.CH, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, bad = C.tiles.find(t => !t.ok), good = C.tiles.find(t => t.ok), q0 = C.q;
       C.phase = 'play'; D.P.set(bad.p.cx, 1, bad.p.cz); run(30); C.time = 0; run(2); const afterTime = [C.hearts, C.locked, C.phase];
       D.P.set(good.p.cx, 1, good.p.cz); run(30); const lava = D.L2W(st, 4.85, 1.85); D.P.set(lava.x, 0, lava.z); run(6); const afterLava = C.hearts;
@@ -334,7 +333,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     const p = await open(667, 375); await enter(p, 'n100');
     const r = await p.evaluate(() => {
       const D = __ilhaDebug, st = D.STM.n100; let guard = 0;
-      do { D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[0]); } while (D.CH.q.verb !== 'jump' && ++guard < 80);
+      do { D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[1]); } while (D.CH.q.verb !== 'jump' && ++guard < 80);
       const t = D.CH.targets.find(t => t.i !== D.CH.q.ans); D.P.set(t.x, 3, t.z); for (let i = 0; i < 90 && !D.CH.tries; i++) D.step(1 / 60);
       const a = document.querySelector('#toast'), m = document.querySelector('#mission').getBoundingClientRect(), b = a.getBoundingClientRect(), j = document.querySelector('#b-jump').getBoundingClientRect();
       const cut = (x, y) => !(x.right <= y.left || x.left >= y.right || x.bottom <= y.top || x.top >= y.bottom);
@@ -586,7 +585,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await enter(page, 'contas');
     const r = await page.evaluate(() => {
       const D = __ilhaDebug, S = D.S(), st = D.STM.contas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }; D.timeScale = .01; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click();
-      const t0 = S.st.contas ? S.st.contas.total : 0, c0 = S.coins; D.startMode(st, st.modes[2]); const C = D.CH, far = Math.hypot(D.P.x - st.c.x, D.P.z - st.c.z) > 100, stays = (run(30), D.P.x);
+      const t0 = S.st.contas ? S.st.contas.total : 0, c0 = S.coins; D.startMode(st, st.modes.find(m => m.k === 'kart')); const C = D.CH, far = Math.hypot(D.P.x - st.c.x, D.P.z - st.c.z) > 100, stays = (run(30), D.P.x);
       document.querySelector('#b-menu').click(); document.querySelector('#mn-x').click(); D.S().name = 'Outro'; const before = C.kart.parent; D.buildPlayer(); const kartKept = !!C.kart.parent && C.kart.parent !== before;
       C.phase = 'go'; const pass = lane => { const g = C.gates[C.idx]; C.v = 8; C.lat = (lane - 1) * 4; D.P.x = g.x - .3; run(6); };
       const q0 = C.qs[0]; pass((q0.ans + 1) % 3); const afterWrong = [C.idx, C.first, S.coins - c0]; pass(C.qs[1].ans); const afterRight = [C.idx, C.first, S.coins - c0];
@@ -686,7 +685,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         window.__q = q; return [B.className, C.wide, C.tries, C.bz0, B.getBoundingClientRect().width > 300]; });
       await p.setViewportSize({ width: 780, height: 390 }); await p.waitForTimeout(300);
       const b = await p.evaluate(() => { const D = __ilhaDebug, C = D.CH, B = document.querySelector('#board'), q = C.q; for (let i = 0; i < 5; i++) D.step(1 / 60); const r = B.getBoundingClientRect(), pk = document.querySelector('#picks').getBoundingClientRect(), bs = [...document.querySelectorAll('#picks .pk')];
-        const out = [B.className, C.wide, q === window.__q, C.tries, C.ph, C.bz0 < 0, r.bottom < pk.top && r.right <= innerWidth / 2 + 4, bs.filter(x => x.disabled).length, C.tg.filter(s => s.visible).length, C.bd.n1 === q.a || q.kind !== 'add'];
+        const out = [B.className, C.wide, q === window.__q, C.tries, C.ph, C.gz > 0 && C.bz0 === 0 && C.sx === 3.9 /* the goal moved to the right half, the ball still on the penalty mark */, r.bottom < pk.top && r.right <= innerWidth / 2 + 4, bs.filter(x => x.disabled).length, C.tg.filter(s => s.visible).length, C.bd.n1 === q.a || q.kind !== 'add'];
         bs[q.opts.indexOf(q.ans)].click(); for (let i = 0; i < 400 && C.ph === 'kick'; i++) D.step(1 / 60); out.push(C.ph, C.gols); return out; });
       eq([a, b], [['tall', false, 1, 0, true], ['wide', true, true, 1, 'ask', true, true, 1, 2, true, 'goal', 1]], 'screen turned in the middle of a question'); await p.context().close(); }
     eq(r, { start: ['gol', true, true, true, true, false, true], l1: [true, true, true, true, 'wide', true, true, 3], busy: 'kick', busy2: 'kick', miss: ['ask', 1, 1, 0, false, true, true, false, 1, true, true, true], counted: true,
@@ -698,7 +697,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await enter(page, 'contas');
     const r = await page.evaluate(() => {
       const D = __ilhaDebug, S = D.S(), st = D.STM.contas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, out = {}, quit = () => { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); };
-      const play = (L, want) => { let g = 0; do { quit(); S.st.contas = S.st.contas || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; S.st.contas.level = L; D.startMode(st, st.modes[3]); } while (want && !want(D.CH.q) && ++g < 300); return D.CH; };
+      const play = (L, want) => { let g = 0; do { quit(); S.st.contas = S.st.contas || { level: 1, rounds: 0, first: 0, total: 0, stars: 0 }; S.st.contas.level = L; D.startMode(st, st.modes.find(m => m.k === 'bus')); } while (want && !want(D.CH.q) && ++g < 300); return D.CH; };
       const toAsk = C => { const seen = { a: C.seated.length, closedAtMove: null }; for (let i = 0; i < 1500 && C.ph !== 'ask'; i++) { D.step(1 / 60); if (C.ph === 'move' && seen.closedAtMove === null) seen.closedAtMove = C.closed; } run(3); return seen; };
       const btns = () => [...document.querySelectorAll('#picks .pk')], btn = v => btns().find(b => +b.textContent === v), step = (C, v) => { btn(v).click(); run(4); };
       /* level 1, adding: everybody in sight; the player waits at the stop and cannot walk; no buttons before the question */
@@ -729,7 +728,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     await enter(page, 'contas');
     const r = await page.evaluate(() => {
       const D = __ilhaDebug, S = D.S(), st = D.STM.contas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }, out = {}, quit = () => { D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); }, sure = document.querySelector('#b-sure');
-      const play = (L, want) => { let g = 0; do { quit(); S.st.contas.level = L; D.startMode(st, st.modes[4]); } while (want && !want(D.CH.q) && ++g < 300); run(3); return D.CH; };
+      const play = (L, want) => { let g = 0; do { quit(); S.st.contas.level = L; D.startMode(st, st.modes.find(m => m.k === 'line')); } while (want && !want(D.CH.q) && ++g < 300); run(3); return D.CH; };
       const hop = n => { for (let i = 0; i < n; i++) { D.jump(); run(24); } };
       let C = play(1, q => q.add && q.b >= 2 && q.ans < q.N), q = C.q;
       out.start = [C.type, C.pos === q.a, !!C.hop, sure.hidden, C.tiles.length, Math.abs(D.P.x - (st.c.x + C.B0 + q.a * C.w)) < .01];
@@ -753,9 +752,9 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
   });
 
   await test('balloon game: played through a scope - the player stands still, the stick moves the aim, and the shot goes to the balloon under the cross', async () => {
-    await enter(page, 'contas');
+    await enter(page, 'formas');
     const r = await page.evaluate(() => {
-      const D = __ilhaDebug, st = D.STM.contas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[1]);
+      const D = __ilhaDebug, st = D.STM.formas, run = n => { for (let i = 0; i < n; i++) D.step(1 / 60); }; D.flushFin(); D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes.find(m => m.k === 'shoot'));
       const C = D.CH, sc = document.querySelector('#scope'), alive = () => C.balloons.filter(b => b.alive).length, n0 = alive(), out = {}; run(2);
       out.view = [!sc.hidden, document.body.classList.contains('fp'), Math.round(D.camera.fov), D.PL.g.visible, getComputedStyle(document.querySelector('#b-jump')).display, !document.querySelector('#b-fire').hidden];
       out.eye = Math.hypot(D.camera.position.x - D.P.x, D.camera.position.z - D.P.z) < .01 && Math.abs(D.camera.position.y - D.P.y - D.SCOPE.eye) < .01;
@@ -926,15 +925,18 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       const say = who => { said.length = 0; D.speak('oi', null, true, who); return said[0]; }, names = Object.keys(D.VOICES), out = {};
       /* one voice on the device: everybody uses it, each with a pitch and a pace of their own */
       set(['Google português do Brasil']); const one = names.map(n => say(n)); out.one = [names.length, new Set(one.map(x => x[0])).size, new Set(one.map(x => x[1])).size, say(null)[0], one.some(x => x[0] === say(null)[0])];
-      out.none = say(undefined)[0]; const vila = D.STM.vocab; D.startMode(vila, vila.modes[1]); out.master = say(undefined)[0]; document.querySelector('#m-quit').click(); D.startMode(vila, vila.modes[0]); out.host = say(undefined)[0] === say(vila.npc.name)[0]; document.querySelector('#m-quit').click();
+      /* who speaks when nothing says otherwise: the master in his game, the narrator in the games of the hosts (not the host) */
+      out.none = say(undefined)[0]; const vila = D.STM.vocab; D.startMode(vila, vila.modes[1]); out.master = say(undefined)[0]; document.querySelector('#m-quit').click(); D.startMode(vila, vila.modes[0]); out.host = say(undefined)[0] === say(null)[0] && say(undefined)[0] !== say(vila.npc.name)[0]; document.querySelector('#m-quit').click();
       /* no chipmunks and no monsters: every pitch stays near a real voice */
       const v = D.VOICES; out.range = names.every(n => v[n].p >= .75 && v[n].p <= 1.4 && v[n].r >= .85 && v[n].r <= 1.05);
       /* several voices: men get a man's voice, women a woman's, nobody shares one while there are enough, and the pitch-deaf Google voice is left to the narrator */
       set(['Microsoft Maria - Portuguese (Brazil)', 'Google português do Brasil', 'Microsoft Daniel', 'Microsoft Francisca Online (Natural)', 'Microsoft Antonio Online (Natural)', 'Microsoft Thalita Online (Natural)', 'Microsoft Fabio Online (Natural)']);
       const cast = Object.fromEntries(names.map(n => [n, say(n)[1]])), men = names.filter(n => v[n].g === 'm'), women = names.filter(n => v[n].g === 'f');
       out.cast = [men.every(n => /Daniel|Antonio|Fabio/.test(cast[n])), women.every(n => /Maria|Francisca|Thalita/.test(cast[n])), new Set(men.slice(0, 3).map(n => cast[n])).size, new Set(women.slice(0, 3).map(n => cast[n])).size, names.some(n => /Google/.test(cast[n]))];
-      /* the narrator gets the most natural voice; the old robotic voices of Apple only when there is nothing else */
-      out.narrator = say(null)[1]; set(['Eddy (Português (Brasil))', 'Luciana', 'Luciana (Aprimorada)']); out.apple = say(null)[1];
+      /* the narrator gets the most natural woman's voice, also when a man's voice comes first (as on Edge); the old robotic voices of Apple only
+         when there is nothing else; a man's voice only when the device has no woman's voice */
+      out.narrator = say(null)[1]; set(['Microsoft Antonio Online (Natural)', 'Microsoft Francisca Online (Natural)', 'Microsoft Daniel']); out.edge = say(null)[1];
+      set(['Eddy (Português (Brasil))', 'Luciana', 'Luciana (Aprimorada)']); out.apple = say(null)[1]; set(['Microsoft Daniel']); out.onlyMan = say(null)[1];
       /* voices with names the game does not know are still shared out, so the characters do not all sound the same */
       set(['Voz A', 'Voz B', 'Voz C']); out.unknown = new Set(names.map(n => say(n)[1])).size;
       /* with as many unknown voices as characters, every character gets one of their own (men and women draw from the same voices) */
@@ -942,7 +944,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       /* words in capitals are said as words, not letter by letter */
       out.caps = D.cleanSpeech('Fique EM CIMA do bloco, NÃO embaixo. R$ 5');
       return out; });
-    eq(r, { one: [13, 13, 1, '1/0.92', false], none: '1/0.92', master: '0.8/0.88', host: true, range: true, cast: [true, true, 3, 3, false], narrator: 'Microsoft Francisca Online (Natural)', apple: 'Luciana (Aprimorada)', unknown: 3, each: 13, mixed: ['Microsoft Daniel', 3], caps: 'Fique em cima do bloco, não embaixo. 5 reais' }, 'voices');
+    eq(r, { one: [13, 13, 1, '1/0.92', false], none: '1/0.92', master: '0.8/0.88', host: true, range: true, cast: [true, true, 3, 3, false], narrator: 'Microsoft Francisca Online (Natural)', edge: 'Microsoft Francisca Online (Natural)', apple: 'Luciana (Aprimorada)', onlyMan: 'Microsoft Daniel', unknown: 3, each: 13, mixed: ['Microsoft Daniel', 3], caps: 'Fique em cima do bloco, não embaixo. 5 reais' }, 'voices');
     await p.context().close();
   });
 
@@ -957,8 +959,8 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       /* each line lies inside its file */
       const sizes = {}; for (const w of Object.keys(VO)) sizes[w] = (await (await fetch('vozes/' + VO[w].f)).arrayBuffer()).byteLength;
       out.bounds = Object.entries(VO).every(([w, c]) => Object.values(c.l).every(([o, n, d]) => o >= 0 && n > 0 && o + n <= sizes[w] && d > .2 && d < 30));
-      /* a host: the cheer in their voice, then the narrator goes on with the sum; the welcome of each station is one recording */
-      out.host = D.voPlan('Rafa', D.cleanSpeech('Mandou bem! 3 + 4 = 7')).map(x => x.k || x);
+      /* nobody's voice changes in the middle of a sentence: a line is recorded from end to end, or said whole by the device voice */
+      out.host = [D.voPlan('Rafa', D.cleanSpeech('Mandou bem! 3 + 4 = 7')), D.voPlan('Ana', D.cleanSpeech('Me ajuda? A Ana tinha 3 balas.'))];
       out.intros = Object.values(D.STM).every(st => { const pl = D.voPlan(st.npc.name, D.cleanSpeech(D.introText(st))); return pl.length === 1 && pl[0].k; });
       /* a question nobody recorded is read by the narrator */
       out.question = D.voPlan('Theo', D.cleanSpeech('Pule no número SETE!'));
@@ -973,14 +975,18 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       const bufs = await Promise.all(lines.map(([k]) => D.voClip(who(k), k)));
       out.decoded = bufs.every((b, i) => Math.abs(b.duration - lines[i][1][2]) < .12);
       return out; });
-    eq(r, { chars: [true, 13], missing: [], bounds: true, host: ['mandou bem', '3 mais 4 = 7'], intros: true, question: ['Pule no número sete!'], master: [4500, []], decoded: true }, 'recorded voices');
-    /* speaking: the recording plays first, and the narrator (the device voice) reads the rest after it */
-    const flow = await p.evaluate(() => new Promise(done => { const D = __ilhaDebug, said = [];
+    eq(r, { chars: [true, 13], missing: [], bounds: true, host: [null, null], intros: true, question: null, master: [4500, []], decoded: true }, 'recorded voices');
+    /* a friend's riddle: the friend asks for help in their own recorded voice, then the narrator (the device voice, at the narrator's pitch)
+       reads the riddle, which is told about the friend; the two never overlap */
+    const flow = await p.evaluate(() => new Promise(done => { const D = __ilhaDebug, said = [], heard = [];
+      D.S().voice = true; D.closeSheet();
       window.SpeechSynthesisUtterance = function (text) { this.text = text; this.pitch = 1; this.rate = 1; this.voice = null; };
-      Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: u => { said.push([u.text, D.saying]); setTimeout(() => u.onend && u.onend(), 50); }, cancel() {}, getVoices: () => [] } });
-      const t0 = performance.now(); let playing = false; const iv = setInterval(() => { if (D.saying) playing = true; }, 20);
-      D.speak('Mandou bem! Tinha 3.', () => { clearInterval(iv); done({ playing, said, ms: Math.round(performance.now() - t0) > 400 }); }, true, 'Rafa'); }));
-    eq(flow, { playing: true, said: [['Tinha 3.', false]], ms: true }, 'a recorded cheer, then the narrator');
+      Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: u => { said.push([u.text, u.pitch, D.saying]); setTimeout(() => u.onend && u.onend(), 50); }, cancel() {}, getVoices: () => [] } });
+      const iv = setInterval(() => { const w = D.sayingWho; if (w && heard[heard.length - 1] !== w) heard.push(w); }, 20);
+      const f = D.FRIENDS[0]; f.cool = 0; D.friendTalk(f);
+      setTimeout(() => { clearInterval(iv); D.S().voice = false; done({ heard: heard.map(w => w.split(':')[0]), asked: D.FRIEND_ASK.some(a => heard[0] && heard[0].endsWith(D.voKey(a))),
+        said: said.map(([t, pitch, rec]) => [new RegExp('^' + (f.name === 'Ana' ? 'A' : 'O') + ' ' + f.name + ' t').test(t), pitch, rec]) }); }, 6000); }));
+    eq(flow, { heard: ['Ana'], asked: true, said: [[true, 1, false]] }, 'a friend asks in their own voice, then the narrator reads the riddle');
     /* the Voices screen: the narrator and 13 characters, and each character is heard in their recorded voice */
     await p.evaluate(() => { const D = __ilhaDebug; D.closeSheet(); document.querySelector('#b-menu').click(); document.querySelector('#mn-voz').click(); });
     const scr = await p.evaluate(() => new Promise(done => { const D = __ilhaDebug, items = document.querySelectorAll('.item'), info = document.querySelector('#v-info').textContent; let tts = 0;
@@ -989,6 +995,59 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       const iv = setInterval(() => { if (D.saying || performance.now() - t0 > 3000) { clearInterval(iv); done([items.length, /própria voz/.test(info), [...items].filter(b => /voz gravada/.test(b.textContent)).length, D.saying, tts]); } }, 20); }));
     eq(scr, [14, true, 13, true, 0], 'voices screen: narrator and 13 characters with recorded voices, and a sample played from the recording');
     await p.context().close();
+  });
+
+  await test('portals: no game is in two portals; the village only circles and paints, the farm carries to the basket, the tower builds and picks on the board of 100; an old mission keeps its game', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(() => { const D = __ilhaDebug, M = D.STM, out = {}, verbs = (st, mi) => { const v = new Set(); for (let L = 1; L <= 3; L++) for (let i = 0; i < 300; i++) v.add(st.modes[mi].gen(L).verb); return [...v].sort().join(); };
+      const names = Object.values(M).flatMap(st => st.modes.map(m => m.n)), kinds = Object.values(M).map(st => st.modes.map(m => m.k));
+      out.names = [names.length, new Set(names).size, names.some(n => /Desafios|Estoura|Lava 100|Ajude/.test(n))];
+      /* a kind of game that is not the arena (floor of lava, shooting, giving to people, baskets...) is in one portal only */
+      const once = {}; Object.values(M).forEach(st => new Set(st.modes.map(m => m.k === 'share' && m.gen(1).baskets ? 'baskets' : m.k)).forEach(k => { if (k !== 'act') once[k] = (once[k] || 0) + 1; })); out.once = Object.values(once).every(n => n === 1);
+      out.vila = verbs(M.vocab, 0); out.fazenda = verbs(M.n10, 0); out.monte = verbs(M.n100, 0); out.quadro = verbs(M.n100, 1);
+      /* the farm's pick-one questions: the right one carried to the basket is right, any other one is not */
+      let q; do q = M.n10.modes[0].gen(2); while (!q.one || q.items.length !== 3 || !/LEVE para o cesto/.test(q.text));
+      out.pick = [q.check([q.ans]), q.check([(q.ans + 1) % 3]), q.check([q.ans, (q.ans + 1) % 3])];
+      /* the farm shares into baskets, the market serves people */
+      out.share = [!!M.n10.modes[1].gen(2).baskets, !!M.dinheiro.modes[1].gen(2).baskets];
+      return out; });
+    eq(r, { names: [19, 19, false], once: true, vila: 'circle,paint', fazenda: 'carry', monte: 'carry', quadro: 'jump', pick: [true, false, false], share: [true, false] }, 'portals');
+    /* a mission saved before the portals were sorted out: the balloons were the 2nd game of the sums portal, the goal the 6th */
+    const old = await p.evaluate(() => { localStorage.setItem('ilha-numeros-3d-v1', JSON.stringify(Object.assign(JSON.parse(localStorage.getItem('ilha-numeros-3d-v1')), { v: 2, mis: { n: 3, list: [{ id: 'contas', mi: 5, done: false }, { id: 'n10', mi: -1, done: true }, { id: '', mi: -1, done: false }] } }))); });
+    await p.reload(); await p.waitForFunction(() => window.__ilhaDebug, null, { timeout: 30000 });
+    eq(await p.evaluate(() => { const D = __ilhaDebug, L = D.mission(); return [D.STM.contas.modes[L[0].mi].k, L[1].done, D.S().mis.n]; }), ['gol', true, 3], 'old mission: the goal is still the goal, and what was done stays done');
+    await p.context().close();
+  });
+
+  await test('nothing of the HTML reaches the voice: every game, at every level, says its words without tags (some voices read "<b>" out loud)', async () => {
+    const p = await open(1024, 768);
+    const r = await p.evaluate(async () => { const D = __ilhaDebug, said = [], sleep = ms => new Promise(ok => setTimeout(ok, ms));
+      D.S().voice = true; D.timeScale = .05;
+      window.SpeechSynthesisUtterance = function (text) { this.text = text; };
+      Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: u => { said.push(u.text); setTimeout(() => u.onend && u.onend(), 5); }, cancel() {}, getVoices: () => [] } });
+      for (const st of Object.values(D.STM)) for (let m = 0; m < st.modes.length; m++) for (let L = 1; L <= 3; L++) {
+        D.S().st[st.id] = Object.assign(D.S().st[st.id] || { rounds: 0, first: 0, total: 0, stars: 0 }, { level: L });
+        D.closeSheet(); if (D.CH) document.querySelector('#m-quit').click(); D.startMode(st, st.modes[m]); await sleep(60);
+        for (let i = 0; i < 40; i++) D.step(1 / 30); await sleep(30); }
+      if (D.CH) document.querySelector('#m-quit').click(); D.timeScale = 1; D.S().voice = false;
+      return { some: said.length > 40, tags: [...new Set(said.filter(t => /[<>]|&\w+;/.test(t)))].slice(0, 5), clean: D.cleanSpeech('Pegue o número <b>9</b>&nbsp;agora') }; });
+    eq(r, { some: true, tags: [], clean: 'Pegue o número 9 agora' }, 'speech without tags');
+    await p.context().close();
+  });
+
+  await test('Gol de Placa: the ball waits on the penalty mark, in front of the middle of the goal, on wide and tall screens, and comes back to it after a save', async () => {
+    for (const [w, h] of [[1280, 720], [390, 844]]) {
+      const p = await open(w, h);
+      await p.evaluate(() => { const D = __ilhaDebug, st = D.STM.contas; D.closeSheet(); D.startMode(st, st.modes.find(m => m.k === 'gol')); });
+      await p.waitForFunction(() => __ilhaDebug.CH && __ilhaDebug.CH.ph === 'ask', null, { timeout: 45000 });
+      const at = () => p.evaluate(() => { const C = __ilhaDebug.CH, b = C.ball.position; return [+(13.5 - b.x).toFixed(2), +b.z.toFixed(2)]; });
+      const start = await at();
+      await p.evaluate(() => { const C = __ilhaDebug.CH, i = C.q.opts.findIndex(v => v !== C.q.ans); document.querySelectorAll('#picks .pk')[i].click(); });
+      await p.waitForFunction(() => __ilhaDebug.CH && __ilhaDebug.CH.defs === 1 && __ilhaDebug.CH.ph === 'ask', null, { timeout: 30000 });
+      const back = await at();
+      eq([start, back], [[3.9, 0], [3.9, 0]], `ball on the penalty mark (${w}x${h})`);
+      await p.context().close();
+    }
   });
 
   await test('my own siuuu: a recording or an audio file replaces the game shout, stays on this device, and can be removed', async () => {
@@ -1035,7 +1094,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
       fin(other, 0, 0); out.noStar = done();                                                   // a round with no star fills nothing
       fin(other, 0, 3); out.free = [L()[2][2], L()[1][2], S.edit];                              // a game the mission does not name fills the free item
       fin(other, 0, 3); out.again = done();                                                     // and a second one fills nothing more
-      fin('contas', 2, 3); out.wrongGame = [L()[0][2], done()];                                 // the sums item wants its own game: the kart is not it
+      fin('contas', M.contas.modes.findIndex(m => m.k === 'kart'), 3); out.wrongGame = [L()[0][2], done()]; // the sums item wants its own game: the kart is not it
       fin(weak, 1, 3); out.weak = [L()[1][2], S.edit, document.querySelector('#h-mis').textContent];
       const coins = S.coins, day = D.DAY().m; fin('contas', l0[0][1], 3); const l1 = L();
       out.done = [S.edit, S.mis.n, done(), S.coins - coins >= 5, D.DAY().m - day, M.contas.modes[l1[0][1]].k !== M.contas.modes[l0[0][1]].k, l1[1][0] !== weak, document.querySelector('#h-mis').textContent];
@@ -1083,7 +1142,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
         text: [/ADIÇÃO E SUBTRAÇÃO/.test(text), /Subtração \(conta escrita\): Precisa de ajuda \(2\/6 de primeira\)/.test(text), /9 − 4: respondeu 6, era 5/.test(text), /O QUE FAZER AGORA/.test(text), /<b>|undefined|NaN/.test(text)] }; });
     eq(r, { states: [4, 2, 1, 0], hist: '1111101111', pat: { n: 4, by1: 3, swap: 1, first: 0 }, week: [1, 26, 15, 1, true], day: [26, 15, 1, true, 1], tips: [true, true, true], errs: 4, text: [true, true, true, true, false] }, 'report data');
     await p.evaluate(() => { __ilhaDebug.parents(); document.querySelector('#p-rep').click(); });
-    eq(await p.evaluate(() => [!!document.querySelector('.rep'), document.querySelectorAll('.rep .tbl')[0].querySelectorAll('tbody tr').length, document.querySelectorAll('.week .wd').length, document.querySelectorAll('.week .wd.on').length, document.querySelectorAll('.errs span').length, document.querySelectorAll('.rep .tbl')[1].querySelectorAll('tbody tr').length, document.querySelectorAll('.hist i').length >= 19]), [true, 11, 7, 1, 4, 8, true], 'report on screen');
+    eq(await p.evaluate(() => [!!document.querySelector('.rep'), document.querySelectorAll('.rep .tbl')[0].querySelectorAll('tbody tr').length, document.querySelectorAll('.week .wd').length, document.querySelectorAll('.week .wd.on').length, document.querySelectorAll('.errs span').length, document.querySelectorAll('.rep .tbl')[1].querySelectorAll('tbody tr').length, document.querySelectorAll('.hist i').length >= 19]), [true, 10, 7, 1, 4, 8, true], 'report on screen'); /* 10 sums skills: the balloons (and their "ways to make a number") left */
     await p.click('#rp-back'); eq(await p.evaluate(() => !!document.querySelector('#p-rep')), true, 'back to the parents area');
     await p.context().close();
   });
@@ -1106,7 +1165,7 @@ const eq = (a, b, msg) => assert(JSON.stringify(a) === JSON.stringify(b), `${msg
     const r = await p.evaluate(() => { const D = __ilhaDebug, S = D.S(), M = D.STM, out = {}; D.closeSheet();
       const hat = D.CAT.hat.find(i => i.p > 0), shirt = D.CAT.shirt.find(i => i.p > 0);
       S.coins = 137; S.owned = ['hat:' + hat.k, 'shirt:' + shirt.k]; S.look.hat = hat.k; S.look.shirt = shirt.k; S.celes = 4; S.cele = D.CELES[2].k; S.musStyle = 'calma'; S.restOn = false; S.caps = true;
-      for (let i = 0; i < 3; i++) D.finishChallenge(M.formas, 5, 5, 5, 1, null, false, true); D.finishChallenge(M.contas, 3, 5, 3, 1, M.contas.modes[3], false, true); D.noteErr('contas.sub', '9 − 4', 5, 6); D.record('contas', false, 'contas.sub');
+      for (let i = 0; i < 3; i++) D.finishChallenge(M.formas, 5, 5, 5, 1, null, false, true); D.finishChallenge(M.contas, 3, 5, 3, 1, M.contas.modes.find(m => m.k === 'bus'), false, true); D.noteErr('contas.sub', '9 − 4', 5, 6); D.record('contas', false, 'contas.sub');
       const coins = S.coins, celes = S.celes, cele = S.cele; /* the rounds above won medals, and each medal unlocks and picks a celebration */
       out.before = [S.stars > 0, S.st.formas.rounds, S.trophies.formas > 0, Object.keys(S.sk).length > 0, S.errs.length, Object.keys(S.days).length];
       D.parents(); const b = document.querySelector('#p-rc'); b.click(); out.armed = [/de novo/.test(b.textContent), D.S().stars > 0]; b.click(); const N = D.S();

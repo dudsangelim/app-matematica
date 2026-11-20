@@ -6,8 +6,8 @@ O resultado fica em `vozes/`: um MP3 por personagem com todas as falas dele, uma
 
 ## O que é gravado e o que não é
 
-- **Gravado**: a apresentação de cada anfitrião, as comemorações de cada um, o fim da rodada, o aviso do descanso do ouro, as falas curtas dos amigos e do lojista, e todas as ordens do Mestre Mandou (montadas por partes: "O mestre mandou:", "primeiro pule 3 vezes,", "depois toque o sino"...).
-- **Não gravado**: as perguntas, as contas e as explicações mudam a cada vez. Quem lê é o narrador, com a voz do próprio aparelho (o jogo escolhe a mais natural que o aparelho tiver).
+- **Gravado**: o que cada personagem diz quando aparece falando, com o nome na tela: a apresentação de cada anfitrião e o aviso do descanso do ouro, as falas curtas dos amigos e do lojista, e o Mestre Mandou inteiro (as ordens montadas por partes, "O mestre mandou:", "primeiro pule 3 vezes,", "depois toque o sino"..., e os acertos e correções do Mestre).
+- **Não gravado**: tudo o que a narradora fala dentro dos jogos (perguntas, contas, dicas, acertos e explicações), que muda a cada vez. Ela usa a voz feminina mais natural do próprio aparelho. Uma fala nunca mistura gravação e voz do aparelho: se ela não estiver gravada inteira, é dita inteira pela voz do aparelho.
 
 A lista das falas sai do próprio jogo (`voiceScript` em `index.html`). Assim o texto na tela e o áudio nunca ficam diferentes: se uma fala mudar no jogo e não for gravada de novo, ela é dita com a voz do aparelho até a próxima gravação. O teste `recorded voices` (em `npm test`) avisa quando isso acontece.
 
